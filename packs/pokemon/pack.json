@@ -1,0 +1,18 @@
+{
+  "id": "pokemon",
+  "name": "Pokemon",
+  "foil_chance": 0.20,
+  "shiny_chance": 0.015625,
+  "characters": ["bulbasaur", "charmander", "squirtle", "pikachu"],
+  "tiers": [
+    { "id": "common", "label": "common", "art": "common", "skins": {} },
+    { "id": "holo", "label": "holo", "art": "holo",
+      "skins": { "starlight": 10, "reverse": 10, "sheen": 10, "tinsel": 10, "water-web": 10, "crosshatch": 10 } },
+    { "id": "rare-holo", "label": "rare holo", "art": "holo",
+      "skins": { "cracked-ice": 7, "cosmos": 7, "pokeball": 7, "galaxy-reverse": 6 } },
+    { "id": "ultra-rare", "label": "ultra rare", "art": "fullart",
+      "skins": { "radiant": 4, "sunpillar": 4, "illustration-rare": 4, "shiny-vault": 4, "masterball": 3 } },
+    { "id": "secret-rare", "label": "secret rare", "art": "gold",
+      "skins": { "rainbow-rare": 2, "amazing-rare": 2, "gold": 1 } }
+  ]
+}

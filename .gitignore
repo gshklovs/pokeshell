@@ -1,0 +1,4 @@
+# dist/ is committed on purpose: the prebuilt .ans art, so users don't need Python
+.venv/
+previews/
+__pycache__/

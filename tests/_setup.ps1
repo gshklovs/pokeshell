@@ -1,0 +1,31 @@
+# Shared test setup: a throwaway state dir (never %LOCALAPPDATA%\pokeshell) with every skin "installed".
+$ErrorActionPreference = 'Stop'
+$RepoRoot = Split-Path $PSScriptRoot
+. (Join-Path $RepoRoot 'scripts\lib\roll.ps1')
+. (Join-Path $RepoRoot 'scripts\lib\common.ps1')
+Import-PokeshellCore (Join-Path ([IO.Path]::GetTempPath()) 'pokeshell-test-core')
+
+$PlainGuid = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
+$script:Failures = 0
+
+function New-TestState([string]$Name) {
+  $dir = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-$Name-$PID"
+  Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
+  [void][IO.Directory]::CreateDirectory($dir)
+  $tsv = @(Get-PokeshellSkins $RepoRoot | ForEach-Object { "$($_.pack)`t$($_.skin)`t$($_.guid)`ttest" })
+  [IO.File]::WriteAllLines((Join-Path $dir 'installed.tsv'), [string[]]$tsv)
+  $dir
+}
+
+function Assert([bool]$Cond, [string]$What) {
+  if ($Cond) { Write-Host "  ok    $What" -ForegroundColor Green }
+  else { Write-Host "  FAIL  $What" -ForegroundColor Red; $script:Failures++ }
+}
+
+# run a block with the pokeshell env markers cleared (a "fresh process"), then restore them
+function Invoke-Fresh([scriptblock]$Block, [hashtable]$Env = @{}) {
+  $saved = @{}
+  foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'POKESHELL_DISABLE', 'POKESHELL_DRYRUN') { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $null) }
+  foreach ($k in $Env.Keys) { [Environment]::SetEnvironmentVariable($k, $Env[$k]) }
+  try { & $Block } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+}

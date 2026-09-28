@@ -1,0 +1,3 @@
+# keep built art byte-exact (ANSI escape files are data, not text)
+*.ans -text
+*.hlsl text eol=lf
