@@ -1,0 +1,15 @@
+# artlab's Python packages, pinned to the versions the Evolving Skies and 30th Celebration sets were built with
+# (Python 3.12). k-means (scikit-learn), median cut (Pillow) and rembg's ONNX models decide colours and masks, so a
+# different version can change output bytes. Install into the repo's venv, never globally:
+#   py -3.12 -m venv .venv
+#   .venv\Scripts\python -m pip install -r artlab\requirements.txt
+numpy==2.5.3
+scipy==1.18.1
+scikit-image==0.26.0
+scikit-learn==1.9.1
+pillow==12.3.0
+rembg==2.0.85
+onnxruntime==1.30.0
+pooch==1.9.0
+requests==2.34.2
+fonttools==4.66.0

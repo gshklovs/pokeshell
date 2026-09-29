@@ -1,0 +1,1082 @@
+{
+ "commons": [
+  {
+   "id": "me55-B",
+   "name": "Mew",
+   "number": "B",
+   "rarity": "Common",
+   "sprite": "mew",
+   "note": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite"
+  },
+  {
+   "id": "me55-G",
+   "name": "Mew",
+   "number": "G",
+   "rarity": "Common",
+   "sprite": "mew",
+   "note": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite"
+  },
+  {
+   "id": "me55-R",
+   "name": "Mew",
+   "number": "R",
+   "rarity": "Common",
+   "sprite": "mew",
+   "note": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite"
+  },
+  {
+   "id": "me55-1",
+   "name": "Exeggcute",
+   "number": "1",
+   "rarity": "Common",
+   "sprite": "exeggcute"
+  },
+  {
+   "id": "me55-2",
+   "name": "Alolan Exeggutor",
+   "number": "2",
+   "rarity": "Common",
+   "sprite": "exeggutor-alola"
+  },
+  {
+   "id": "me55-3",
+   "name": "Volbeat",
+   "number": "3",
+   "rarity": "Common",
+   "sprite": "volbeat"
+  },
+  {
+   "id": "me55-4",
+   "name": "Illumise",
+   "number": "4",
+   "rarity": "Common",
+   "sprite": "illumise"
+  },
+  {
+   "id": "me55-5",
+   "name": "Tropius",
+   "number": "5",
+   "rarity": "Common",
+   "sprite": "tropius"
+  },
+  {
+   "id": "me55-6",
+   "name": "Cherubi",
+   "number": "6",
+   "rarity": "Common",
+   "sprite": "cherubi"
+  },
+  {
+   "id": "me55-7",
+   "name": "Cherrim",
+   "number": "7",
+   "rarity": "Common",
+   "sprite": "cherrim-sunshine"
+  },
+  {
+   "id": "me55-8",
+   "name": "Vivillon",
+   "number": "8",
+   "rarity": "Common",
+   "sprite": "vivillon-poke-ball"
+  },
+  {
+   "id": "me55-10",
+   "name": "Ninetales",
+   "number": "10",
+   "rarity": "Common",
+   "sprite": "ninetales"
+  },
+  {
+   "id": "me55-11",
+   "name": "Moltres",
+   "number": "11",
+   "rarity": "Common",
+   "sprite": "moltres"
+  },
+  {
+   "id": "me55-13",
+   "name": "Victini",
+   "number": "13",
+   "rarity": "Common",
+   "sprite": "victini"
+  },
+  {
+   "id": "me55-16",
+   "name": "Slowpoke",
+   "number": "16",
+   "rarity": "Common",
+   "sprite": "slowpoke"
+  },
+  {
+   "id": "me55-17",
+   "name": "Lapras",
+   "number": "17",
+   "rarity": "Common",
+   "sprite": "lapras"
+  },
+  {
+   "id": "me55-18",
+   "name": "Articuno",
+   "number": "18",
+   "rarity": "Common",
+   "sprite": "articuno"
+  },
+  {
+   "id": "me55-22",
+   "name": "Wishiwashi",
+   "number": "22",
+   "rarity": "Common",
+   "sprite": "wishiwashi"
+  },
+  {
+   "id": "me55-55",
+   "name": "Zapdos",
+   "number": "55",
+   "rarity": "Common",
+   "sprite": "zapdos"
+  },
+  {
+   "id": "me55-57",
+   "name": "Zeraora",
+   "number": "57",
+   "rarity": "Common",
+   "sprite": "zeraora"
+  },
+  {
+   "id": "me55-58",
+   "name": "Toxel",
+   "number": "58",
+   "rarity": "Common",
+   "sprite": "toxel"
+  },
+  {
+   "id": "me55-59",
+   "name": "Toxtricity",
+   "number": "59",
+   "rarity": "Common",
+   "sprite": "toxtricity-low-key"
+  },
+  {
+   "id": "me55-60",
+   "name": "Toxtricity",
+   "number": "60",
+   "rarity": "Common",
+   "sprite": "toxtricity"
+  },
+  {
+   "id": "me55-61",
+   "name": "Morpeko",
+   "number": "61",
+   "rarity": "Common",
+   "sprite": "morpeko"
+  },
+  {
+   "id": "me55-67",
+   "name": "Marill",
+   "number": "67",
+   "rarity": "Common",
+   "sprite": "marill"
+  },
+  {
+   "id": "me55-68",
+   "name": "Azumarill",
+   "number": "68",
+   "rarity": "Common",
+   "sprite": "azumarill"
+  },
+  {
+   "id": "me55-69",
+   "name": "Espeon",
+   "number": "69",
+   "rarity": "Common",
+   "sprite": "espeon"
+  },
+  {
+   "id": "me55-72",
+   "name": "Unown",
+   "number": "72",
+   "rarity": "Common",
+   "sprite": "unown"
+  },
+  {
+   "id": "me55-73",
+   "name": "Drifloon",
+   "number": "73",
+   "rarity": "Common",
+   "sprite": "drifloon"
+  },
+  {
+   "id": "me55-74",
+   "name": "Cresselia",
+   "number": "74",
+   "rarity": "Common",
+   "sprite": "cresselia"
+  },
+  {
+   "id": "me55-75",
+   "name": "Chandelure",
+   "number": "75",
+   "rarity": "Common",
+   "sprite": "chandelure"
+  },
+  {
+   "id": "me55-77",
+   "name": "Comfey",
+   "number": "77",
+   "rarity": "Common",
+   "sprite": "comfey"
+  },
+  {
+   "id": "me55-78",
+   "name": "Cosmog",
+   "number": "78",
+   "rarity": "Common",
+   "sprite": "cosmog"
+  },
+  {
+   "id": "me55-79",
+   "name": "Cosmoem",
+   "number": "79",
+   "rarity": "Common",
+   "sprite": "cosmoem"
+  },
+  {
+   "id": "me55-83",
+   "name": "Lucario",
+   "number": "83",
+   "rarity": "Common",
+   "sprite": "lucario"
+  },
+  {
+   "id": "me55-84",
+   "name": "Seismitoad",
+   "number": "84",
+   "rarity": "Common",
+   "sprite": "seismitoad"
+  },
+  {
+   "id": "me55-85",
+   "name": "Lycanroc",
+   "number": "85",
+   "rarity": "Common",
+   "sprite": "lycanroc-midnight"
+  },
+  {
+   "id": "me55-87",
+   "name": "Nidoran ♀",
+   "number": "87",
+   "rarity": "Common",
+   "sprite": "nidoran-f"
+  },
+  {
+   "id": "me55-88",
+   "name": "Nidorina",
+   "number": "88",
+   "rarity": "Common",
+   "sprite": "nidorina"
+  },
+  {
+   "id": "me55-89",
+   "name": "Alolan Meowth",
+   "number": "89",
+   "rarity": "Common",
+   "sprite": "meowth-alola"
+  },
+  {
+   "id": "me55-91",
+   "name": "Umbreon",
+   "number": "91",
+   "rarity": "Common",
+   "sprite": "umbreon"
+  },
+  {
+   "id": "me55-93",
+   "name": "Murkrow",
+   "number": "93",
+   "rarity": "Common",
+   "sprite": "murkrow"
+  },
+  {
+   "id": "me55-94",
+   "name": "Scraggy",
+   "number": "94",
+   "rarity": "Common",
+   "sprite": "scraggy"
+  },
+  {
+   "id": "me55-95",
+   "name": "Zorua",
+   "number": "95",
+   "rarity": "Common",
+   "sprite": "zorua"
+  },
+  {
+   "id": "me55-96",
+   "name": "Zoroark",
+   "number": "96",
+   "rarity": "Common",
+   "sprite": "zoroark"
+  },
+  {
+   "id": "me55-97",
+   "name": "Deino",
+   "number": "97",
+   "rarity": "Common",
+   "sprite": "deino"
+  },
+  {
+   "id": "me55-98",
+   "name": "Zweilous",
+   "number": "98",
+   "rarity": "Common",
+   "sprite": "zweilous"
+  },
+  {
+   "id": "me55-99",
+   "name": "Hydreigon",
+   "number": "99",
+   "rarity": "Common",
+   "sprite": "hydreigon"
+  },
+  {
+   "id": "me55-101",
+   "name": "Galarian Meowth",
+   "number": "101",
+   "rarity": "Common",
+   "sprite": "meowth-galar"
+  },
+  {
+   "id": "me55-104",
+   "name": "Ferrothorn",
+   "number": "104",
+   "rarity": "Common",
+   "sprite": "ferrothorn"
+  },
+  {
+   "id": "me55-110",
+   "name": "Jangmo-o",
+   "number": "110",
+   "rarity": "Common",
+   "sprite": "jangmo-o"
+  },
+  {
+   "id": "me55-111",
+   "name": "Hakamo-o",
+   "number": "111",
+   "rarity": "Common",
+   "sprite": "hakamo-o"
+  },
+  {
+   "id": "me55-112",
+   "name": "Kommo-o",
+   "number": "112",
+   "rarity": "Common",
+   "sprite": "kommo-o"
+  },
+  {
+   "id": "me55-113",
+   "name": "Meowth",
+   "number": "113",
+   "rarity": "Common",
+   "sprite": "meowth"
+  },
+  {
+   "id": "me55-114",
+   "name": "Kangaskhan",
+   "number": "114",
+   "rarity": "Common",
+   "sprite": "kangaskhan"
+  },
+  {
+   "id": "me55-115",
+   "name": "Ditto",
+   "number": "115",
+   "rarity": "Common",
+   "sprite": "ditto"
+  },
+  {
+   "id": "me55-116",
+   "name": "Eevee",
+   "number": "116",
+   "rarity": "Common",
+   "sprite": "eevee"
+  },
+  {
+   "id": "me55-117",
+   "name": "Eevee",
+   "number": "117",
+   "rarity": "Common",
+   "sprite": "eevee"
+  },
+  {
+   "id": "me55-118",
+   "name": "Eevee",
+   "number": "118",
+   "rarity": "Common",
+   "sprite": "eevee"
+  },
+  {
+   "id": "me55-119",
+   "name": "Snorlax",
+   "number": "119",
+   "rarity": "Common",
+   "sprite": "snorlax"
+  },
+  {
+   "id": "me55-120",
+   "name": "Igglybuff",
+   "number": "120",
+   "rarity": "Common",
+   "sprite": "igglybuff"
+  },
+  {
+   "id": "me55-122",
+   "name": "Hisuian Zorua",
+   "number": "122",
+   "rarity": "Common",
+   "sprite": "zorua-hisui"
+  },
+  {
+   "id": "me55-123",
+   "name": "Hisuian Zoroark",
+   "number": "123",
+   "rarity": "Common",
+   "sprite": "zoroark-hisui"
+  },
+  {
+   "id": "me55-124",
+   "name": "Minior",
+   "number": "124",
+   "rarity": "Common",
+   "sprite": "minior-red"
+  }
+ ],
+ "rare": [
+  {
+   "id": "me55-12",
+   "name": "Ho-Oh",
+   "number": "12",
+   "rarity": "Rare",
+   "sprite": "ho-oh"
+  },
+  {
+   "id": "me55-14",
+   "name": "Reshiram",
+   "number": "14",
+   "rarity": "Rare",
+   "sprite": "reshiram"
+  },
+  {
+   "id": "me55-19",
+   "name": "Kyogre",
+   "number": "19",
+   "rarity": "Rare",
+   "sprite": "kyogre"
+  },
+  {
+   "id": "me55-20",
+   "name": "Palkia",
+   "number": "20",
+   "rarity": "Rare",
+   "sprite": "palkia"
+  },
+  {
+   "id": "me55-56",
+   "name": "Zekrom",
+   "number": "56",
+   "rarity": "Rare",
+   "sprite": "zekrom"
+  },
+  {
+   "id": "me55-63",
+   "name": "Mewtwo",
+   "number": "63",
+   "rarity": "Rare",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "me55-76",
+   "name": "Xerneas",
+   "number": "76",
+   "rarity": "Rare",
+   "sprite": "xerneas"
+  },
+  {
+   "id": "me55-80",
+   "name": "Lunala",
+   "number": "80",
+   "rarity": "Rare",
+   "sprite": "lunala"
+  },
+  {
+   "id": "me55-82",
+   "name": "Groudon",
+   "number": "82",
+   "rarity": "Rare",
+   "sprite": "groudon"
+  },
+  {
+   "id": "me55-100",
+   "name": "Yveltal",
+   "number": "100",
+   "rarity": "Rare",
+   "sprite": "yveltal"
+  },
+  {
+   "id": "me55-103",
+   "name": "Dialga",
+   "number": "103",
+   "rarity": "Rare",
+   "sprite": "dialga"
+  },
+  {
+   "id": "me55-105",
+   "name": "Solgaleo",
+   "number": "105",
+   "rarity": "Rare",
+   "sprite": "solgaleo"
+  },
+  {
+   "id": "me55-106",
+   "name": "Zacian",
+   "number": "106",
+   "rarity": "Rare",
+   "sprite": "zacian-crowned"
+  },
+  {
+   "id": "me55-107",
+   "name": "Zamazenta",
+   "number": "107",
+   "rarity": "Rare",
+   "sprite": "zamazenta-crowned"
+  },
+  {
+   "id": "me55-121",
+   "name": "Lugia",
+   "number": "121",
+   "rarity": "Rare",
+   "sprite": "lugia"
+  }
+ ],
+ "pikachu_rare": [
+  {
+   "id": "me55-24",
+   "name": "Pikachu",
+   "number": "24",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-25",
+   "name": "Pikachu",
+   "number": "25",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-26",
+   "name": "Pikachu",
+   "number": "26",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-27",
+   "name": "Pikachu",
+   "number": "27",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-28",
+   "name": "Pikachu",
+   "number": "28",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-29",
+   "name": "Pikachu",
+   "number": "29",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-30",
+   "name": "Pikachu",
+   "number": "30",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-31",
+   "name": "Pikachu",
+   "number": "31",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-32",
+   "name": "Pikachu",
+   "number": "32",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-33",
+   "name": "Pikachu",
+   "number": "33",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-34",
+   "name": "Pikachu",
+   "number": "34",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-35",
+   "name": "Pikachu",
+   "number": "35",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-36",
+   "name": "Pikachu",
+   "number": "36",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-37",
+   "name": "Pikachu",
+   "number": "37",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-38",
+   "name": "Pikachu",
+   "number": "38",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-39",
+   "name": "Pikachu",
+   "number": "39",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-40",
+   "name": "Pikachu",
+   "number": "40",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-41",
+   "name": "Pikachu",
+   "number": "41",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-42",
+   "name": "Pikachu",
+   "number": "42",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-43",
+   "name": "Pikachu",
+   "number": "43",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-44",
+   "name": "Pikachu",
+   "number": "44",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-45",
+   "name": "Pikachu",
+   "number": "45",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-46",
+   "name": "Pikachu",
+   "number": "46",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-47",
+   "name": "Pikachu",
+   "number": "47",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-48",
+   "name": "Pikachu",
+   "number": "48",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-49",
+   "name": "Pikachu",
+   "number": "49",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-50",
+   "name": "Pikachu",
+   "number": "50",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-51",
+   "name": "Pikachu",
+   "number": "51",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-52",
+   "name": "Pikachu",
+   "number": "52",
+   "rarity": "Pikachu Rare",
+   "sprite": "pikachu"
+  }
+ ],
+ "double_rare": [
+  {
+   "id": "me55-21",
+   "name": "Greninja ex",
+   "number": "21",
+   "rarity": "Double Rare",
+   "sprite": "greninja"
+  },
+  {
+   "id": "me55-53",
+   "name": "Pikachu ex",
+   "number": "53",
+   "rarity": "Double Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-54",
+   "name": "Pikachu ex",
+   "number": "54",
+   "rarity": "Double Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-64",
+   "name": "Mewtwo ex",
+   "number": "64",
+   "rarity": "Double Rare",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "me55-66",
+   "name": "Mew ex",
+   "number": "66",
+   "rarity": "Double Rare",
+   "sprite": "mew"
+  },
+  {
+   "id": "me55-70",
+   "name": "Espeon ex",
+   "number": "70",
+   "rarity": "Double Rare",
+   "sprite": "espeon"
+  },
+  {
+   "id": "me55-71",
+   "name": "Sylveon ex",
+   "number": "71",
+   "rarity": "Double Rare",
+   "sprite": "sylveon"
+  },
+  {
+   "id": "me55-90",
+   "name": "Gengar ex",
+   "number": "90",
+   "rarity": "Double Rare",
+   "sprite": "gengar"
+  },
+  {
+   "id": "me55-102",
+   "name": "Jirachi ex",
+   "number": "102",
+   "rarity": "Double Rare",
+   "sprite": "jirachi"
+  },
+  {
+   "id": "me55-109",
+   "name": "Salamence ex",
+   "number": "109",
+   "rarity": "Double Rare",
+   "sprite": "salamence"
+  }
+ ],
+ "illustration_rare": [
+  {
+   "id": "me55-129",
+   "name": "Alolan Exeggutor",
+   "number": "129",
+   "rarity": "Illustration Rare",
+   "sprite": "exeggutor-alola"
+  },
+  {
+   "id": "me55-130",
+   "name": "Moltres",
+   "number": "130",
+   "rarity": "Illustration Rare",
+   "sprite": "moltres"
+  },
+  {
+   "id": "me55-132",
+   "name": "Articuno",
+   "number": "132",
+   "rarity": "Illustration Rare",
+   "sprite": "articuno"
+  },
+  {
+   "id": "me55-133",
+   "name": "Zapdos",
+   "number": "133",
+   "rarity": "Illustration Rare",
+   "sprite": "zapdos"
+  },
+  {
+   "id": "me55-134",
+   "name": "Toxtricity",
+   "number": "134",
+   "rarity": "Illustration Rare",
+   "sprite": "toxtricity"
+  },
+  {
+   "id": "me55-135",
+   "name": "Morpeko",
+   "number": "135",
+   "rarity": "Illustration Rare",
+   "sprite": "morpeko"
+  },
+  {
+   "id": "me55-136",
+   "name": "Drifloon",
+   "number": "136",
+   "rarity": "Illustration Rare",
+   "sprite": "drifloon"
+  },
+  {
+   "id": "me55-137",
+   "name": "Chandelure",
+   "number": "137",
+   "rarity": "Illustration Rare",
+   "sprite": "chandelure"
+  },
+  {
+   "id": "me55-138",
+   "name": "Lycanroc",
+   "number": "138",
+   "rarity": "Illustration Rare",
+   "sprite": "lycanroc-midnight"
+  },
+  {
+   "id": "me55-139",
+   "name": "Alolan Meowth",
+   "number": "139",
+   "rarity": "Illustration Rare",
+   "sprite": "meowth-alola"
+  },
+  {
+   "id": "me55-140",
+   "name": "Scraggy",
+   "number": "140",
+   "rarity": "Illustration Rare",
+   "sprite": "scraggy"
+  },
+  {
+   "id": "me55-141",
+   "name": "Galarian Meowth",
+   "number": "141",
+   "rarity": "Illustration Rare",
+   "sprite": "meowth-galar"
+  },
+  {
+   "id": "me55-143",
+   "name": "Kommo-o",
+   "number": "143",
+   "rarity": "Illustration Rare",
+   "sprite": "kommo-o"
+  },
+  {
+   "id": "me55-144",
+   "name": "Meowth",
+   "number": "144",
+   "rarity": "Illustration Rare",
+   "sprite": "meowth"
+  },
+  {
+   "id": "me55-145",
+   "name": "Hisuian Zorua",
+   "number": "145",
+   "rarity": "Illustration Rare",
+   "sprite": "zorua-hisui"
+  }
+ ],
+ "sir_futuristic": [
+  {
+   "id": "me55-148",
+   "name": "Greninja ex",
+   "number": "148",
+   "rarity": "Special Illustration Rare",
+   "sprite": "greninja"
+  },
+  {
+   "id": "me55-149",
+   "name": "Pikachu ex",
+   "number": "149",
+   "rarity": "Special Illustration Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-150",
+   "name": "Pikachu ex",
+   "number": "150",
+   "rarity": "Special Illustration Rare",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "me55-151",
+   "name": "Mewtwo ex",
+   "number": "151",
+   "rarity": "Special Illustration Rare",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "me55-152",
+   "name": "Mew ex",
+   "number": "152",
+   "rarity": "Special Illustration Rare",
+   "sprite": "mew"
+  },
+  {
+   "id": "me55-153",
+   "name": "Sylveon ex",
+   "number": "153",
+   "rarity": "Special Illustration Rare",
+   "sprite": "sylveon"
+  },
+  {
+   "id": "me55-155",
+   "name": "Jirachi ex",
+   "number": "155",
+   "rarity": "Special Illustration Rare",
+   "sprite": "jirachi"
+  },
+  {
+   "id": "me55-156",
+   "name": "Salamence ex",
+   "number": "156",
+   "rarity": "Special Illustration Rare",
+   "sprite": "salamence"
+  },
+  {
+   "id": "me55-158",
+   "name": "Mew ex",
+   "number": "158",
+   "rarity": "Futuristic Rare",
+   "sprite": "mew"
+  }
+ ],
+ "_skipped": [
+  {
+   "id": "me55-15",
+   "name": "Fuecoco ex",
+   "reason": "no colorscripts sprite (fuecoco, Gen 9)"
+  },
+  {
+   "id": "me55-62",
+   "name": "Miraidon",
+   "reason": "no colorscripts sprite (miraidon, Gen 9)"
+  },
+  {
+   "id": "me55-81",
+   "name": "Gimmighoul",
+   "reason": "no colorscripts sprite (gimmighoul, Gen 9)"
+  },
+  {
+   "id": "me55-86",
+   "name": "Koraidon",
+   "reason": "no colorscripts sprite (koraidon, Gen 9)"
+  },
+  {
+   "id": "me55-108",
+   "name": "Gholdengo",
+   "reason": "no colorscripts sprite (gholdengo, Gen 9)"
+  },
+  {
+   "id": "me55-125",
+   "name": "Maushold",
+   "reason": "no colorscripts sprite (maushold, Gen 9)"
+  },
+  {
+   "id": "me55-126",
+   "name": "Poké Pad",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "me55-127",
+   "name": "Switch",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "me55-128",
+   "name": "Ultra Ball",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "me55-142",
+   "name": "Gholdengo",
+   "reason": "no colorscripts sprite (gholdengo, Gen 9)"
+  },
+  {
+   "id": "me55-146",
+   "name": "Maushold",
+   "reason": "no colorscripts sprite (maushold, Gen 9)"
+  },
+  {
+   "id": "me55-147",
+   "name": "Fuecoco ex",
+   "reason": "no colorscripts sprite (fuecoco, Gen 9)"
+  }
+ ],
+ "_ladder_done": [
+  "me55-131",
+  "me55-154",
+  "me55-157",
+  "me55-23",
+  "me55-65",
+  "me55-9",
+  "me55-92"
+ ]
+}
