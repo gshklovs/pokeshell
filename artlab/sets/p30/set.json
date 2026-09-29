@@ -1,0 +1,27 @@
+{
+ "name": "30th Celebration",
+ "set_id": "me55",
+ "prefix": "me55",
+ "printed_total": "128",
+ "lookbook": {"section_prefix": "p30set_", "anchor": "p30", "place": "after"},
+ "groups": {
+  "Common": "commons", "Rare": "rare", "Pikachu Rare": "pikachu_rare", "Double Rare": "double_rare",
+  "Illustration Rare": "illustration_rare", "Special Illustration Rare": "sir_futuristic",
+  "Futuristic Rare": "sir_futuristic"
+ },
+ "labels": {
+  "commons": "Common", "rare": "Rare", "pikachu_rare": "Pikachu Rare", "double_rare": "Double Rare",
+  "illustration_rare": "Illustration Rare", "sir_futuristic": "Special Illustration + Futuristic Rare"
+ },
+ "ladder": ["me55-9", "me55-65", "me55-23", "me55-92", "me55-131", "me55-154", "me55-157"],
+ "forms": {
+  "me55-7": "cherrim-sunshine", "me55-8": "vivillon-poke-ball", "me55-59": "toxtricity-low-key",
+  "me55-85": "lycanroc-midnight", "me55-138": "lycanroc-midnight", "me55-124": "minior-red",
+  "me55-106": "zacian-crowned", "me55-107": "zamazenta-crowned", "me55-72": "unown"
+ },
+ "notes": {
+  "me55-B": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite",
+  "me55-G": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite",
+  "me55-R": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite"
+ }
+}

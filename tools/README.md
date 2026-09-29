@@ -28,6 +28,9 @@ New tabs pick up changed art on their own (the roll cache stamps the `art/` fold
 
 ## build_realcards.py / fetch_cards.py: the real-card pokemon pack
 
+How each card's art is made (fetching a set, masks, the per-rarity effects, animations, the lookbook review, the
+audit, then this import) is in [docs/ART_METHOD.md](../docs/ART_METHOD.md); the code for it is in `artlab/`.
+
 `packs/pokemon` is a pack of real printed cards keyed by pokemontcg.io id (format: `docs/PACK_FORMAT.md`, "Real-card
 packs"). Only `pack.json` is committed. The art (the pokemon-colorscripts sprite over each card's scene) and the
 card text are Nintendo's / copyrighted, so they are built locally and git-ignored:
@@ -66,8 +69,8 @@ What an import does, per card:
 New tabs pick up new cards on their own (the roll cache stamps `dist/pokemon`). `pokeshell odds` shows the result.
 
 - `build_realcards.py tiers` copies label / family / weight / rarity / skins / frame from
-  `style-lab/rarities/rarities.json` into the `pack.json` tiers (matching ids; new ids appended).
-- `--effects` renders each card through `style-lab/rarities/effects.py`: it must define
+  `artlab/rarities/rarities.json` into the `pack.json` tiers (matching ids; new ids appended).
+- `--effects` renders each card through `artlab/rarities/effects.py`: it must define
   `render_card(card=<CARD_FORMAT dict>, art=<the ART_FORMAT dict from the batch>, rarity=<its rarities.json entry or None>)`
   returning an ART_FORMAT dict of the same shape. Without the flag the batch art is used as-is.
 

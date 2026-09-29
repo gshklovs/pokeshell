@@ -1,0 +1,1130 @@
+{
+ "sources": {
+  "PB-SV": "https://www.pokebeach.com/2024/03/temporal-forces-has-hardest-pull-rates-of-scarlet-violet-sets-for-highest-rarities",
+  "PB-PAF": "https://www.pokebeach.com/2024/01/paldean-fates-pull-rates-revealed",
+  "PB-PRE": "https://www.pokebeach.com/2025/01/prismatic-evolutions-pull-rates-revealed-special-illustration-rares-twice-as-easy-to-pull",
+  "CY-SV": "https://www.codedyellow.com/scarlet-and-violet-base-set-pull-rate/",
+  "DTQ-SV": "https://www.digitaltq.com/scarlet-violet-pull-rates-pokemon-tcg",
+  "DTQ-VV": "https://www.digitaltq.com/vivid-voltage-booster-pull-rates-pokemon-tcg",
+  "DTQ-ASR": "https://www.digitaltq.com/astral-radiance-pull-rates-pokemon-tcg",
+  "DTQ-BRS": "https://www.digitaltq.com/brilliant-stars-pull-rates-pokemon-tcg",
+  "BC-ASR": "https://bleedingcool.com/games/pokemon-tcg-pull-rate-quest-astral-radiance-part-six/",
+  "PD": "https://www.thepricedex.com/set/<code>/<name>/pull-rates",
+  "FS": "https://flipsidegaming.com/blogs/pokemon-blog/a-comprehensive-review-of-rarity-in-the-pokemon-tcg",
+  "CV": "https://www.cardveil.com/resources/pokemon-holo-patterns",
+  "BULB": "https://bulbapedia.bulbagarden.net/wiki/Holofoil",
+  "BC-HIST": "https://bleedingcool.com/games/a-holographic-history-of-the-pokemon-tcg-pokemon-legend/",
+  "RC-ME": "https://rarecandy.com/blog/rarities-pokemon-mega-evolution-era",
+  "TCGP-ME": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-Mega-Evolution-Pull-Rates/40cbeedc-21ce-473b-aef1-74e3969d9f91/",
+  "PP-BLK": "https://pokepatch.com/2025/07/20/black-bolt-white-flare-pull-rates-in-pokemon-tcg-sets/",
+  "PP-30": "https://pokepatch.com/2026/09/24/30th-celebration-pull-rates-real-odds-top-chase-cards/",
+  "PPT-ME": "https://www.pokemonpricetracker.com/blog/posts/mega-evolution-set-pull-rates-ev-guide-2026",
+  "BULB-MAR": "https://bulbapedia.bulbagarden.net/wiki/Mega_attack_rare_card_(TCG)",
+  "SNKR-151": "https://snkrdunk.com/en/magazine/2023/06/16/japanese-pokemon-151-where-to-buy-full-card-set-list-and-pull-rate/",
+  "CHR": "https://pokemoncard.io/article/new-csr-chr-cards-from-s8b-vmax-climax-122"
+ },
+ "families": {
+  "no-foil": "Common = the bare sprite, no background (user rule); Uncommon / Rare = muted matte scene (sprite-scale blocks / grid scale), plain frame, rarity symbol",
+  "reverse": "the art stays matte; a 5px foil ring outside it carries the pattern",
+  "holo-in-art": "matte frame, foil pattern inside the art window, vertical light bar",
+  "V-family": "framed art with textured foil and a diagonal rainbow beam pair (sunpillar)",
+  "old-era": "LV.X streaks, Prime spiked window, LEGEND split card, BREAK gold square prism",
+  "prism-star": "crystal / prism facets, star emblems, shiny sprites for Shining and Gold Star",
+  "shiny": "the colorscripts SHINY sprite on sparkle / glitter foil",
+  "amazing": "rainbow paint splash bursting out through the frame",
+  "radiant": "radial crosshatch burst from the Pokemon, shiny sprite",
+  "etched-full-art": "full bleed, fingerprint contour lines, rainbow wave along the lines",
+  "special-illustration": "full painting with a pearlescent sweep (and the new pop-art / chrome specials)",
+  "rainbow": "pastel rainbow gradient + etched lines, rainbow frame",
+  "gold": "gold ramp foil (engraved / studs / crystalline / dense etch) + glitter, gold frame",
+  "monochrome": "black or white embossed card, colour only in the moving holo"
+ },
+ "rarities": [
+  {
+   "id": "common",
+   "order": 0,
+   "label": "Common",
+   "api_rarity": [
+    "Common"
+   ],
+   "family": "no-foil",
+   "era": "every era",
+   "finish": "no foil: flat matte print. pokeshell rule: the bare colorscripts sprite, no background at all",
+   "frame": "none (no background)",
+   "odds": "3-5 per pack",
+   "weight": 4.0,
+   "jp_only": false,
+   "recipe": "bare_common",
+   "engine": "bare",
+   "shiny_sprite": false
+  },
+  {
+   "id": "uncommon",
+   "order": 1,
+   "label": "Uncommon",
+   "api_rarity": [
+    "Uncommon"
+   ],
+   "family": "no-foil",
+   "era": "every era",
+   "finish": "no foil: flat matte print",
+   "frame": "plain",
+   "odds": "3 per pack",
+   "weight": 3.0,
+   "jp_only": false,
+   "recipe": "nofoil_uncommon",
+   "engine": "nofoil",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare",
+   "order": 2,
+   "label": "Rare (non-holo)",
+   "api_rarity": [
+    "Rare"
+   ],
+   "family": "no-foil",
+   "era": "WotC to SWSH (in SV the rare slot is always holo)",
+   "finish": "no foil; the rare star is the only tell",
+   "frame": "plain",
+   "odds": "about 2 in 3 packs (WotC-HGSS) [PD][DTQ-SV]",
+   "weight": 0.66,
+   "jp_only": false,
+   "recipe": "nofoil_rare",
+   "engine": "nofoil",
+   "shiny_sprite": false
+  },
+  {
+   "id": "reverse_holo",
+   "order": 3,
+   "label": "Reverse Holo",
+   "api_rarity": [
+    "(parallel print of C/U/R)"
+   ],
+   "family": "reverse",
+   "era": "Legendary Collection (2002) to today",
+   "finish": "the whole card is foil EXCEPT the art window, which stays matte; flat foil (DP-BW), faint tile (SWSH), fine sparkle tile (SV)",
+   "frame": "plain (foiled)",
+   "odds": "about 1 per pack (1-2 in SV) [CV]",
+   "weight": 1.0,
+   "jp_only": false,
+   "recipe": "reverse_classic",
+   "engine": "reverse",
+   "shiny_sprite": false
+  },
+  {
+   "id": "reverse_fireworks",
+   "order": 4,
+   "label": "Reverse Holo: Legendary Collection fireworks",
+   "api_rarity": [
+    "(parallel)"
+   ],
+   "family": "reverse",
+   "era": "Legendary Collection (2002)",
+   "finish": "dense exploding starbursts in pale rainbow on the frame and background; the art is matte",
+   "frame": "plain (foiled)",
+   "odds": "about 1 per pack EST [CV]",
+   "weight": 1.0,
+   "jp_only": false,
+   "recipe": "reverse_fireworks",
+   "engine": "reverse",
+   "shiny_sprite": false
+  },
+  {
+   "id": "reverse_pokeball",
+   "order": 5,
+   "label": "Reverse Holo: Poke Ball pattern",
+   "api_rarity": [
+    "(parallel)"
+   ],
+   "family": "reverse",
+   "era": "JP sv2a 151 (2023) first; English Prismatic Evolutions, Black Bolt / White Flare",
+   "finish": "a repeating grid of Poke Ball icons in the foil outside the art",
+   "frame": "plain (foiled)",
+   "odds": "about 1 in 3 packs in Prismatic Evolutions [PB-PRE]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "reverse_pokeball",
+   "engine": "reverse",
+   "shiny_sprite": false
+  },
+  {
+   "id": "reverse_masterball",
+   "order": 6,
+   "label": "Reverse Holo: Master Ball pattern",
+   "api_rarity": [
+    "(parallel)"
+   ],
+   "family": "reverse",
+   "era": "JP sv2a 151 (2023) first; English Prismatic Evolutions, Black Bolt / White Flare",
+   "finish": "denser, purple-tinted Master Ball icon grid outside the art",
+   "frame": "plain (foiled)",
+   "odds": "about 1 in 20 packs (1 per JP 151 box; 5% of Prismatic Evolutions packs) [SNKR-151][PB-PRE]",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "reverse_masterball",
+   "engine": "reverse",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_starlight",
+   "order": 7,
+   "label": "Rare Holo: starlight (WotC)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Base Set, Jungle, Fossil",
+   "finish": "soft starbursts and specks scattered across the art window; frame matte yellow",
+   "frame": "plain (yellow)",
+   "odds": "1 in 3 packs [PD][FS]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "holo_starlight",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_cosmos",
+   "order": 8,
+   "label": "Rare Holo: cosmos",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Base Set 2 to Call of Legends, many promos",
+   "finish": "dots, circles and orbs of rainbow foil in the art window",
+   "frame": "plain (yellow)",
+   "odds": "1 in 3 packs [PD][FS]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "holo_cosmos",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_swirl",
+   "order": 9,
+   "label": "Rare Holo: cosmos swirl",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "cosmos-era cards where the sheet's spiral landed on the art",
+   "finish": "a large rainbow spiral arcing through the cosmos foil",
+   "frame": "plain (yellow)",
+   "odds": "a cosmos holo placement, rarer than plain cosmos EST",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "holo_swirl",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_tinsel",
+   "order": 10,
+   "label": "Rare Holo: tinsel (BW)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Black & White to Legendary Treasures",
+   "finish": "fine horizontal lines of foil across the art",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 3 packs [PD]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "holo_tinsel",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_mirror",
+   "order": 11,
+   "label": "Rare Holo: sheen / mirror (XY)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "XY",
+   "finish": "a smooth mirror shine with no pattern: one broad diagonal highlight",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 3 packs [PD]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "holo_mirror",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_waterweb",
+   "order": 12,
+   "label": "Rare Holo: water web (SM)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Sun & Moon",
+   "finish": "a wavy web of bright foil lines, like caustics on a pool floor",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 3 packs [PD]",
+   "weight": 0.33,
+   "jp_only": false,
+   "recipe": "holo_waterweb",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_swsh",
+   "order": 13,
+   "label": "Rare Holo: vertical sheen (SWSH)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Sword & Shield",
+   "finish": "vertical-stripe rainbow sheen across the art",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 3-5 packs [DTQ-ASR]",
+   "weight": 0.25,
+   "jp_only": false,
+   "recipe": "holo_stripes",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_sv",
+   "order": 14,
+   "label": "Rare Holo: wave (SV)",
+   "api_rarity": [
+    "Rare Holo"
+   ],
+   "family": "holo-in-art",
+   "era": "Scarlet & Violet, Mega Evolution",
+   "finish": "a soft wavy sheen in the art; silver-grey border",
+   "frame": "plain (silver-grey)",
+   "odds": "1 per pack (the SV rare slot is always holo) [DTQ-SV]",
+   "weight": 1.0,
+   "jp_only": false,
+   "recipe": "holo_wave",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_crackedice",
+   "order": 15,
+   "label": "Rare Holo: cracked ice",
+   "api_rarity": [
+    "Rare Holo",
+    "Promo"
+   ],
+   "family": "holo-in-art",
+   "era": "theme-deck exclusives from Platinum on, many promos",
+   "finish": "large angular shards like shattered glass, each its own tint, bright seams",
+   "frame": "plain (yellow)",
+   "odds": "not in boosters (theme decks, promos)",
+   "weight": 0.02,
+   "jp_only": false,
+   "recipe": "holo_crackedice",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_crosshatch",
+   "order": 16,
+   "label": "Rare Holo: crosshatch",
+   "api_rarity": [
+    "Promo"
+   ],
+   "family": "holo-in-art",
+   "era": "Play! Pokemon prize and staff promos",
+   "finish": "a crosshatch grid of foil lines over the art background",
+   "frame": "plain (yellow)",
+   "odds": "event prize only",
+   "weight": 0.005,
+   "jp_only": false,
+   "recipe": "holo_crosshatch",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "classic_collection",
+   "order": 17,
+   "label": "Classic Collection",
+   "api_rarity": [
+    "Classic Collection"
+   ],
+   "family": "holo-in-art",
+   "era": "Celebrations (2021), 30th Celebration (2026)",
+   "finish": "vintage reprint: yellow frame, cosmos holo in the art, anniversary stamp",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 2.5 packs (Celebrations) [PD]",
+   "weight": 0.4,
+   "jp_only": false,
+   "recipe": "holo_classic_collection",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "promo",
+   "order": 18,
+   "label": "Promo (black star)",
+   "api_rarity": [
+    "Promo"
+   ],
+   "family": "holo-in-art",
+   "era": "every era",
+   "finish": "varies (often cosmos / swirl or cracked ice, sometimes non-holo)",
+   "frame": "plain",
+   "odds": "not in boosters",
+   "weight": 0.01,
+   "jp_only": false,
+   "recipe": "holo_promo",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "radiant_collection",
+   "order": 19,
+   "label": "Radiant Collection",
+   "api_rarity": [
+    "(RC numbers; API: Rare Holo / Uncommon)"
+   ],
+   "family": "holo-in-art",
+   "era": "Legendary Treasures (2013), Generations (2016)",
+   "finish": "full-art style card with sparkly cosmos holo over the WHOLE card, yellow border",
+   "frame": "plain (yellow, foiled)",
+   "odds": "RC C/U about 1 per pack, RC rares about 1 in 20 EST [PD]",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "holo_radiant_collection",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "pikachu_rare",
+   "order": 20,
+   "label": "Pikachu Rare",
+   "api_rarity": [
+    "Pikachu Rare"
+   ],
+   "family": "holo-in-art",
+   "era": "30th Celebration (2026)",
+   "finish": "fireworks holo over the whole card, no plain border",
+   "frame": "none (full bleed)",
+   "odds": "guaranteed 1 per pack [PP-30]",
+   "weight": 1.0,
+   "jp_only": false,
+   "recipe": "holo_pikachu_fireworks",
+   "engine": "holo",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_ex_old",
+   "order": 21,
+   "label": "Rare Holo ex (EX era)",
+   "api_rarity": [
+    "Rare Holo EX"
+   ],
+   "family": "V-family",
+   "era": "Ruby & Sapphire to Power Keepers",
+   "finish": "holo art window and a holographic silver border",
+   "frame": "silver (foiled)",
+   "odds": "about 1 in 12-18 packs [FS]",
+   "weight": 0.07,
+   "jp_only": false,
+   "recipe": "vbeam_ex_old",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_ex_bwxy",
+   "order": 22,
+   "label": "Rare Holo Pokemon-EX (BW/XY)",
+   "api_rarity": [
+    "Rare Holo EX"
+   ],
+   "family": "V-family",
+   "era": "Next Destinies to Evolutions",
+   "finish": "holo art plus an etched line sheen over the face; yellow frame",
+   "frame": "plain (yellow)",
+   "odds": "1 in 18 (Next Destinies) improving to about 1 in 6 [FS][PD]",
+   "weight": 0.1,
+   "jp_only": false,
+   "recipe": "vbeam_ex_bw",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_gx",
+   "order": 23,
+   "label": "Rare Holo GX",
+   "api_rarity": [
+    "Rare Holo GX"
+   ],
+   "family": "V-family",
+   "era": "Sun & Moon",
+   "finish": "water-web / sheen holo in the art, light texture, yellow frame",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 9-12 packs [PD]",
+   "weight": 0.1,
+   "jp_only": false,
+   "recipe": "vbeam_gx",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_v",
+   "order": 24,
+   "label": "Rare Holo V",
+   "api_rarity": [
+    "Rare Holo V",
+    "Holo Rare V"
+   ],
+   "family": "V-family",
+   "era": "Sword & Shield",
+   "finish": "etched diagonal-line holo over big art; rainbow bands that move in opposite directions",
+   "frame": "silver",
+   "odds": "about 1 in 7-10 packs [DTQ-VV][DTQ-ASR]",
+   "weight": 0.12,
+   "jp_only": false,
+   "recipe": "vbeam_v",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_vmax",
+   "order": 25,
+   "label": "Rare Holo VMAX",
+   "api_rarity": [
+    "Rare Holo VMAX",
+    "Holo Rare VMAX"
+   ],
+   "family": "V-family",
+   "era": "Sword & Shield",
+   "finish": "full-bleed art under the frame, bold etched texture, strong beam",
+   "frame": "silver (dark)",
+   "odds": "about 1 in 18-23 packs [DTQ-VV][PD]",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "vbeam_vmax",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_vstar",
+   "order": 26,
+   "label": "Rare Holo VSTAR",
+   "api_rarity": [
+    "Rare Holo VSTAR",
+    "Holo Rare VSTAR"
+   ],
+   "family": "V-family",
+   "era": "Brilliant Stars to Crown Zenith",
+   "finish": "full-bleed textured holo like VMAX with a gold/silver crest: gold-tinged",
+   "frame": "silver-gold",
+   "odds": "about 1 in 30-38 packs [DTQ-BRS][DTQ-ASR]",
+   "weight": 0.03,
+   "jp_only": false,
+   "recipe": "vbeam_vstar",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "double_rare",
+   "order": 27,
+   "label": "Double Rare (ex)",
+   "api_rarity": [
+    "Double Rare",
+    "Rare Holo ex"
+   ],
+   "family": "V-family",
+   "era": "Scarlet & Violet, Mega Evolution",
+   "finish": "the regular ex: art to the frame, textured sparkle holo, silver frame, two black stars",
+   "frame": "silver",
+   "odds": "about 1 in 6-7 packs (SV), 1 in 5 (ME1) [CY-SV][DTQ-SV][RC-ME]",
+   "weight": 0.15,
+   "jp_only": false,
+   "recipe": "vbeam_ex_sv",
+   "engine": "vbeam",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_holo_lvx",
+   "order": 28,
+   "label": "Rare Holo LV.X",
+   "api_rarity": [
+    "Rare Holo LV.X"
+   ],
+   "family": "old-era",
+   "era": "Diamond & Pearl, Platinum",
+   "finish": "galaxy foil background, holographic silver border, bright light streaks",
+   "frame": "silver",
+   "odds": "1 in 36 packs early DP, later 1 in 18 [FS][PD]",
+   "weight": 0.04,
+   "jp_only": false,
+   "recipe": "old_lvx",
+   "engine": "oldera",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_prime",
+   "order": 29,
+   "label": "Rare Prime",
+   "api_rarity": [
+    "Rare Prime"
+   ],
+   "family": "old-era",
+   "era": "HeartGold SoulSilver",
+   "finish": "spiked art-window edge; the border AND the background are holo",
+   "frame": "silver (foiled, spiked window)",
+   "odds": "about 1 in 6 packs [PD]",
+   "weight": 0.16,
+   "jp_only": false,
+   "recipe": "old_prime",
+   "engine": "oldera",
+   "shiny_sprite": false
+  },
+  {
+   "id": "legend",
+   "order": 30,
+   "label": "LEGEND",
+   "api_rarity": [
+    "LEGEND"
+   ],
+   "family": "old-era",
+   "era": "HeartGold SoulSilver to Call of Legends",
+   "finish": "two-card horizontal puzzle, whole surface galaxy holo, little border",
+   "frame": "thin, split down the middle",
+   "odds": "about 1 in 12 packs per half [PD]",
+   "weight": 0.08,
+   "jp_only": false,
+   "recipe": "old_legend",
+   "engine": "oldera",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_break",
+   "order": 31,
+   "label": "Rare BREAK",
+   "api_rarity": [
+    "Rare BREAK"
+   ],
+   "family": "old-era",
+   "era": "XY BREAKpoint to Evolutions",
+   "finish": "the Pokemon in trophy gold; gold 'square prism' foil",
+   "frame": "silver",
+   "odds": "about 1 in 12-13 packs [FS][PD]",
+   "weight": 0.08,
+   "jp_only": false,
+   "recipe": "old_break",
+   "engine": "oldera",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_shining",
+   "order": 32,
+   "label": "Rare Shining (Neo)",
+   "api_rarity": [
+    "Rare Shining"
+   ],
+   "family": "prism-star",
+   "era": "Neo Revelation, Neo Destiny",
+   "finish": "shiny-coloured Pokemon in cosmos holo, big starbursts; yellow frame",
+   "frame": "plain (yellow)",
+   "odds": "1 in 18 (Neo Revelation), 1 in 12 (Neo Destiny) [FS]",
+   "weight": 0.06,
+   "jp_only": false,
+   "recipe": "shiny_shining",
+   "engine": "shiny",
+   "shiny_sprite": true
+  },
+  {
+   "id": "rare_holo_star",
+   "order": 33,
+   "label": "Rare Holo Star (Gold Star)",
+   "api_rarity": [
+    "Rare Holo Star"
+   ],
+   "family": "prism-star",
+   "era": "Team Rocket Returns to Power Keepers, POP",
+   "finish": "shiny Pokemon with a gold star emblem, cosmos holo art",
+   "frame": "plain (yellow)",
+   "odds": "about 1 in 72 packs (some estimates 1 in 30) [FS]",
+   "weight": 0.014,
+   "jp_only": false,
+   "recipe": "prism_goldstar",
+   "engine": "holo",
+   "shiny_sprite": true
+  },
+  {
+   "id": "crystal",
+   "order": 34,
+   "label": "Crystal",
+   "api_rarity": [
+    "(API: Rare Holo)"
+   ],
+   "family": "prism-star",
+   "era": "Aquapolis, Skyridge",
+   "finish": "a translucent crystal-textured Pokemon in a holo window: facets refracting around it",
+   "frame": "plain (yellow)",
+   "odds": "1 in 36 (Aquapolis), 1 in 12-18 (Skyridge) [FS]",
+   "weight": 0.04,
+   "jp_only": false,
+   "recipe": "prism_crystal",
+   "engine": "prism",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_prism_star",
+   "order": 35,
+   "label": "Rare Prism Star",
+   "api_rarity": [
+    "Rare Prism Star"
+   ],
+   "family": "prism-star",
+   "era": "Ultra Prism to Cosmic Eclipse",
+   "finish": "prismatic kaleidoscope holo, a big prism-star emblem, BLACK border",
+   "frame": "plain (black)",
+   "odds": "about 1 in 12 packs [PD]",
+   "weight": 0.08,
+   "jp_only": false,
+   "recipe": "prism_star",
+   "engine": "prism",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_ace",
+   "order": 36,
+   "label": "Rare ACE (ACE SPEC, BW)",
+   "api_rarity": [
+    "Rare ACE"
+   ],
+   "family": "prism-star",
+   "era": "Boundaries Crossed to Plasma Blast",
+   "finish": "holo Trainer with an ACE SPEC banner; pink-violet facet foil EST",
+   "frame": "silver",
+   "odds": "about 1 in 18 packs [PD]",
+   "weight": 0.055,
+   "jp_only": false,
+   "recipe": "prism_ace_bw",
+   "engine": "prism",
+   "shiny_sprite": false
+  },
+  {
+   "id": "ace_spec_rare",
+   "order": 37,
+   "label": "ACE SPEC Rare (SV)",
+   "api_rarity": [
+    "ACE SPEC Rare"
+   ],
+   "family": "prism-star",
+   "era": "Temporal Forces to Prismatic Evolutions",
+   "finish": "whole-card iridescent textured foil, magenta-gold prism; pink rarity star",
+   "frame": "silver-pink",
+   "odds": "1 in 20 packs [PB-SV]",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "prism_ace_sv",
+   "engine": "prism",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_shiny",
+   "order": 38,
+   "label": "Rare Shiny (Shiny Vault)",
+   "api_rarity": [
+    "Rare Shiny"
+   ],
+   "family": "shiny",
+   "era": "Hidden Fates, Shining Fates, Shining Legends",
+   "finish": "silver-toned card, white window with embossed sparkle/glitter foil, 4-point stars",
+   "frame": "silver",
+   "odds": "about 1 in 4.4-4.7 packs [PD]",
+   "weight": 0.22,
+   "jp_only": false,
+   "recipe": "shiny_vault",
+   "engine": "shiny",
+   "shiny_sprite": true
+  },
+  {
+   "id": "rare_shiny_gx",
+   "order": 39,
+   "label": "Rare Shiny GX / Shiny V",
+   "api_rarity": [
+    "Rare Shiny GX"
+   ],
+   "family": "shiny",
+   "era": "Hidden Fates, Shining Fates",
+   "finish": "full-art shiny with black/silver textured foil and sparkle",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 10.6 packs (HIF), 1 in 20 (Shiny V) [PD]",
+   "weight": 0.09,
+   "jp_only": false,
+   "recipe": "shiny_vault_gx",
+   "engine": "shiny",
+   "shiny_sprite": true
+  },
+  {
+   "id": "shiny_rare",
+   "order": 40,
+   "label": "Shiny Rare (SV)",
+   "api_rarity": [
+    "Shiny Rare"
+   ],
+   "family": "shiny",
+   "era": "Paldean Fates (and later SV specials)",
+   "finish": "the scene kept, glitter-sparkle foil all over, silver frame",
+   "frame": "silver",
+   "odds": "1 in 4 packs [PB-PAF]",
+   "weight": 0.25,
+   "jp_only": false,
+   "recipe": "shiny_sv",
+   "engine": "shiny",
+   "shiny_sprite": true
+  },
+  {
+   "id": "shiny_ultra_rare",
+   "order": 41,
+   "label": "Shiny Ultra Rare",
+   "api_rarity": [
+    "Shiny Ultra Rare"
+   ],
+   "family": "shiny",
+   "era": "Paldean Fates",
+   "finish": "textured full-art shiny ex, dense sparkle",
+   "frame": "none (full bleed)",
+   "odds": "1 in 13 packs [PB-PAF]",
+   "weight": 0.077,
+   "jp_only": false,
+   "recipe": "shiny_sv_ultra",
+   "engine": "shiny",
+   "shiny_sprite": true
+  },
+  {
+   "id": "amazing_rare",
+   "order": 42,
+   "label": "Amazing Rare",
+   "api_rarity": [
+    "Amazing Rare"
+   ],
+   "family": "amazing",
+   "era": "Vivid Voltage, Shining Fates, Battle Styles, Evolving Skies",
+   "finish": "textured rainbow paint splash bursting OUT of the art window across the card; yellow frame",
+   "frame": "plain (yellow, broken by the splash)",
+   "odds": "about 1 in 17.5 packs [DTQ-VV][PD]",
+   "weight": 0.057,
+   "jp_only": false,
+   "recipe": "amazing_splash",
+   "engine": "amazing",
+   "shiny_sprite": false
+  },
+  {
+   "id": "radiant_rare",
+   "order": 43,
+   "label": "Radiant Rare",
+   "api_rarity": [
+    "Radiant Rare"
+   ],
+   "family": "radiant",
+   "era": "Astral Radiance to Crown Zenith",
+   "finish": "shiny Pokemon on a whole-card radial crosshatch burst holo; art spills past a light frame",
+   "frame": "silver (thin)",
+   "odds": "about 1 in 20 packs [DTQ-ASR]",
+   "weight": 0.05,
+   "jp_only": false,
+   "recipe": "radiant_burst",
+   "engine": "radiant",
+   "shiny_sprite": true
+  },
+  {
+   "id": "trainer_gallery",
+   "order": 44,
+   "label": "Trainer Gallery Rare Holo",
+   "api_rarity": [
+    "Trainer Gallery Rare Holo"
+   ],
+   "family": "etched-full-art",
+   "era": "Brilliant Stars to Silver Tempest; Crown Zenith Galarian Gallery",
+   "finish": "full-bleed trainer-and-Pokemon art with a pastel holo sheen and light texture",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 8 packs EST [DTQ-BRS]",
+   "weight": 0.12,
+   "jp_only": false,
+   "recipe": "etched_gallery",
+   "engine": "etched",
+   "shiny_sprite": false
+  },
+  {
+   "id": "character_rare_jp",
+   "order": 45,
+   "label": "Character Rare (CHR)",
+   "api_rarity": [
+    "(JP only)"
+   ],
+   "family": "etched-full-art",
+   "era": "JP VMAX Climax (s8b) on",
+   "finish": "Japanese counterpart of Trainer Gallery: full-bleed trainer art, holo sheen, finer texture",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 5 JP packs EST [CHR]",
+   "weight": 0.2,
+   "jp_only": true,
+   "recipe": "etched_chr_jp",
+   "engine": "etched",
+   "shiny_sprite": false
+  },
+  {
+   "id": "ultra_rare",
+   "order": 46,
+   "label": "Ultra Rare / Rare Ultra (full art)",
+   "api_rarity": [
+    "Rare Ultra",
+    "Ultra Rare"
+   ],
+   "family": "etched-full-art",
+   "era": "BW to ME (full-art V/GX/EX/ex and Supporters)",
+   "finish": "full bleed, heavy etched fingerprint texture everywhere, rainbow sheen along the lines",
+   "frame": "none (full bleed)",
+   "odds": "1 in 15 (SV) [PB-SV]; 1 in 18-25 (SWSH) [DTQ-VV]",
+   "weight": 0.06,
+   "jp_only": false,
+   "recipe": "etched_ultra",
+   "engine": "etched",
+   "shiny_sprite": false
+  },
+  {
+   "id": "illustration_rare",
+   "order": 47,
+   "label": "Illustration Rare",
+   "api_rarity": [
+    "Illustration Rare"
+   ],
+   "family": "etched-full-art",
+   "era": "SV, ME (JP: Art Rare, AR)",
+   "finish": "the full painting, full bleed, with a light holo texture",
+   "frame": "none (full bleed)",
+   "odds": "1 in 13 packs (SV) [PB-SV][CY-SV]; 1 in 9 (ME1) [RC-ME]",
+   "weight": 0.077,
+   "jp_only": false,
+   "recipe": "etched_illustration",
+   "engine": "etched",
+   "shiny_sprite": false
+  },
+  {
+   "id": "alternate_art",
+   "order": 48,
+   "label": "Alternate Art (SWSH alt art)",
+   "api_rarity": [
+    "(API: Rare Ultra / Rare Secret / Rare Rainbow)"
+   ],
+   "family": "special-illustration",
+   "era": "Sword & Shield (Evolving Skies, Fusion Strike, Brilliant Stars...)",
+   "finish": "a full storybook painting instead of the stock pose; the brushwork itself is embossed and catches the light",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 70-300+ packs depending on set EST [DTQ-VV]",
+   "weight": 0.008,
+   "jp_only": false,
+   "recipe": "sir_altart",
+   "engine": "sir",
+   "shiny_sprite": false
+  },
+  {
+   "id": "special_illustration_rare",
+   "order": 49,
+   "label": "Special Illustration Rare",
+   "api_rarity": [
+    "Special Illustration Rare"
+   ],
+   "family": "special-illustration",
+   "era": "SV, ME (JP: Special Art Rare, SAR)",
+   "finish": "a full story painting, strong texture following the art, pearlescent sheen",
+   "frame": "none (full bleed)",
+   "odds": "1 in 32 (SV base) to 1 in 86 (Temporal Forces) [CY-SV][PB-SV]",
+   "weight": 0.03,
+   "jp_only": false,
+   "recipe": "sir_special",
+   "engine": "sir",
+   "shiny_sprite": false
+  },
+  {
+   "id": "character_super_rare_jp",
+   "order": 50,
+   "label": "Character Super Rare (CSR)",
+   "api_rarity": [
+    "(JP only)"
+   ],
+   "family": "special-illustration",
+   "era": "JP VMAX Climax (s8b) on",
+   "finish": "glossier, textured trainer + V/VMAX art, warm pearl sheen",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 20 JP packs EST [CHR]",
+   "weight": 0.05,
+   "jp_only": true,
+   "recipe": "sir_csr_jp",
+   "engine": "sir",
+   "shiny_sprite": false
+  },
+  {
+   "id": "mega_attack_rare",
+   "order": 51,
+   "label": "Mega Attack Rare",
+   "api_rarity": [
+    "MEGA_ATTACK_RARE"
+   ],
+   "family": "special-illustration",
+   "era": "ME Ascended Heroes (2026)",
+   "finish": "pop-art full art of a Mega ex (halftone, ink lines, action lines), enhanced foil; pink + green stars",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 29 packs (reported) [PPT-ME][BULB-MAR]",
+   "weight": 0.034,
+   "jp_only": false,
+   "recipe": "popart_mega_attack",
+   "engine": "popart",
+   "shiny_sprite": false
+  },
+  {
+   "id": "futuristic_rare",
+   "order": 52,
+   "label": "Futuristic Rare",
+   "api_rarity": [
+    "Futuristic Rare"
+   ],
+   "family": "special-illustration",
+   "era": "30th Celebration (2026)",
+   "finish": "chrome-stylised metallic Pokemon ex over a burst of energy symbols; coloured rarity star",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 50-120 packs [PP-30]",
+   "weight": 0.012,
+   "jp_only": false,
+   "recipe": "chrome_futuristic",
+   "engine": "chrome",
+   "shiny_sprite": false
+  },
+  {
+   "id": "rare_rainbow",
+   "order": 53,
+   "label": "Rainbow Rare",
+   "api_rarity": [
+    "Rare Rainbow"
+   ],
+   "family": "rainbow",
+   "era": "Sun & Moon to Sword & Shield",
+   "finish": "pastel rainbow gradient over the whole card plus dense etched lines and glitter; the Pokemon itself is rainbow",
+   "frame": "none (full bleed)",
+   "odds": "about 1 in 80-90 packs [PD][DTQ-VV]",
+   "weight": 0.012,
+   "jp_only": false,
+   "recipe": "rainbow_rare",
+   "engine": "rainbow",
+   "shiny_sprite": false
+  },
+  {
+   "id": "secret_rare_gold_bwxy",
+   "order": 54,
+   "label": "Secret Rare: gold Trainer (BW/XY)",
+   "api_rarity": [
+    "Rare Secret"
+   ],
+   "family": "gold",
+   "era": "Black & White to XY",
+   "finish": "gold Trainer/item with an engraved guilloche pattern",
+   "frame": "gold",
+   "odds": "about 1 in 72-125 packs [FS][PD]",
+   "weight": 0.01,
+   "jp_only": false,
+   "recipe": "gold_engraved",
+   "engine": "gold",
+   "shiny_sprite": false
+  },
+  {
+   "id": "secret_rare_gold",
+   "order": 55,
+   "label": "Secret Rare: gold (SM/SWSH)",
+   "api_rarity": [
+    "Rare Secret"
+   ],
+   "family": "gold",
+   "era": "Sun & Moon, Sword & Shield",
+   "finish": "whole-card gold foil, embossed stud texture, gold border",
+   "frame": "gold",
+   "odds": "about 1 in 94 (SM) to 1 in 130 (SWSH) [PD][BC-ASR]",
+   "weight": 0.009,
+   "jp_only": false,
+   "recipe": "gold_secret",
+   "engine": "gold",
+   "shiny_sprite": false
+  },
+  {
+   "id": "hyper_rare",
+   "order": 56,
+   "label": "Hyper Rare (gold)",
+   "api_rarity": [
+    "Hyper Rare"
+   ],
+   "family": "gold",
+   "era": "Scarlet & Violet (JP: UR)",
+   "finish": "the whole card in gold, the Pokemon too, with crystalline etched texture and glitter; three gold stars",
+   "frame": "gold",
+   "odds": "1 in 54 (SV base) to 1 in 139 (Temporal Forces) [CY-SV][PB-SV]",
+   "weight": 0.012,
+   "jp_only": false,
+   "recipe": "gold_hyper",
+   "engine": "gold",
+   "shiny_sprite": false
+  },
+  {
+   "id": "black_white_rare_black",
+   "order": 57,
+   "label": "Black White Rare (Black Bolt)",
+   "api_rarity": [
+    "Black White Rare"
+   ],
+   "family": "monochrome",
+   "era": "Black Bolt (2025)",
+   "finish": "monochrome: black-and-grey art on black foil, colour only in the holo",
+   "frame": "plain (black)",
+   "odds": "about 1 in 496 packs [PP-BLK]",
+   "weight": 0.002,
+   "jp_only": false,
+   "recipe": "mono_black",
+   "engine": "mono",
+   "shiny_sprite": false
+  },
+  {
+   "id": "black_white_rare_white",
+   "order": 58,
+   "label": "Black White Rare (White Flare)",
+   "api_rarity": [
+    "Black White Rare"
+   ],
+   "family": "monochrome",
+   "era": "White Flare (2025)",
+   "finish": "monochrome: embossed white foil, colour only through the holo",
+   "frame": "plain (white)",
+   "odds": "about 1 in 496 packs [PP-BLK]",
+   "weight": 0.002,
+   "jp_only": false,
+   "recipe": "mono_white",
+   "engine": "mono",
+   "shiny_sprite": false
+  },
+  {
+   "id": "mega_hyper_rare",
+   "order": 59,
+   "label": "Mega Hyper Rare",
+   "api_rarity": [
+    "Mega Hyper Rare"
+   ],
+   "family": "gold",
+   "era": "ME1 Mega Evolution (2025)",
+   "finish": "all-gold monochrome card, dense textured gold, gold border",
+   "frame": "gold",
+   "odds": "about 1 in 1,260 packs [TCGP-ME]",
+   "weight": 0.0008,
+   "jp_only": false,
+   "recipe": "gold_mega_hyper",
+   "engine": "gold",
+   "shiny_sprite": false
+  }
+ ]
+}

@@ -39,6 +39,8 @@ process reading and building the card text); how fast Windows Terminal draws 77 
 
 ## Real-card packs
 
+How these files are made, card by card and rarity by rarity, is [ART_METHOD.md](ART_METHOD.md) (the code is `artlab/`).
+
 A real-card pack (`pack.json` `"cards"`, see `PACK_FORMAT.md`) has one art file per card:
 `packs/<pack>/art/<card id>.json`, written by `tools/build_realcards.py`. Its `id` is the character (the sprite
 name), `card` the pokemontcg.io id, and its only variant is named after the card id, so it builds to

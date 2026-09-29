@@ -1,0 +1,227 @@
+<title>Pokeshell Lookbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#eceef3; --surface:#ffffff; --sunk:#e2e5ec; --line:#d3d8e2; --ink:#1a1d26; --muted:#5b6275;
+  --accent:#9a6f00; --accent-soft:#f6e7b4; --pick:#1f4fd1; --pick-soft:#e3eafc; --term:#0c0e13;
+  --display:"Pixelify Sans","Courier New",monospace; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --ground:#14161d; --surface:#1d212c; --sunk:#171a23; --line:#2d3343; --ink:#ece8dc; --muted:#9ba2b5;
+  --accent:#f0c33c; --accent-soft:#3a3218; --pick:#8fb0ff; --pick-soft:#1f2a47; --term:#0c0e13;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --ground:#14161d; --surface:#1d212c; --sunk:#171a23; --line:#2d3343; --ink:#ece8dc; --muted:#9ba2b5;
+  --accent:#f0c33c; --accent-soft:#3a3218; --pick:#8fb0ff; --pick-soft:#1f2a47; --term:#0c0e13;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.55 var(--body);padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2{font-family:var(--display);font-weight:700;text-wrap:balance;letter-spacing:.01em;margin:0}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1}
+h2{font-size:24px;line-height:1.2}
+h3{font-size:15px;font-weight:600;margin:0}
+p{margin:0;max-width:68ch}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+header.top{padding-block:40px 20px;display:grid;gap:12px;border-bottom:1px solid var(--line)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.statusbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);border-bottom:1px solid var(--line);
+  padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font:500 13px var(--mono)}
+.statusbar .count b{color:var(--accent)}
+.statusbar .save{margin-left:auto;color:var(--muted)}
+.statusbar .save.ok{color:var(--pick)}
+.statusbar .save.err{color:#d9534f}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px}
+nav.toc a{color:var(--muted);text-decoration:none;padding:2px 8px;border:1px solid var(--line);border-radius:4px}
+nav.toc a.done{color:var(--ink);border-color:var(--accent)}
+section.decision{padding-block:36px;border-bottom:1px solid var(--line);display:grid;gap:18px}
+.dhead{display:grid;gap:6px}
+.strip{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
+figure{margin:0;flex:0 0 auto;display:grid;gap:6px;align-content:start}
+figure .frame{background:var(--term);border-radius:6px;padding:8px;display:grid;place-items:center;height:250px}
+figure .frame.card{background:transparent;padding:0}
+figure img{display:block;max-height:234px;width:auto;max-width:100%;image-rendering:pixelated}
+figure .frame.card img{max-height:250px;image-rendering:auto;border-radius:8px}
+.suite{overflow-x:auto;margin-block:12px}
+.suite table{border-collapse:collapse;min-width:900px}
+.suite th{font:600 12px/1.3 var(--mono, monospace);text-transform:uppercase;letter-spacing:.06em;color:var(--muted, #888);text-align:left;padding:8px;vertical-align:top}
+.suite td{padding:8px;vertical-align:top;border-top:1px solid var(--line)}
+.suite img{display:block;width:220px;height:auto;image-rendering:pixelated;border-radius:4px}
+.suite.one table{min-width:0}
+.suite.one img{width:auto;max-width:min(1150px,84vw)}
+.suite.one .cap{max-width:none}
+.suite .cap{font-size:12px;color:var(--muted, #888);margin-top:4px;max-width:220px}
+figure.wide .frame{height:auto;min-height:250px}
+figure.wide img{max-height:none;max-width:min(820px,86vw)}
+figcaption{font:12px/1.35 var(--mono);color:var(--muted);max-width:240px}
+figure.wide figcaption{max-width:none}
+figcaption b{color:var(--ink);font-weight:500}
+.tag{display:inline-block;font:500 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 5px;border-radius:3px;background:var(--sunk);color:var(--muted);margin-bottom:2px}
+.tag.new{background:var(--accent-soft);color:var(--accent)}
+.q{display:grid;gap:10px}
+.q > h3 .qid{font:500 11px var(--mono);color:var(--muted);margin-left:6px}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.opt label{display:grid;gap:4px;height:100%;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+.opt label .t{font-weight:600}
+.opt label .d{font-size:13px;color:var(--muted)}
+.opt input:checked + label{border-color:var(--pick);background:var(--pick-soft);box-shadow:inset 0 0 0 1px var(--pick)}
+.opt input:focus-visible + label{outline:2px solid var(--pick);outline-offset:2px}
+.opt .rec{font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+textarea{width:100%;min-height:64px;resize:vertical;font:14px/1.45 var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea:focus-visible{outline:2px solid var(--pick);outline-offset:1px}
+.notes label{font:500 12px var(--mono);color:var(--muted);display:block;margin-bottom:6px}
+.refs{overflow-x:auto}
+table{border-collapse:collapse;min-width:720px;width:100%;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td img{width:74px;border-radius:4px;display:block}
+td .mono{font-size:12px;color:var(--muted)}
+.decided{padding-block:22px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.decided h2{font-size:18px}
+.decided ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:80ch}
+.ro{border:1px dashed var(--line);border-radius:8px;padding:12px 14px;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:no-preference){.opt label{transition:border-color .12s,background .12s}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">pokeshell · art lookbook</div>
+  <h1>Pick the look of every pull</h1>
+  <p class="muted">What's already settled is listed first. Each section below compares the options as they actually print in Windows Terminal. Choices save as you click; when you're done, tell Claude <b class="mono">go</b> and it reads them from here.</p>
+</header>
+
+
+<section class="decided" aria-labelledby="decided-h">
+  <h2 id="decided-h">Decided</h2>
+  <ul>
+    <li><b>Example</b> (date): a decision the user made, in one line. Move every answered question here and delete its section.</li>
+  </ul>
+</section>
+
+
+<div class="statusbar" role="status">
+  <span class="count"><b id="done-count">0</b> / <span id="total-count">0</span> decided</span>
+  <nav class="toc" id="toc"></nav>
+  <span class="save" id="save-state">Connecting…</span>
+</div>
+
+<div id="sections"></div>
+
+</div>
+
+<script>
+// ---- the decisions --------------------------------------------------------------------------------
+const FIG = (src, cap, tag, opts = {}) => ({ src, cap, tag, ...opts });
+const SECTIONS = [
+  {
+    id: "example_rare", eyebrow: "Set name · Rare", title: "Rare: 1 card",
+    blurb: "Each row: the real card, ours, and ours with its text half.",
+    grid: {
+      dir: "img/example/",
+      cols: ["Real card | ours | ours + text half"],
+      rows: [
+        ["Card name<br>1/100", ["example-1.jpg", "real card | ours | ours + text half"]],
+      ],
+    },
+    questions: [
+      { id: "example_rare_ok", q: "This group", opts: [
+        ["ok", "Looks right", "", true],
+        ["fix", "Fix some", "Name the cards in the notes."],
+      ]},
+    ],
+  },
+];
+
+// ---- render ----------------------------------------------------------------------------------------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const figHtml = (f, wide) => `<figure class="${wide ? "wide" : ""}"><div class="frame${f.card ? " card" : ""}"><img src="${f.src}" alt="${esc(f.cap.replace(/<[^>]+>/g, ""))}" loading="lazy"></div>
+  <figcaption><span class="tag ${f.tag === "new" ? "new" : ""}">${f.tag}</span><br>${f.cap}</figcaption></figure>`;
+const gridHtml = g => `<div class="suite${g.cols.length === 1 ? " one" : ""}"><table><thead><tr><th></th>${g.cols.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${g.rows.map(([name, ...cells]) => `<tr><th scope="row">${name}</th>${cells.map(([src, cap]) => `<td><img src="${g.dir || "img/suite/"}${src}" alt="${esc(name + " " + cap)}" loading="lazy"><div class="cap">${esc(cap)}</div></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+const allQ = SECTIONS.flatMap(s => s.questions.map(q => q.id));
+let state = { choices: {}, notes: {} };
+
+function render() {
+  document.getElementById("sections").innerHTML = SECTIONS.map(s => `
+  <section class="decision" id="${s.id}">
+    <div class="dhead"><div class="eyebrow">${s.eyebrow}</div><h2>${s.title}</h2><p class="muted">${s.blurb.replace(/`([^`]+)`/g, '<span class="mono">$1</span>')}</p></div>
+    ${s.figs ? `<div class="strip">${s.figs.map(f => figHtml(f)).join("")}</div>` : ""}
+    ${s.grid ? gridHtml(s.grid) : ""}
+    ${s.wide ? `<div class="strip">${s.wide.map(f => figHtml(f, true)).join("")}</div>` : ""}
+    ${s.questions.map(q => `
+      <fieldset class="q" style="border:0;padding:0;margin:0"><h3>${q.q.replace(/`([^`]+)`/g, '<span class="mono">$1</span>')}</h3>
+        <div class="opts">${q.opts.map(([v, t, d, rec]) => `
+          <div class="opt"><input type="radio" id="${q.id}-${v}" name="${q.id}" value="${v}">
+            <label for="${q.id}-${v}">${rec ? '<span class="rec">Suggested</span>' : ""}<span class="t">${t}</span><span class="d">${d}</span></label></div>`).join("")}
+        </div></fieldset>`).join("")}
+    <div class="notes"><label for="notes-${s.id}">Notes on ${s.eyebrow.toLowerCase()}</label>
+      <textarea id="notes-${s.id}" data-section="${s.id}" placeholder="Anything to change, keep or try…"></textarea></div>
+  </section>`).join("");
+  document.getElementById("total-count").textContent = allQ.length;
+  document.getElementById("toc").innerHTML = SECTIONS.map(s => `<a href="#${s.id}" data-toc="${s.id}">${s.eyebrow}</a>`).join("");
+}
+
+function applyState() {
+  for (const [k, v] of Object.entries(state.choices || {})) {
+    const el = document.getElementById(`${k}-${v}`); if (el) el.checked = true;
+  }
+  for (const [k, v] of Object.entries(state.notes || {})) {
+    const el = document.getElementById(`notes-${k}`); if (el && document.activeElement !== el) el.value = v;
+  }
+  const done = allQ.filter(id => state.choices && state.choices[id]).length;
+  document.getElementById("done-count").textContent = done;
+  for (const s of SECTIONS) {
+    const a = document.querySelector(`[data-toc="${s.id}"]`);
+    if (a) a.classList.toggle("done", s.questions.every(q => state.choices && state.choices[q.id]));
+  }
+}
+
+// ---- persistence (db: lookbook/choices) ---------------------------------------------------------------
+const saveEl = document.getElementById("save-state");
+const setSave = (t, cls) => { saveEl.textContent = t; saveEl.className = "save " + (cls || ""); };
+let docRef = null, writing = Promise.resolve(), noteTimer = null, readOnly = false;
+
+function save() {
+  if (!docRef || readOnly) return;
+  const body = { choices: { ...state.choices }, notes: { ...state.notes }, updatedAt: new Date().toISOString() };
+  setSave("Saving…");
+  // update merges, so fields this page doesn't own survive; set only if the record doesn't exist yet
+  writing = writing.then(() => docRef.update(body).catch(e => e && e.code === "invalid_argument" ? docRef.set(body) : Promise.reject(e))).then(() => setSave("Saved", "ok")).catch(e => {
+    if (e && e.code === "invalid_argument") { readOnly = true; setSave("Read-only for you", "err"); }
+    else setSave("Not saved: " + (e && e.message || "try again"), "err");
+  });
+}
+
+render();
+applyState();
+
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.type === "radio") { state.choices = { ...state.choices, [t.name]: t.value }; applyState(); save(); }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.tagName === "TEXTAREA" && t.dataset.section) {
+    state.notes = { ...state.notes, [t.dataset.section]: t.value };
+    clearTimeout(noteTimer); noteTimer = setTimeout(save, 700);
+  }
+});
+
+(async () => {
+  const db = window.claude?.use ? await window.claude.use("db") : null;
+  if (!db) { setSave("Saving unavailable here", "err"); return; }
+  docRef = db.doc("lookbook/choices");
+  setSave("Loaded", "ok");
+  docRef.onSnapshot(snap => {
+    if (snap.exists && !snap.metadata.hasPendingWrites) {
+      const d = snap.data();
+      state = { choices: { ...(d.choices || {}) }, notes: { ...(d.notes || {}) } };
+      applyState();
+    }
+  }, err => setSave("Live sync stopped: " + err.code, "err"));
+})();
+</script>

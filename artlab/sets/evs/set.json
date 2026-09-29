@@ -1,0 +1,23 @@
+{
+ "name": "Evolving Skies",
+ "set_id": "swsh7",
+ "prefix": "swsh7",
+ "printed_total": "203",
+ "lookbook": {"section_prefix": "evs_", "anchor": "evs", "place": "before"},
+ "groups": {
+  "Common": "commons", "Uncommon": "uncommon", "Rare": "rare", "Rare Holo": "holo", "Rare Holo V": "v",
+  "Rare Holo VMAX": "vmax", "Rare Ultra": "ultra", "Rare Rainbow": "rainbow_secret", "Rare Secret": "rainbow_secret"
+ },
+ "split": {"ultra": ["ultra_a", "ultra_b"]},
+ "labels": {
+  "commons": "Common", "uncommon": "Uncommon", "rare": "Rare", "holo": "Rare Holo", "v": "Rare Holo V",
+  "vmax": "Rare Holo VMAX", "ultra_a": "Rare Ultra (1/2)", "ultra_b": "Rare Ultra (2/2)",
+  "rainbow_secret": "Rare Rainbow + Rare Secret", "altart": "Alt-art Rare Ultra (Umbreon 215 treatment)"
+ },
+ "ladder": ["swsh7-125", "swsh7-108", "swsh7-106", "swsh7-49", "swsh7-109", "swsh7-74", "swsh7-30", "swsh7-174",
+            "swsh7-204", "swsh7-215", "swsh7-226"],
+ "forms": {
+  "swsh7-91": "lycanroc-dusk", "swsh7-92": "lycanroc-dusk", "swsh7-187": "lycanroc-dusk", "swsh7-213": "lycanroc-dusk"
+ },
+ "notes": "The approved rarity ladder is evcards.py (batch 1) + evcards2.py (batch 2); the full set is batch_*.py, one per plan.json group; batch_altart.py redid the 11 alt-art Rare Ultras with the Umbreon 215 treatment; batch_fixes.py holds the audit fixes. The builders' own CFG / SPEC tables are authoritative for sprite and flip (plan.json's sprite field was a first guess: the Galarian birds had none, Lycanroc and the Gigantamax cards were set in the batches)."
+}

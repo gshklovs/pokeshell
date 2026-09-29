@@ -6,8 +6,10 @@ r"""Assemble the real-card pokemon pack: every card is a real printed card keyed
   .venv\Scripts\python tools\build_realcards.py import p30         # the 30th Celebration batch (style-lab/p30)
   .venv\Scripts\python tools\build_realcards.py import <folder>    # any folder of ART_FORMAT files (see "Batches" below)
   .venv\Scripts\python tools\build_realcards.py tiers              # sync tier labels/weights/families from rarities.json
+  The batches' code, and how every card is made, is in artlab/ (docs/ART_METHOD.md); --lab is where their data and
+  outputs live (art/, anim/, cards/ per batch: the git-excluded style-lab/ by default).
   options: --lab <style-lab folder> (default: <repo>\style-lab), --vendor <folder> (default: <repo>\vendor),
-           --pack <id> (default pokemon), --only <id,id,...>, --effects (render with style-lab/rarities/effects.py),
+           --pack <id> (default pokemon), --only <id,id,...>, --effects (render with artlab/rarities/effects.py),
            --dry-run (report what would change, write nothing)
 
 For each card it writes (all local-only, git-ignored: they embed Nintendo sprites and copyrighted card text)
@@ -33,7 +35,7 @@ Batches
   are Trainers or have no colorscripts sprite (the Gen 9 ones) are skipped and reported.
 
 Effects (later)
-  --effects loads <lab>/rarities/effects.py and calls, per card,
+  --effects loads artlab/rarities/effects.py and calls, per card,
       render_card(card=<CARD_FORMAT dict>, art=<the ART_FORMAT dict built from the batch>, rarity=<rarities.json entry or None>)
   which returns an ART_FORMAT dict (same shape) to save instead. Without --effects the batch art is used as-is.
 """
@@ -218,9 +220,15 @@ def sprite_rows(vendor, character):
     return rows, pal, sh
 
 
-# ---------------------------------------------------------------- effects / rarities (style-lab/rarities)
+# ---------------------------------------------------------------- effects / rarities (artlab/rarities)
+def rarities_dir(lab):
+    """rarities.json + effects.py: the tracked artlab/rarities (docs/ART_METHOD.md), else the lab's own copy"""
+    tracked = ROOT / "artlab" / "rarities"
+    return tracked if (tracked / "rarities.json").exists() else lab / "rarities"
+
+
 def load_rarities(lab):
-    f = lab / "rarities" / "rarities.json"
+    f = rarities_dir(lab) / "rarities.json"
     if not f.exists():
         return None
     d = json.loads(f.read_text(encoding="utf-8"))
@@ -231,7 +239,7 @@ def load_rarities(lab):
 
 
 def load_effects(lab):
-    f = lab / "rarities" / "effects.py"
+    f = rarities_dir(lab) / "effects.py"
     if not f.exists():
         raise SystemExit(f"--effects: {f} does not exist yet")
     spec = importlib.util.spec_from_file_location("pokeshell_effects", f)
@@ -447,7 +455,7 @@ def sync_tiers(opts, pj, rarities):
     """copy label / family / weight / rarity / skins / frame from rarities.json into pack.json tiers (by id);
     new ids are appended. pack.json stays the runtime's only source."""
     if not rarities:
-        raise SystemExit(f"no {opts.lab / 'rarities' / 'rarities.json'}")
+        raise SystemExit(f"no {rarities_dir(opts.lab) / 'rarities.json'}")
     tiers = {t["id"]: t for t in pj["tiers"]}
     for rid, r in rarities.items():
         t = tiers.get(rid)
@@ -471,7 +479,7 @@ def main():
     ap.add_argument("--lab", default=str(ROOT / "style-lab"))
     ap.add_argument("--vendor", default=str(ROOT / "vendor"))
     ap.add_argument("--only", default="", help="comma-separated card ids")
-    ap.add_argument("--effects", action="store_true", help="render each card with <lab>/rarities/effects.py")
+    ap.add_argument("--effects", action="store_true", help="render each card with artlab/rarities/effects.py")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-previews", action="store_true", help="skip the previews/*.png")
     opts = ap.parse_args()
