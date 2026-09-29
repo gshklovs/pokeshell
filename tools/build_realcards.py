@@ -304,15 +304,15 @@ def import_batch(batch, opts, pj, rarities, effects):
             if not opts.dry_run else fetch_cards.card_format(_peek(cid, batch_cards, cards_dir), None)
         if opts.dry_run:
             card["tier"] = fetch_cards.tier_of(pj, card.get("rarity"))
-        if cid in by_id:
-            _, ch, vname, rows, pal, sh, f = by_id[cid]
-            art = card_art(ch, cid, card["name"], rows, pal, sh, f"{batch}:{f.name}#{vname}")
-            src = f"{batch}:{f.name}#{vname}"
-        elif card.get("rarity") == "Common":
-            ch = character_of(card["name"])
+        if card.get("rarity") == "Common":   # commons never get a background: always the plain sprite
+            ch = by_id[cid][1] if cid in by_id else character_of(card["name"])
             rows, pal, sh = sprite_rows(opts.vendor, ch)
             src = f"{batch}:sprite"
             art = card_art(ch, cid, card["name"], rows, pal, sh, src)
+        elif cid in by_id:
+            _, ch, vname, rows, pal, sh, f = by_id[cid]
+            art = card_art(ch, cid, card["name"], rows, pal, sh, f"{batch}:{f.name}#{vname}")
+            src = f"{batch}:{f.name}#{vname}"
         else:
             skipped.append(f"{cid} ({card['name']}, {card.get('rarity')}): no art in the batch yet")
             continue

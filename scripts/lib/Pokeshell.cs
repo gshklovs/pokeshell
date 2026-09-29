@@ -611,12 +611,13 @@ namespace Pokeshell
         /// pack's lowest-tier card), as a legacy pack falls back to tier 0
         static string[] LowestCard(PackRows p, string[] card)
         {
+            // the same character at the pack's lowest tier; else any lowest-tier card (a character with only foil cards
+            // must not fall back to its own foil card shown without its shader)
             string[] best = null, any = null;
             foreach (string[] c in p.Cards)
-            {
                 if (any == null || int.Parse(c[1]) < int.Parse(any[1])) any = c;
-                if (c[2] == card[2] && (best == null || int.Parse(c[1]) < int.Parse(best[1]))) best = c;
-            }
+            foreach (string[] c in p.Cards)
+                if (c[2] == card[2] && c[1] == any[1]) { best = c; break; }
             return best ?? any;
         }
 
