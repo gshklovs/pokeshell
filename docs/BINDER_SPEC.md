@@ -50,20 +50,29 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
 Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired:<id>` lines. `collection.json` is a derived cache the binder rebuilds when it's stale. `viewed.txt` holds the ids already seen, which is what clears NEW stickers.
 
 ## Tags and search (both binders)
-- **Tags per card**: set id and name, printed rarity and our tier id, subtypes, Pokémon types (from the card's
-  `cards/<id>.json`, else pack.json's card fields), character, artist, pack; state tags `shiny`, `foil`, `new`,
-  `pending` (and `owned`, `missing`) from the pulls.
-- **Search** (`/`): words match any tag; `key:value` / `key:"a b"` filter one tag (keys: set, rarity, tier, type,
-  subtype, char, artist, pack, name, number, id; the page adds attack, ability); state words stand alone. Example: `set:swsh7 rarity:"rare rainbow"`.
-  Case and accents don't matter (`flabebe` finds Flabébé). Three keys are exact rather than substrings, so a short
-  value doesn't catch its neighbours: `set:` names a set by its id (`set:swsh1` is not swsh10), else by its name
-  (word starts: `set:evolving`, `set:30th`; then letters in order: `set:evsk`), and the best-matching sets win;
-  `number:17` is the printed number's numerator (17/203, not 117 or 170); `id:` is the whole card id. A quoted value
-  (`id:"swsh7-2"`) is a plain substring for any key. `binder/src/query.rs` implements this. The page follows it for
-  `set:`, `number:` and `id:` and is stricter elsewhere: any `key:value`, quoted or not, matches a whole tag
-  (`rarity:rare` is not every "Rare ..."; `key:pika*` for a prefix; hyphens don't matter, `tier:rare-holo` =
-  `rarity:"rare holo"`), a bare word matches the start of a tag's word (under 3 letters, a whole word: `ex`), and
-  `-term` excludes.
+- **Search** (`/`), the same in both binders (`binder/src/query.rs`; the page's `search:begin`/`search:end` block is a
+  port of it, and tests/test-earned.ps1 runs that block in node on the real cards):
+  - **Words are forgiving.** A word matches a tag when it is inside it, or when its letters come in order from a word
+    start with few gaps (fzf's v2 scoring: bonuses for word starts and runs must outweigh the gaps), so `pikchu` finds
+    Pikachu, `lyc vmax` / `lycvmax` Lycanroc VMAX (not Lycanroc V), `evs rainbow` the Evolving Skies rare rainbows.
+    Under 3 letters a word must start a word of the tag (`ex`, `v`). Every term must match (AND); `-term` (or
+    `-key:value`) leaves out what matches. Case and accents don't matter (`flabebe` finds Flabébé).
+  - **Tags**: set id and name, printed rarity and our tier id, subtypes, Pokémon types (from the card's
+    `cards/<id>.json`, else pack.json's card fields), character, name, number, card id, artist, pack; the page also
+    has `attack:` / `ability:` (key-only, so bare words find the same cards in both binders). State words `shiny`,
+    `foil`, `new`, `pending`, `owned`, `missing` (or `is:shiny`) test the card.
+  - **`key:value`** matches that key's tags like a bare word (`rarity:rainbow`, `type:drk`, `artist:ito`); quotes only
+    keep spaces (`rarity:"rare rainbow"`) and mean nothing else, in both binders (before, the app took a quoted value
+    as a substring and the page as a whole tag). Three keys are exact: `set:` names the best-matching sets by id or
+    name (`set:swsh1` is Sword & Shield, not swsh10; `set:30th`, `set:evolving`, `set:evsk`), ranked like the set
+    picker; `number:17` is the printed numerator (17/203, not 117 or 170; `number:17/203` the whole number); `id:` is
+    the whole card id.
+  - **Results stay binder pockets**, in binder order (set, then printed number), not a ranked list. While a search is
+    on, pack and set tabs without matches disappear and the rest show their count (app: the pack tabs, the set tab and
+    the `S` picker's rows; page: the pack and set dividers).
+  - **Opening a result** (app: Enter, or a click on the selected card; page: a click) clears the search and shows the
+    card on its real, unfiltered binder page among its neighbours, selected and glowing for 1.6 s (the page then opens
+    its details, which close back onto that page). Esc, or clearing the search, returns to where you were before it.
 - **Sets**: real-card packs get a set tab (app: next to the pack tabs, `S` or a click opens the set picker, with each
   set's completion, filtered by typing; web: a divider tab per set). A set page is its checklist: every card of that
   set in pack.json `cards`, in printed-number order (plain numbers, the secret rares past the printed total after
