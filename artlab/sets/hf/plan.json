@@ -1,0 +1,1062 @@
+{
+ "commons": [
+  {
+   "id": "sm115-1",
+   "name": "Caterpie",
+   "number": "1",
+   "rarity": "Common",
+   "sprite": "caterpie"
+  },
+  {
+   "id": "sm115-4",
+   "name": "Paras",
+   "number": "4",
+   "rarity": "Common",
+   "sprite": "paras"
+  },
+  {
+   "id": "sm115-11",
+   "name": "Psyduck",
+   "number": "11",
+   "rarity": "Common",
+   "sprite": "psyduck"
+  },
+  {
+   "id": "sm115-12",
+   "name": "Slowpoke",
+   "number": "12",
+   "rarity": "Common",
+   "sprite": "slowpoke"
+  },
+  {
+   "id": "sm115-13",
+   "name": "Staryu",
+   "number": "13",
+   "rarity": "Common",
+   "sprite": "staryu"
+  },
+  {
+   "id": "sm115-15",
+   "name": "Magikarp",
+   "number": "15",
+   "rarity": "Common",
+   "sprite": "magikarp"
+  },
+  {
+   "id": "sm115-19",
+   "name": "Pikachu",
+   "number": "19",
+   "rarity": "Common",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "sm115-21",
+   "name": "Voltorb",
+   "number": "21",
+   "rarity": "Common",
+   "sprite": "voltorb"
+  },
+  {
+   "id": "sm115-25",
+   "name": "Ekans",
+   "number": "25",
+   "rarity": "Common",
+   "sprite": "ekans"
+  },
+  {
+   "id": "sm115-26",
+   "name": "Ekans",
+   "number": "26",
+   "rarity": "Common",
+   "sprite": "ekans"
+  },
+  {
+   "id": "sm115-28",
+   "name": "Koffing",
+   "number": "28",
+   "rarity": "Common",
+   "sprite": "koffing"
+  },
+  {
+   "id": "sm115-33",
+   "name": "Geodude",
+   "number": "33",
+   "rarity": "Common",
+   "sprite": "geodude"
+  },
+  {
+   "id": "sm115-37",
+   "name": "Cubone",
+   "number": "37",
+   "rarity": "Common",
+   "sprite": "cubone"
+  },
+  {
+   "id": "sm115-38",
+   "name": "Clefairy",
+   "number": "38",
+   "rarity": "Common",
+   "sprite": "clefairy"
+  },
+  {
+   "id": "sm115-39",
+   "name": "Clefairy",
+   "number": "39",
+   "rarity": "Common",
+   "sprite": "clefairy"
+  },
+  {
+   "id": "sm115-41",
+   "name": "Jigglypuff",
+   "number": "41",
+   "rarity": "Common",
+   "sprite": "jigglypuff"
+  },
+  {
+   "id": "sm115-49",
+   "name": "Eevee",
+   "number": "49",
+   "rarity": "Common",
+   "sprite": "eevee"
+  }
+ ],
+ "uncommon": [
+  {
+   "id": "sm115-2",
+   "name": "Metapod",
+   "number": "2",
+   "rarity": "Uncommon",
+   "sprite": "metapod"
+  },
+  {
+   "id": "sm115-5",
+   "name": "Scyther",
+   "number": "5",
+   "rarity": "Uncommon",
+   "sprite": "scyther"
+  },
+  {
+   "id": "sm115-10",
+   "name": "Magmar",
+   "number": "10",
+   "rarity": "Uncommon",
+   "sprite": "magmar"
+  },
+  {
+   "id": "sm115-30",
+   "name": "Jynx",
+   "number": "30",
+   "rarity": "Uncommon",
+   "sprite": "jynx"
+  },
+  {
+   "id": "sm115-34",
+   "name": "Graveler",
+   "number": "34",
+   "rarity": "Uncommon",
+   "sprite": "graveler"
+  },
+  {
+   "id": "sm115-45",
+   "name": "Farfetch'd",
+   "number": "45",
+   "rarity": "Uncommon",
+   "sprite": "farfetchd"
+  },
+  {
+   "id": "sm115-46",
+   "name": "Chansey",
+   "number": "46",
+   "rarity": "Uncommon",
+   "sprite": "chansey"
+  }
+ ],
+ "rare": [
+  {
+   "id": "sm115-3",
+   "name": "Butterfree",
+   "number": "3",
+   "rarity": "Rare",
+   "sprite": "butterfree"
+  },
+  {
+   "id": "sm115-17",
+   "name": "Lapras",
+   "number": "17",
+   "rarity": "Rare",
+   "sprite": "lapras"
+  },
+  {
+   "id": "sm115-22",
+   "name": "Electrode",
+   "number": "22",
+   "rarity": "Rare",
+   "sprite": "electrode"
+  },
+  {
+   "id": "sm115-23",
+   "name": "Jolteon",
+   "number": "23",
+   "rarity": "Rare",
+   "sprite": "jolteon"
+  },
+  {
+   "id": "sm115-27",
+   "name": "Arbok",
+   "number": "27",
+   "rarity": "Rare",
+   "sprite": "arbok"
+  },
+  {
+   "id": "sm115-29",
+   "name": "Weezing",
+   "number": "29",
+   "rarity": "Rare",
+   "sprite": "weezing"
+  },
+  {
+   "id": "sm115-35",
+   "name": "Golem",
+   "number": "35",
+   "rarity": "Rare",
+   "sprite": "golem"
+  },
+  {
+   "id": "sm115-40",
+   "name": "Clefable",
+   "number": "40",
+   "rarity": "Rare",
+   "sprite": "clefable"
+  },
+  {
+   "id": "sm115-43",
+   "name": "Mr. Mime",
+   "number": "43",
+   "rarity": "Rare",
+   "sprite": "mr-mime"
+  },
+  {
+   "id": "sm115-47",
+   "name": "Kangaskhan",
+   "number": "47",
+   "rarity": "Rare",
+   "sprite": "kangaskhan"
+  },
+  {
+   "id": "sm115-50",
+   "name": "Snorlax",
+   "number": "50",
+   "rarity": "Rare",
+   "sprite": "snorlax"
+  }
+ ],
+ "holo": [
+  {
+   "id": "sm115-24",
+   "name": "Zapdos",
+   "number": "24",
+   "rarity": "Rare Holo",
+   "sprite": "zapdos"
+  },
+  {
+   "id": "sm115-48",
+   "name": "Eevee",
+   "number": "48",
+   "rarity": "Rare Holo",
+   "sprite": "eevee"
+  }
+ ],
+ "holo_gx": [
+  {
+   "id": "sm115-6",
+   "name": "Pinsir-GX",
+   "number": "6",
+   "rarity": "Rare Holo GX",
+   "sprite": "pinsir"
+  },
+  {
+   "id": "sm115-14",
+   "name": "Starmie-GX",
+   "number": "14",
+   "rarity": "Rare Holo GX",
+   "sprite": "starmie"
+  },
+  {
+   "id": "sm115-16",
+   "name": "Gyarados-GX",
+   "number": "16",
+   "rarity": "Rare Holo GX",
+   "sprite": "gyarados"
+  },
+  {
+   "id": "sm115-20",
+   "name": "Raichu-GX",
+   "number": "20",
+   "rarity": "Rare Holo GX",
+   "sprite": "raichu"
+  },
+  {
+   "id": "sm115-31",
+   "name": "Mewtwo-GX",
+   "number": "31",
+   "rarity": "Rare Holo GX",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "sm115-36",
+   "name": "Onix-GX",
+   "number": "36",
+   "rarity": "Rare Holo GX",
+   "sprite": "onix"
+  },
+  {
+   "id": "sm115-42",
+   "name": "Wigglytuff-GX",
+   "number": "42",
+   "rarity": "Rare Holo GX",
+   "sprite": "wigglytuff"
+  }
+ ],
+ "ultra": [],
+ "rainbow": [],
+ "secret": [
+  {
+   "id": "sma-SV91",
+   "name": "Tapu Bulu-GX",
+   "number": "SV91",
+   "rarity": "Rare Secret",
+   "sprite": "tapu-bulu"
+  },
+  {
+   "id": "sma-SV92",
+   "name": "Tapu Fini-GX",
+   "number": "SV92",
+   "rarity": "Rare Secret",
+   "sprite": "tapu-fini"
+  },
+  {
+   "id": "sma-SV94",
+   "name": "Tapu Lele-GX",
+   "number": "SV94",
+   "rarity": "Rare Secret",
+   "sprite": "tapu-lele"
+  }
+ ],
+ "shiny_a": [
+  {
+   "id": "sma-SV1",
+   "name": "Scyther",
+   "number": "SV1",
+   "rarity": "Rare Shiny",
+   "sprite": "scyther"
+  },
+  {
+   "id": "sma-SV2",
+   "name": "Rowlet",
+   "number": "SV2",
+   "rarity": "Rare Shiny",
+   "sprite": "rowlet"
+  },
+  {
+   "id": "sma-SV3",
+   "name": "Dartrix",
+   "number": "SV3",
+   "rarity": "Rare Shiny",
+   "sprite": "dartrix"
+  },
+  {
+   "id": "sma-SV4",
+   "name": "Wimpod",
+   "number": "SV4",
+   "rarity": "Rare Shiny",
+   "sprite": "wimpod"
+  },
+  {
+   "id": "sma-SV5",
+   "name": "Pheromosa",
+   "number": "SV5",
+   "rarity": "Rare Shiny",
+   "sprite": "pheromosa"
+  },
+  {
+   "id": "sma-SV7",
+   "name": "Charmeleon",
+   "number": "SV7",
+   "rarity": "Rare Shiny",
+   "sprite": "charmeleon"
+  },
+  {
+   "id": "sma-SV8",
+   "name": "Alolan Vulpix",
+   "number": "SV8",
+   "rarity": "Rare Shiny",
+   "sprite": "vulpix-alola"
+  },
+  {
+   "id": "sma-SV9",
+   "name": "Wooper",
+   "number": "SV9",
+   "rarity": "Rare Shiny",
+   "sprite": "wooper"
+  },
+  {
+   "id": "sma-SV10",
+   "name": "Quagsire",
+   "number": "SV10",
+   "rarity": "Rare Shiny",
+   "sprite": "quagsire"
+  },
+  {
+   "id": "sma-SV11",
+   "name": "Froakie",
+   "number": "SV11",
+   "rarity": "Rare Shiny",
+   "sprite": "froakie"
+  },
+  {
+   "id": "sma-SV12",
+   "name": "Frogadier",
+   "number": "SV12",
+   "rarity": "Rare Shiny",
+   "sprite": "frogadier"
+  },
+  {
+   "id": "sma-SV13",
+   "name": "Voltorb",
+   "number": "SV13",
+   "rarity": "Rare Shiny",
+   "sprite": "voltorb"
+  },
+  {
+   "id": "sma-SV14",
+   "name": "Xurkitree",
+   "number": "SV14",
+   "rarity": "Rare Shiny",
+   "sprite": "xurkitree"
+  },
+  {
+   "id": "sma-SV15",
+   "name": "Seviper",
+   "number": "SV15",
+   "rarity": "Rare Shiny",
+   "sprite": "seviper"
+  },
+  {
+   "id": "sma-SV16",
+   "name": "Shuppet",
+   "number": "SV16",
+   "rarity": "Rare Shiny",
+   "sprite": "shuppet"
+  },
+  {
+   "id": "sma-SV17",
+   "name": "Inkay",
+   "number": "SV17",
+   "rarity": "Rare Shiny",
+   "sprite": "inkay"
+  },
+  {
+   "id": "sma-SV18",
+   "name": "Malamar",
+   "number": "SV18",
+   "rarity": "Rare Shiny",
+   "sprite": "malamar"
+  },
+  {
+   "id": "sma-SV19",
+   "name": "Poipole",
+   "number": "SV19",
+   "rarity": "Rare Shiny",
+   "sprite": "poipole"
+  },
+  {
+   "id": "sma-SV20",
+   "name": "Sudowoodo",
+   "number": "SV20",
+   "rarity": "Rare Shiny",
+   "sprite": "sudowoodo"
+  },
+  {
+   "id": "sma-SV21",
+   "name": "Riolu",
+   "number": "SV21",
+   "rarity": "Rare Shiny",
+   "sprite": "riolu"
+  },
+  {
+   "id": "sma-SV22",
+   "name": "Lucario",
+   "number": "SV22",
+   "rarity": "Rare Shiny",
+   "sprite": "lucario"
+  },
+  {
+   "id": "sma-SV23",
+   "name": "Rockruff",
+   "number": "SV23",
+   "rarity": "Rare Shiny",
+   "sprite": "rockruff"
+  }
+ ],
+ "shiny_b": [
+  {
+   "id": "sma-SV24",
+   "name": "Buzzwole",
+   "number": "SV24",
+   "rarity": "Rare Shiny",
+   "sprite": "buzzwole"
+  },
+  {
+   "id": "sma-SV25",
+   "name": "Zorua",
+   "number": "SV25",
+   "rarity": "Rare Shiny",
+   "sprite": "zorua"
+  },
+  {
+   "id": "sma-SV26",
+   "name": "Guzzlord",
+   "number": "SV26",
+   "rarity": "Rare Shiny",
+   "sprite": "guzzlord"
+  },
+  {
+   "id": "sma-SV27",
+   "name": "Magnemite",
+   "number": "SV27",
+   "rarity": "Rare Shiny",
+   "sprite": "magnemite"
+  },
+  {
+   "id": "sma-SV28",
+   "name": "Magneton",
+   "number": "SV28",
+   "rarity": "Rare Shiny",
+   "sprite": "magneton"
+  },
+  {
+   "id": "sma-SV29",
+   "name": "Magnezone",
+   "number": "SV29",
+   "rarity": "Rare Shiny",
+   "sprite": "magnezone"
+  },
+  {
+   "id": "sma-SV30",
+   "name": "Beldum",
+   "number": "SV30",
+   "rarity": "Rare Shiny",
+   "sprite": "beldum"
+  },
+  {
+   "id": "sma-SV31",
+   "name": "Metang",
+   "number": "SV31",
+   "rarity": "Rare Shiny",
+   "sprite": "metang"
+  },
+  {
+   "id": "sma-SV32",
+   "name": "Celesteela",
+   "number": "SV32",
+   "rarity": "Rare Shiny",
+   "sprite": "celesteela"
+  },
+  {
+   "id": "sma-SV33",
+   "name": "Kartana",
+   "number": "SV33",
+   "rarity": "Rare Shiny",
+   "sprite": "kartana"
+  },
+  {
+   "id": "sma-SV34",
+   "name": "Ralts",
+   "number": "SV34",
+   "rarity": "Rare Shiny",
+   "sprite": "ralts"
+  },
+  {
+   "id": "sma-SV35",
+   "name": "Kirlia",
+   "number": "SV35",
+   "rarity": "Rare Shiny",
+   "sprite": "kirlia"
+  },
+  {
+   "id": "sma-SV36",
+   "name": "Diancie",
+   "number": "SV36",
+   "rarity": "Rare Shiny",
+   "sprite": "diancie"
+  },
+  {
+   "id": "sma-SV37",
+   "name": "Altaria",
+   "number": "SV37",
+   "rarity": "Rare Shiny",
+   "sprite": "altaria"
+  },
+  {
+   "id": "sma-SV38",
+   "name": "Gible",
+   "number": "SV38",
+   "rarity": "Rare Shiny",
+   "sprite": "gible"
+  },
+  {
+   "id": "sma-SV39",
+   "name": "Gabite",
+   "number": "SV39",
+   "rarity": "Rare Shiny",
+   "sprite": "gabite"
+  },
+  {
+   "id": "sma-SV40",
+   "name": "Garchomp",
+   "number": "SV40",
+   "rarity": "Rare Shiny",
+   "sprite": "garchomp"
+  },
+  {
+   "id": "sma-SV41",
+   "name": "Eevee",
+   "number": "SV41",
+   "rarity": "Rare Shiny",
+   "sprite": "eevee"
+  },
+  {
+   "id": "sma-SV42",
+   "name": "Swablu",
+   "number": "SV42",
+   "rarity": "Rare Shiny",
+   "sprite": "swablu"
+  },
+  {
+   "id": "sma-SV43",
+   "name": "Noibat",
+   "number": "SV43",
+   "rarity": "Rare Shiny",
+   "sprite": "noibat"
+  },
+  {
+   "id": "sma-SV44",
+   "name": "Oranguru",
+   "number": "SV44",
+   "rarity": "Rare Shiny",
+   "sprite": "oranguru"
+  },
+  {
+   "id": "sma-SV45",
+   "name": "Type: Null",
+   "number": "SV45",
+   "rarity": "Rare Shiny",
+   "sprite": "type-null"
+  }
+ ],
+ "shiny_gx_a": [
+  {
+   "id": "sma-SV46",
+   "name": "Leafeon-GX",
+   "number": "SV46",
+   "rarity": "Rare Shiny GX",
+   "sprite": "leafeon"
+  },
+  {
+   "id": "sma-SV47",
+   "name": "Decidueye-GX",
+   "number": "SV47",
+   "rarity": "Rare Shiny GX",
+   "sprite": "decidueye"
+  },
+  {
+   "id": "sma-SV48",
+   "name": "Golisopod-GX",
+   "number": "SV48",
+   "rarity": "Rare Shiny GX",
+   "sprite": "golisopod"
+  },
+  {
+   "id": "sma-SV50",
+   "name": "Ho-Oh-GX",
+   "number": "SV50",
+   "rarity": "Rare Shiny GX",
+   "sprite": "ho-oh"
+  },
+  {
+   "id": "sma-SV51",
+   "name": "Reshiram-GX",
+   "number": "SV51",
+   "rarity": "Rare Shiny GX",
+   "sprite": "reshiram"
+  },
+  {
+   "id": "sma-SV52",
+   "name": "Turtonator-GX",
+   "number": "SV52",
+   "rarity": "Rare Shiny GX",
+   "sprite": "turtonator"
+  },
+  {
+   "id": "sma-SV53",
+   "name": "Alolan Ninetales-GX",
+   "number": "SV53",
+   "rarity": "Rare Shiny GX",
+   "sprite": "ninetales-alola"
+  },
+  {
+   "id": "sma-SV54",
+   "name": "Articuno-GX",
+   "number": "SV54",
+   "rarity": "Rare Shiny GX",
+   "sprite": "articuno"
+  },
+  {
+   "id": "sma-SV55",
+   "name": "Glaceon-GX",
+   "number": "SV55",
+   "rarity": "Rare Shiny GX",
+   "sprite": "glaceon"
+  },
+  {
+   "id": "sma-SV56",
+   "name": "Greninja-GX",
+   "number": "SV56",
+   "rarity": "Rare Shiny GX",
+   "sprite": "greninja"
+  },
+  {
+   "id": "sma-SV57",
+   "name": "Electrode-GX",
+   "number": "SV57",
+   "rarity": "Rare Shiny GX",
+   "sprite": "electrode"
+  },
+  {
+   "id": "sma-SV58",
+   "name": "Xurkitree-GX",
+   "number": "SV58",
+   "rarity": "Rare Shiny GX",
+   "sprite": "xurkitree"
+  },
+  {
+   "id": "sma-SV59",
+   "name": "Mewtwo-GX",
+   "number": "SV59",
+   "rarity": "Rare Shiny GX",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "sma-SV60",
+   "name": "Espeon-GX",
+   "number": "SV60",
+   "rarity": "Rare Shiny GX",
+   "sprite": "espeon"
+  },
+  {
+   "id": "sma-SV61",
+   "name": "Banette-GX",
+   "number": "SV61",
+   "rarity": "Rare Shiny GX",
+   "sprite": "banette"
+  },
+  {
+   "id": "sma-SV62",
+   "name": "Nihilego-GX",
+   "number": "SV62",
+   "rarity": "Rare Shiny GX",
+   "sprite": "nihilego"
+  },
+  {
+   "id": "sma-SV63",
+   "name": "Naganadel-GX",
+   "number": "SV63",
+   "rarity": "Rare Shiny GX",
+   "sprite": "naganadel"
+  }
+ ],
+ "shiny_gx_b": [
+  {
+   "id": "sma-SV64",
+   "name": "Lucario-GX",
+   "number": "SV64",
+   "rarity": "Rare Shiny GX",
+   "sprite": "lucario"
+  },
+  {
+   "id": "sma-SV65",
+   "name": "Zygarde-GX",
+   "number": "SV65",
+   "rarity": "Rare Shiny GX",
+   "sprite": "zygarde-complete",
+   "note": "Zygarde-GX is the Complete Forme (read off the scan): the importer's name_matches needs 'complete' added to its form-suffix regex"
+  },
+  {
+   "id": "sma-SV66",
+   "name": "Lycanroc-GX",
+   "number": "SV66",
+   "rarity": "Rare Shiny GX",
+   "sprite": "lycanroc-midnight"
+  },
+  {
+   "id": "sma-SV67",
+   "name": "Lycanroc-GX",
+   "number": "SV67",
+   "rarity": "Rare Shiny GX",
+   "sprite": "lycanroc-dusk"
+  },
+  {
+   "id": "sma-SV68",
+   "name": "Buzzwole-GX",
+   "number": "SV68",
+   "rarity": "Rare Shiny GX",
+   "sprite": "buzzwole"
+  },
+  {
+   "id": "sma-SV69",
+   "name": "Umbreon-GX",
+   "number": "SV69",
+   "rarity": "Rare Shiny GX",
+   "sprite": "umbreon"
+  },
+  {
+   "id": "sma-SV70",
+   "name": "Darkrai-GX",
+   "number": "SV70",
+   "rarity": "Rare Shiny GX",
+   "sprite": "darkrai"
+  },
+  {
+   "id": "sma-SV71",
+   "name": "Guzzlord-GX",
+   "number": "SV71",
+   "rarity": "Rare Shiny GX",
+   "sprite": "guzzlord"
+  },
+  {
+   "id": "sma-SV72",
+   "name": "Scizor-GX",
+   "number": "SV72",
+   "rarity": "Rare Shiny GX",
+   "sprite": "scizor"
+  },
+  {
+   "id": "sma-SV73",
+   "name": "Kartana-GX",
+   "number": "SV73",
+   "rarity": "Rare Shiny GX",
+   "sprite": "kartana"
+  },
+  {
+   "id": "sma-SV74",
+   "name": "Stakataka-GX",
+   "number": "SV74",
+   "rarity": "Rare Shiny GX",
+   "sprite": "stakataka"
+  },
+  {
+   "id": "sma-SV75",
+   "name": "Gardevoir-GX",
+   "number": "SV75",
+   "rarity": "Rare Shiny GX",
+   "sprite": "gardevoir"
+  },
+  {
+   "id": "sma-SV76",
+   "name": "Sylveon-GX",
+   "number": "SV76",
+   "rarity": "Rare Shiny GX",
+   "sprite": "sylveon"
+  },
+  {
+   "id": "sma-SV77",
+   "name": "Altaria-GX",
+   "number": "SV77",
+   "rarity": "Rare Shiny GX",
+   "sprite": "altaria"
+  },
+  {
+   "id": "sma-SV78",
+   "name": "Noivern-GX",
+   "number": "SV78",
+   "rarity": "Rare Shiny GX",
+   "sprite": "noivern"
+  },
+  {
+   "id": "sma-SV79",
+   "name": "Silvally-GX",
+   "number": "SV79",
+   "rarity": "Rare Shiny GX",
+   "sprite": "silvally"
+  },
+  {
+   "id": "sma-SV80",
+   "name": "Drampa-GX",
+   "number": "SV80",
+   "rarity": "Rare Shiny GX",
+   "sprite": "drampa"
+  }
+ ],
+ "_skipped": [
+  {
+   "id": "sm115-44",
+   "name": "Moltres & Zapdos & Articuno-GX",
+   "reason": "no colorscripts sprite (moltres-zapdos-articuno-gx)"
+  },
+  {
+   "id": "sm115-51",
+   "name": "Bill's Analysis",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-52",
+   "name": "Blaine's Last Stand",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-53",
+   "name": "Brock's Grit",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-54",
+   "name": "Brock's Pewter City Gym",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-55",
+   "name": "Brock's Training",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-56",
+   "name": "Erika's Hospitality",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-57",
+   "name": "Giovanni's Exile",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-58",
+   "name": "Jessie & James",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-59",
+   "name": "Koga's Trap",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-60",
+   "name": "Lt. Surge's Strategy",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-61",
+   "name": "Misty's Cerulean City Gym",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-62",
+   "name": "Misty's Determination",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-63",
+   "name": "Misty's Water Command",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-64",
+   "name": "Pokémon Center Lady",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-65",
+   "name": "Sabrina's Suggestion",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-66",
+   "name": "Moltres & Zapdos & Articuno-GX",
+   "reason": "no colorscripts sprite (moltres-zapdos-articuno-gx)"
+  },
+  {
+   "id": "sm115-67",
+   "name": "Giovanni's Exile",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-68",
+   "name": "Jessie & James",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sm115-69",
+   "name": "Moltres & Zapdos & Articuno-GX",
+   "reason": "no colorscripts sprite (moltres-zapdos-articuno-gx)"
+  },
+  {
+   "id": "sma-SV81",
+   "name": "Aether Foundation Employee",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV82",
+   "name": "Cynthia",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV83",
+   "name": "Fisherman",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV84",
+   "name": "Guzma",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV85",
+   "name": "Hiker",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV86",
+   "name": "Lady",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV87",
+   "name": "Aether Paradise Conservation Area",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV88",
+   "name": "Brooklet Hill",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV89",
+   "name": "Mt. Coronet",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "sma-SV90",
+   "name": "Shrine of Punishment",
+   "reason": "Trainer (no Pokemon)"
+  }
+ ],
+ "_ladder_done": [
+  "sm115-18",
+  "sm115-32",
+  "sm115-7",
+  "sm115-8",
+  "sm115-9",
+  "sma-SV49",
+  "sma-SV6",
+  "sma-SV93"
+ ]
+}
