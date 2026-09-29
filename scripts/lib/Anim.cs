@@ -151,6 +151,11 @@ namespace Pokeshell
             for (int i = 0; i < s.Length; i++)
             {
                 if (s[i] == '\u001b' && i + 1 < s.Length && s[i + 1] == '[') { i += 2; while (i < s.Length && (s[i] < '@' || s[i] > '~')) i++; }
+                else if (s[i] == '\u001b' && i + 1 < s.Length && s[i + 1] == ']')
+                {   // OSC (e.g. the binder footer's OSC 8 link): up to BEL or ESC \
+                    i += 2; while (i < s.Length && s[i] != '\u0007' && !(s[i] == '\u001b' && i + 1 < s.Length && s[i + 1] == '\\')) i++;
+                    if (i < s.Length && s[i] == '\u001b') i++;
+                }
                 else if (!char.IsLowSurrogate(s[i])) n++;
             }
             return n;
