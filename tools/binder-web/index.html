@@ -956,6 +956,14 @@ header.top {
 .tagchip small { color: var(--ink-soft); font-weight: 500; font-size: 11.5px; }
 .tagchip:hover { border-color: var(--ink-soft); }
 .ghost__label b { display: block; font-weight: 700; }
+/* a search result opened on its real page glows for a moment (openResult) */
+.pocket--flash { animation: pocketFlash 1.6s ease-out 1; border-radius: 8px; }
+@keyframes pocketFlash {
+  0%, 30% { box-shadow: 0 0 0 3px var(--accent-ink), 0 0 26px 6px color-mix(in oklab, var(--accent-ink) 70%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent, 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .pocket--flash { animation: none; outline: 3px solid var(--accent-ink); outline-offset: 2px; } }
+.tab[hidden] { display: none !important; }
 .pocket--empty { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; place-items: center; text-align: center; padding: 8%; }
 .pocket--empty p { margin: 0; font: 600 clamp(18px, 3.4vw, 26px)/1.15 var(--ff-hand); color: var(--ink-soft); }
 .pocket--empty small { display: block; margin-top: 8px; font: 500 13px/1.4 var(--ff-round); }
@@ -1141,11 +1149,11 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
       <label><input type="checkbox" id="caughtOnly"> caught only</label>
     </div>
     <div class="searchbar">
-      <input type="search" id="search" placeholder='search: evolving skies · set:swsh7 · rarity:"rare rainbow" · type:water · shiny' aria-label="Search cards: words and tag filters" autocomplete="off" spellcheck="false">
+      <input type="search" id="search" placeholder='search: pikchu · lyc vmax · evs rainbow · set:swsh7 · rarity:"rare rainbow" · -holo · shiny' aria-label="Search cards: forgiving words (letters in order) and tag filters such as set:, rarity:, type:; -word leaves out. Click a result to open its binder page." autocomplete="off" spellcheck="false">
       <small id="searchCount" role="status" aria-live="polite"></small>
     </div>
   </div>
-  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">Home</span> <span class="kbd">End</span> first / last page · <span id="packKeys"></span> <span class="kbd">/</span> search · click a card for details (its tags search)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">Home</span> <span class="kbd">End</span> first / last page · <span id="packKeys"></span> <span class="kbd">/</span> search (forgiving: pikchu, lyc vmax; set: rarity: type: filters; -word leaves out; a click opens the result's page, Esc goes back) · click a card for details (its tags search)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
   <p class="snapshot" id="snapshot"></p>
 </main>
 
@@ -1261,7 +1269,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     } else {
       for (const t of pk.tiers) for (const c of pk.characters) out.push(slots.get(`${pk.id}|${c.id}|${t.id}`) || { key: `${pk.id}|${c.id}|${t.id}`, pack: pk.id, char: c.id, tier: t.id, pulls: [] });
     }
-    if (o.query) { const q = parseQuery(o.query); resolveSets(q.terms, pk); out = out.filter(s => matchQuery(q.terms, slotTags(s), slotFlags(s))); }
+    if (o.query) { const q = parseQuery(o.query); resolveSets(q.terms, pk); out = out.filter(s => matchQuery(q.terms, s)); }
     return out;
   }
   const statCache = new Map();
@@ -1284,68 +1292,181 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     return st;
   }
 
-  /* -------------------------------------------------------------- tags + search (the syntax of binder/src/query.rs)
-     words match the start of any word of any tag (short words: whole words); key:value / key:"a b" match one tag
-     whole (key:pika* for a prefix); -term excludes; shiny foil new pending owned missing test the card.
-     Case, accents, hyphens and underscores don't matter: rare-holo = "Rare Holo", pokémon = Pokemon. */
+  /* -------------------------------------------------------------- tags + search: the rules of binder/src/query.rs
+     (keep the two in step; tests/test-earned.ps1 section 7 runs this block in node against the same cases)
+     A word matches a tag when it is inside it, or its letters are in order from a word start with few gaps
+     (fzf's v2 scoring: pikchu finds Pikachu, lyc vmax Lycanroc VMAX, evs rainbow the Evolving Skies rare rainbows);
+     under 3 letters, the start of a word (ex). key:value matches that key's tags the same way; quotes only keep
+     spaces. set: names the best-matching sets (its id or name: set:swsh1 is not swsh10, set:30th), number: the
+     printed number's numerator (17 is 17/203), id: the whole card id. -term leaves out. Every term must match.
+     shiny foil new pending owned missing test the card. Case and accents don't matter. */
+  /* search:begin */
   const STATES = ['shiny', 'foil', 'new', 'pending', 'owned', 'missing'];
-  const KEYS = ['pack', 'char', 'tier', 'name', 'id', 'number', 'rarity', 'set', 'artist', 'subtype', 'type', 'attack', 'ability'];
-  const KEYMAP = { sub: 'subtype', subtypes: 'subtype', stage: 'subtype', character: 'char', pokemon: 'char', types: 'type', card: 'id', no: 'number', num: 'number',
-                   setname: 'set', series: 'set', move: 'attack', attacks: 'attack', abilities: 'ability', illus: 'artist', illustrator: 'artist', finish: 'tier' };
-  const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const KEYS = ['set', 'rarity', 'type', 'subtype', 'name', 'number', 'artist', 'char', 'tier', 'pack', 'id', 'attack', 'ability'];
+  const KEYMAP = { sub: 'subtype', subtypes: 'subtype', stage: 'subtype', character: 'char', pokemon: 'char', chars: 'char', types: 'type', energy: 'type',
+                   card: 'id', no: 'number', num: 'number', '#': 'number', setname: 'set', series: 'set', sets: 'set', rare: 'rarity', rarities: 'rarity',
+                   illus: 'artist', illustrator: 'artist', finish: 'tier', move: 'attack', attacks: 'attack', abilities: 'ability' };
+  // key-only tags: the page's extras (the app has no attack / ability tags), so a bare word finds the same cards in both
+  const KEY_ONLY = new Set(['attack', 'ability']);
+  const FOLDX = { 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'ø': 'o', 'đ': 'd', 'ı': 'i', '’': "'", '‘': "'" };
+  const foldCh = l => FOLDX[l] ?? l.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const fold = s => { let o = ''; for (const c of String(s ?? '')) for (const l of c.toLowerCase()) o += foldCh(l); return o; };
+  const norm = s => fold(s).replace(/&/g, ' and ').split(/[^\p{L}\p{N}]+/u).filter(Boolean).join(' ');
+  const ALNUM = /[\p{L}\p{N}]/u;
+  const SM = 16, GS = -3, GE = -1, BB = 8, BNW = 8, BCAMEL = BB + GE, BCONS = -(GS + GE), FM = 2, BW = BB + 2, BD = BB + 1, EXACT = 100000;
+  const W = 0, NW = 1, DL = 2, LO = 3, UP = 4, LT = 5, NU = 6;
+  const cls = c => /\s/.test(c) ? W : '/,:;|'.includes(c) ? DL : /\p{Ll}/u.test(c) ? LO : /\p{Lu}/u.test(c) ? UP : /\p{N}/u.test(c) ? NU : /\p{L}/u.test(c) ? LT : NW;
+  function bonusFor(prev, cur) {
+    if (cur >= LO) { if (prev === W) return BW; if (prev === DL) return BD; if (prev === NW) return BB; }
+    if ((prev === LO && cur === UP) || (prev !== NU && cur === NU)) return BCAMEL;
+    return cur === NW || cur === DL ? BNW : cur === W ? BW : 0;
+  }
+  // a tag prepared for matching: folded chars, each one's bonus (from the original case), and as a string
+  function field(src) {
+    const t = [], b = [];
+    let prev = W;
+    for (const c of String(src ?? '')) {
+      let i = 0;
+      for (const l of c.toLowerCase()) for (const f of foldCh(l)) { const k = i++ === 0 ? cls(c) : cls(f); b.push(bonusFor(prev, k)); prev = k; t.push(f); }
+    }
+    return { s: t.join(''), t, b };
+  }
+  // fzf's FuzzyMatchV2 on folded text: [best score, where the first char landed], or null
+  function fuzzy(f, p) {
+    const t = f.t, m = p.length, n = t.length;
+    if (!m || m > n) return null;
+    const first = [];
+    let j = 0;
+    for (const pc of p) { while (j < n && t[j] !== pc) j++; if (j === n) return null; first.push(j); j++; }
+    let last = n - 1;
+    while (t[last] !== p[m - 1]) last--;
+    const lo = first[0], w = last + 1 - lo;
+    if (m === 1) { let best = null; for (let k = lo; k <= last; k++) if (t[k] === p[0]) { const sc = SM + f.b[k] * FM; if (!best || sc > best[0]) best = [sc, k]; } return best; }
+    const H = new Int32Array(m * w), C = new Int32Array(m * w);
+    let gap = false, prev = 0;
+    for (let k = 0; k < w; k++) {
+      const col = lo + k;
+      if (t[col] === p[0]) { H[k] = SM + f.b[col] * FM; C[k] = 1; gap = false; }
+      else { H[k] = Math.max(prev + (gap ? GE : GS), 0); gap = true; }
+      prev = H[k];
+    }
+    let maxS = 0, maxP = 0;
+    for (let i = 1; i < m; i++) {
+      const row = i * w, f0 = first[i] - lo;
+      gap = false;
+      for (let k = f0; k < w; k++) {
+        const col = lo + k;
+        const s2 = (k > 0 ? H[row + k - 1] : 0) + (gap ? GE : GS);
+        let s1 = 0, cons = 0;
+        if (t[col] === p[i] && k > 0) {
+          s1 = H[row - w + k - 1] + SM;
+          let bo = f.b[col];
+          cons = C[row - w + k - 1] + 1;
+          if (cons > 1) { const fb = f.b[col + 1 - cons]; if (bo >= BB && bo > fb) cons = 1; else bo = Math.max(bo, BCONS, fb); }
+          if (s1 + bo < s2) { s1 += f.b[col]; cons = 0; } else s1 += bo;
+        }
+        C[row + k] = cons;
+        gap = s1 < s2;
+        const sc = Math.max(s1, s2, 0);
+        if (i === m - 1 && sc > maxS) { maxS = sc; maxP = k; }
+        H[row + k] = sc;
+      }
+    }
+    let i = m - 1, k = maxP, prefer = true;
+    for (;;) {
+      const row = i * w, f0 = first[i] - lo, sc = H[row + k];
+      const s1 = i > 0 && k >= f0 && k > 0 ? H[row - w + k - 1] : 0, s2 = k > f0 ? H[row + k - 1] : 0;
+      if (sc > s1 && (sc > s2 || (sc === s2 && prefer))) { if (i === 0) break; i--; }
+      prefer = C[row + k] > 1 || (row + w + k + 1 < C.length && C[row + w + k + 1] > 0);
+      if (k === 0) break;
+      k--;
+    }
+    return [maxS, lo + k];
+  }
+  const floorFor = m => (SM + BCONS) * m - BCONS;
+  // does a folded word match a prepared tag? its score, or null
+  function wordScore(v, vc, f) {
+    if (vc.length < 3) {
+      for (let i = f.s.indexOf(v); i >= 0; i = f.s.indexOf(v, i + 1)) if (i === 0 || !ALNUM.test(f.s[i - 1])) return fuzzy(f, vc)?.[0] ?? 1;
+      return null;
+    }
+    const r = fuzzy(f, vc);
+    if (!r) return null;
+    const [sc, at] = r;
+    if (f.s.includes(v)) return Math.max(sc, 1);
+    const start = at === 0 || !ALNUM.test(f.t[at - 1]) || f.b[at] >= BCAMEL;
+    return start && sc >= floorFor(vc.length) ? sc : null;
+  }
+  const numerator = x => { const n = String(x ?? '').split('/')[0].trim().toLowerCase(), pre = n.match(/^[a-z]*/)[0]; let r = n.slice(pre.length).replace(/^0+/, ''); if (!r && n.length > pre.length) r = '0'; return pre + r; };
+  const mkTerm = (key, v, neg) => ({ key, v, neg, vc: [...v], sets: null });
+  // terms: [{ key (null: a bare word), v (folded), neg }]; unknown: the keys no card has
   function parseQuery(q) {
-    const terms = [], unknown = [], re = /(-)?(?:([A-Za-z]+):)?(?:"([^"]*)"?|(\S+))/g;
-    let m;
-    while ((m = re.exec(q || ''))) {
-      if (!m[0]) { re.lastIndex++; continue; }
-      let key = m[2] ? m[2].toLowerCase() : null;
-      if (key) key = KEYMAP[key] || key;
+    const terms = [], unknown = [], cs = [...String(q || '')];
+    let i = 0;
+    while (i < cs.length) {
+      if (/\s/.test(cs[i])) { i++; continue; }
+      const neg = cs[i] === '-' && i + 1 < cs.length && !/\s/.test(cs[i + 1]);
+      if (neg) i++;
+      let key = null;
+      const st = i;
+      while (i < cs.length && !/\s/.test(cs[i]) && cs[i] !== ':' && cs[i] !== '"') i++;
+      if (i < cs.length && cs[i] === ':' && i > st) { key = cs.slice(st, i).join('').toLowerCase(); key = KEYMAP[key] || key; i++; } else i = st;
+      let v;
+      if (i < cs.length && cs[i] === '"') { const s0 = ++i; while (i < cs.length && cs[i] !== '"') i++; v = cs.slice(s0, i).join(''); i++; }
+      else { const s0 = i; while (i < cs.length && !/\s/.test(cs[i])) i++; v = cs.slice(s0, i).join(''); }
+      v = fold(v.trim());
+      if (!v) continue;
       if (key === 'is' || key === 'state') key = null;
-      const v = norm(m[3] ?? m[4] ?? '');
-      if (!v || v === '-') continue;
-      const neg = !!m[1];
-      if (key === null && STATES.includes(v)) { terms.push({ neg, state: v }); continue; }
-      if (key && !KEYS.includes(key)) { unknown.push(m[2] + ':'); terms.push({ neg, unknown: true }); continue; }
-      terms.push({ neg, key, v, re: v.includes('*') ? new RegExp('^' + v.split('*').map(escRe).join('.*') + '$') : null });
+      if (key && !KEYS.includes(key)) unknown.push(key + ':');
+      terms.push(mkTerm(key, v, neg));
     }
     return { terms, unknown };
   }
-  // set: names a set like the app does (binder/src/query.rs): its id or whole name, else the sets whose name words start
-  // with the value's words (set:evolving, set:30th), else the ones whose name has its letters in order (set:evsk)
+  const setFields = s => s._f || (s._f = [field(s.id), field(s.name), field(norm(s.name))]);
+  const setTerm = (t, fs) => { let best = null; for (const f of fs) { const x = f.s === t.v ? EXACT : wordScore(t.v, t.vc, f); if (x != null && (best == null || x > best)) best = x; } return best; };
+  // how well a query names a set (0: not at all): a whole id or name first, then the words' scores
+  function setScore(set, q) {
+    const v = fold(String(q).trim());
+    if (!v) return 0;
+    const fs = setFields(set);
+    if (fs.some(f => f.s === v)) return EXACT;
+    let total = setTerm(mkTerm(null, v, false), fs) || 0;
+    if (!total) for (const w of v.split(/\s+/)) { const x = setTerm(mkTerm(null, w, false), fs); if (x == null) return 0; total += x; }
+    return Math.max(total, 1);
+  }
+  function bestSets(sets, q) {
+    const sc = sets.map(s => [s, setScore(s, q)]).filter(x => x[1] > 0);
+    const top = Math.max(0, ...sc.map(x => x[1]));
+    return sc.filter(x => x[1] === top).map(x => x[0]);
+  }
   function resolveSets(terms, pk) {
-    for (const t of terms) {
-      t.sets = null;
-      if (t.key !== 'set' || t.re || !pk.sets?.length) continue;
-      const words = t.v.split(' ');
-      const tiers = [
-        s => norm(s.id) === t.v || norm(s.name) === t.v,
-        s => { const nw = norm(s.name).split(/[\s/]+/); return words.every(w => nw.some(x => x.startsWith(w))); },
-        s => { const n = norm(s.name).replace(/\s/g, ''); let i = 0; for (const ch of t.v.replace(/\s/g, '')) { i = n.indexOf(ch, i) + 1; if (!i) return false; } return true; },
-      ];
-      for (const test of tiers) { const hit = pk.sets.filter(test); if (hit.length) { t.sets = new Set(hit.map(s => s.id)); break; } }
-      if (!t.sets) t.sets = new Set();
+    if (!pk.sets?.length) return;
+    for (const t of terms) if (t.key === 'set') t.sets = new Set(bestSets(pk.sets, t.v).map(s => fold(s.id)));
+  }
+  function termOk(t, hay, flags) {
+    if (!t.key) {
+      if (STATES.includes(t.v)) return !!flags()[t.v];
+      return hay.some(([k, f]) => !KEY_ONLY.has(k) && wordScore(t.v, t.vc, f) != null);
     }
+    const vals = hay.filter(([k]) => k === t.key).map(x => x[1]);
+    if (t.key === 'set' && t.sets) return vals.some(f => t.sets.has(f.s));
+    if (t.key === 'number') return t.v.includes('/') ? vals.some(f => f.s === t.v) : vals.some(f => numerator(f.s) === numerator(t.v));
+    if (t.key === 'id') return vals.some(f => f.s === t.v);
+    if (!KEYS.includes(t.key)) return false;
+    return vals.some(f => wordScore(t.v, t.vc, f) != null);
   }
-  function termMatches(t, tags, flags) {
-    if (t.state) return !!flags[t.state];
-    if (t.unknown) return false;
-    if (t.sets) return tags.some(([k, x]) => k === 'set' && t.sets.has(x));
-    const v = t.v;
-    return tags.some(([k, x]) => {
-      if (t.key && k !== t.key) return false;
-      const nx = norm(x);
-      if (t.key) {
-        if (t.re) return t.re.test(nx);
-        return nx === v || (k === 'number' && nx.split('/')[0] === v.split('/')[0] && !v.includes('/'));
-      }
-      const words = nx.split(/[\s/]+/);
-      if (t.re) return t.re.test(nx) || words.some(w => t.re.test(w));
-      if (v.includes(' ')) return (' ' + nx + ' ').includes(' ' + v + (v.length >= 3 ? '' : ' '));
-      return v.length >= 3 ? words.some(w => w.startsWith(v)) : words.includes(v);
-    });
+  // hay: [[key, field]]; flags: () => { shiny, foil, new, pending, owned, missing } (only asked for by state words)
+  const matchHay = (terms, hay, flags) => terms.every(t => termOk(t, hay, flags) !== t.neg);
+  /* search:end */
+  const hayCache = new Map();
+  function slotHay(slot) {
+    const hit = hayCache.get(slot.key);
+    if (hit) return hit;
+    const hay = slotTags(slot).map(([k, v]) => [k, field(v)]);
+    if (tagCache.has(slot.key)) hayCache.set(slot.key, hay);
+    return hay;
   }
-  const matchQuery = (terms, tags, flags) => terms.every(t => termMatches(t, tags, flags) !== !!t.neg);
+  const matchQuery = (terms, slot) => matchHay(terms, slotHay(slot), () => slotFlags(slot));
   const termFor = (k, v) => /[\s"]/.test(v) ? `${k}:"${v.replace(/"/g, '')}"` : `${k}:${v}`;
   function isFoil(pk, tierId) {
     const t = pk.tiers[pk.tierIdx[tierId]];
@@ -1701,7 +1822,9 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
 
   /* -------------------------------------------------------------- pages */
-  const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false, set: null, query: '' };
+  const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false, set: null, query: '',
+                  before: null,   // where a search started ({ pack, set, page }): Esc or clearing it goes back
+                  flash: null };  // the key of a result just opened on its real page (it glows)
   const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot'), spreadEl = $('#spread');
   const mq = matchMedia('(max-width: 760px)');
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1733,14 +1856,19 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       if (pg.empty) {
         grid.append(h('div', { class: 'pocket--empty' }, h('div', {},
           h('p', {}, state.query ? `No cards match “${state.query}”` : state.caughtOnly ? 'Nothing caught yet' : 'No cards here yet'),
-          state.query ? h('small', {}, 'Esc clears the search. Try set:swsh7 · type:water · rarity:"rare holo" · shiny') : null)));
+          state.query ? h('small', {}, 'Esc goes back. Try pikchu · lyc vmax · set:swsh7 · type:water · rarity:"rare holo" · -holo · shiny') : null)));
       } else for (let i = 0; i < per; i++) {
         const slot = pg.slots[i];
-        const pocket = h('div', { class: 'pocket' });
+        const pocket = h('div', { class: 'pocket' + (slot && slot.key === state.flash ? ' pocket--flash' : '') });
         if (slot) {
           const card = slotCard(slot);
-          if (card) { card.addEventListener('click', () => openDetail(slot)); pocket.append(card); }
-          else pocket.append(ghostEl(slot));
+          // during a search a click opens the card on its real page (then its details); otherwise its details
+          if (card) { card.addEventListener('click', () => state.query ? openResult(slot) : openDetail(slot)); pocket.append(card); }
+          else {
+            const g = ghostEl(slot);
+            if (state.query) { g.style.cursor = 'pointer'; g.title = 'Open its page'; g.addEventListener('click', () => openResult(slot)); }
+            pocket.append(g);
+          }
         }
         grid.append(pocket);
       }
@@ -1852,6 +1980,14 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     $('#cover').tabIndex = state.open ? -1 : 0;
     for (const b of document.querySelectorAll('.tab[data-pack]')) { const on = b.dataset.pack === state.pack; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
     renderSetTabs();
+    // a search hides the pack tabs without matches; the others show how many match
+    const counts = searchCounts();
+    for (const b of document.querySelectorAll('.tab[data-pack]')) {
+      const n = counts ? counts.packs[b.dataset.pack] : null, sm = b.querySelector('small');
+      if (sm.dataset.plain == null) sm.dataset.plain = sm.textContent;
+      b.hidden = n === 0 && b.dataset.pack !== state.pack;
+      sm.textContent = n == null ? sm.dataset.plain : `${n} found`;
+    }
     const q = state.query ? parseQuery(state.query) : null;
     const nMatch = q ? packSlots(pk, { set: pk.layout === 'cards' ? state.set : null, query: state.query }).length : null;
     const cnt = $('#searchCount');
@@ -2040,22 +2176,78 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       };
       setTabs.replaceChildren(mk(null, 'All sets'), ...pk.sets.map(s => mk(s.id, s.name)));
     }
-    for (const b of setTabs.children) { const on = (b.dataset.set || null) === (state.set || null); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
+    const counts = searchCounts();
+    for (const b of setTabs.children) {
+      const on = (b.dataset.set || null) === (state.set || null);
+      b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      // a search hides the set tabs without matches; the others show how many match
+      const n = counts ? (counts.sets[b.dataset.set || ''] || 0) : null, sm = b.querySelector('small');
+      if (sm.dataset.plain == null) sm.dataset.plain = sm.textContent;
+      b.hidden = n === 0 && !on;
+      sm.textContent = n == null ? sm.dataset.plain : `${n} found`;
+    }
   }
 
   // search: applies to the pack (and set) on screen; typing updates the count even while the binder is shut
   const searchBox = $('#search');
+  // matches per pack (every set) and per set of the pack on screen ('' = all sets), for the tabs; cached per query
+  let countsFor = null, countsVal = null;
+  function searchCounts() {
+    if (!state.query || !parseQuery(state.query).terms.length) return null;
+    const key = [state.query, state.pack, state.caughtOnly].join('\u0001');
+    if (countsFor === key) return countsVal;
+    const packsN = {}, sets = {};
+    for (const pk of packs) {
+      const list = packSlots(pk, { caughtOnly: pk.layout === 'dex' && state.caughtOnly, query: state.query });
+      packsN[pk.id] = list.length;
+      if (pk.id === state.pack) { sets[''] = list.length; for (const sl of list) { const sid = pk.cardById?.[sl.card]?.set_id; if (sid) sets[sid] = (sets[sid] || 0) + 1; } }
+    }
+    countsFor = key; countsVal = { packs: packsN, sets };
+    return countsVal;
+  }
+  const here = () => ({ pack: state.pack, set: state.set, page: state.page });
+  // back to where the search started
+  function goBack() {
+    const b = state.before;
+    state.before = null;
+    if (!b) return;
+    state.pack = b.pack; state.set = b.set; state.page = b.page;
+  }
+  // a click on a result: clear the search and show the card on its real binder page (every card around it), glowing;
+  // then its details, which close back onto that page
+  let flashT = 0;
+  function openResult(slot) {
+    state.query = ''; searchBox.value = ''; state.before = null;
+    const pk = packById[slot.pack];
+    state.pack = slot.pack;
+    if (state.set && pk.cardById?.[slot.card]?.set_id !== state.set) state.set = null;
+    const find = () => pagesFor(pk).findIndex(pg => pg.slots?.some(s => s.key === slot.key));
+    let at = find();
+    if (at < 0 && state.caughtOnly) { state.caughtOnly = false; $('#caughtOnly').checked = false; at = find(); }
+    state.page = Math.max(0, at);
+    state.flash = slot.key;
+    clearTimeout(flashT); flashT = setTimeout(() => { state.flash = null; }, 1700);
+    render();
+    if (summarize(slot).owned || summarize(slot).pending) openDetail(slot);
+  }
   function applyQuery(q, pack) {
+    if (!state.before && q.trim()) state.before = here();
     if (pack && packById[pack] && pack !== state.pack) { state.pack = pack; state.set = null; }
     else if (pack) state.set = null;
     state.query = q.trim(); searchBox.value = q;
     state.page = 0;
     if (!state.open) openBinder(false); else render();
   }
-  searchBox.addEventListener('input', () => { state.query = searchBox.value.trim(); state.page = 0; render(); });
+  searchBox.addEventListener('input', () => {
+    const q = searchBox.value.trim();
+    if (q && !state.query && !state.before) state.before = here();
+    state.query = q; state.page = 0;
+    if (!q) goBack();   // cleared: back where the search started
+    render();
+  });
   searchBox.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !state.open) openBinder(false);
-    if (e.key === 'Escape' && searchBox.value) { e.preventDefault(); searchBox.value = ''; state.query = ''; state.page = 0; render(); }
+    if (e.key === 'Escape' && searchBox.value) { e.preventDefault(); searchBox.value = ''; state.query = ''; goBack(); render(); }
   });
 
   /* -------------------------------------------------------------- header, recent */

@@ -281,6 +281,50 @@ if ($py) {
   Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and -not @($pk.cards | Where-Object id -eq 'swsh4-170') -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every built card with its set (the checklists) in data.json; unbuilt ones left out"
   $html = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
   Assert ($html.Contains('id="setTabs"') -and $html.Contains('id="search"') -and $html.Contains('tagchip')) "the page has set tabs, the search box and tag chips"
+  # search: the page's matcher (the block between search:begin / search:end, the rules of binder/src/query.rs) run in
+  # node on the real pack.json; the results stay binder pockets, and a click opens the real page
+  Assert ($html.Contains('function openResult') -and $html.Contains('pocket--flash') -and $html.Contains('function goBack') -and $html.Contains('pikchu')) "the page opens a result on its real page (glowing), Esc goes back, and the search box names the forgiving syntax"
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if ($node) {
+    $js = Join-Path $fx 'search-check.js'
+    [IO.File]::WriteAllText($js, @'
+const fs = require('fs');
+const [html, packJson] = process.argv.slice(2);
+const src = fs.readFileSync(html, 'utf8');
+const block = src.slice(src.indexOf('/* search:begin */'), src.indexOf('/* search:end */'));
+const api = new Function(block + '; return { parseQuery, resolveSets, matchHay, field, bestSets };')();
+const pk = JSON.parse(fs.readFileSync(packJson, 'utf8').replace(/^\uFEFF/, ''));
+const sets = [];
+const cards = Object.entries(pk.cards).map(([id, c]) => {
+  const sid = id.replace(/-[^-]*$/, '');
+  if (!sets.some(s => s.id === sid)) sets.push({ id: sid, name: c.set });
+  const tags = [['pack', 'pokemon'], ['char', c.character], ['name', c.name], ['tier', c.tier], ['id', id], ['number', c.number], ['rarity', c.rarity], ['set', sid], ['set', c.set]];
+  return { id, c, hay: tags.map(([k, v]) => [k, api.field(v)]) };
+});
+const find = q => { const p = api.parseQuery(q); api.resolveSets(p.terms, { sets }); return cards.filter(x => api.matchHay(p.terms, x.hay, () => ({ owned: x.id === 'swsh7-92' }))).map(x => x.id); };
+const out = { cases: {} };
+for (const q of ['pikachu', 'pikchu', 'lyc vmax', 'lycvmax', 'evs rainbow', 'set:30th', 'number:17', 'id:"swsh7-9"', 'id:swsh7-9', '-pikachu set:30th', 'lyc owned', 'rarity:"rare rainbow"', 'rarity:rare rainbow', 'flabebe']) out.cases[q] = find(q);
+out.pika = cards.filter(x => x.c.name.includes('Pikachu')).map(x => x.id);
+out.rainbows = cards.filter(x => x.id.startsWith('swsh7-') && x.c.rarity === 'Rare Rainbow').map(x => x.id);
+out.c30 = cards.filter(x => x.c.set.includes('30th')).map(x => x.id);
+out.lycV = cards.filter(x => x.c.name === 'Lycanroc V').map(x => x.id);
+out.sets = ['swsh1', 'swsh', 'evsk', 'celebration', 'SWSH7'].map(q => api.bestSets([{ id: 'swsh7', name: 'Evolving Skies' }, { id: 'me55', name: '30th Celebration' }, { id: 'swsh1', name: 'Sword & Shield' }, { id: 'swsh10', name: 'Astral Radiance' }, { id: 'cel25', name: 'Celebrations' }], q).map(s => s.id).join(','));
+console.log(JSON.stringify(out));
+'@, [Text.UTF8Encoding]::new($false))
+    $r = (& $node.Source $js (Join-Path $fx 'tools\binder-web\index.html') (Join-Path $fx 'packs\pokemon\pack.json') | Out-String) | ConvertFrom-Json
+    $c = $r.cases
+    $has = { param($got, $want) @($want | Where-Object { @($got) -notcontains $_ }).Count -eq 0 }
+    Assert ((& $has $c.pikachu $r.pika) -and @($c.pikachu).Count -eq @($r.pika).Count -and (& $has $c.pikchu $r.pika) -and @($c.pikchu).Count -eq @($r.pika).Count) "web search: pikachu and pikchu list every Pikachu card and nothing else ($(@($r.pika).Count))"
+    Assert (@($c.'lyc vmax') -contains 'swsh7-92' -and -not @($r.lycV | Where-Object { @($c.'lyc vmax') -contains $_ }) -and @($c.lycvmax) -contains 'swsh7-92') "web search: lyc vmax / lycvmax find Lycanroc VMAX swsh7-92, not Lycanroc V ($(@($c.'lyc vmax') -join ' '))"
+    Assert ((& $has $c.'evs rainbow' $r.rainbows) -and @($c.'evs rainbow').Count -eq @($r.rainbows).Count) "web search: evs rainbow is the Evolving Skies rare rainbows ($(@($r.rainbows).Count))"
+    Assert ((& $has $c.'set:30th' $r.c30) -and @($c.'set:30th').Count -eq @($r.c30).Count) "web search: set:30th is the 30th Celebration ($(@($r.c30).Count) cards)"
+    Assert (@($c.'number:17').Count -gt 0 -and -not @($c.'number:17' | Where-Object { $_ -notmatch '-0*17$' })) "web search: number:17 is the numerator (17/..., not 117 or 170)"
+    Assert ((@($c.'id:"swsh7-9"') -join ',') -eq 'swsh7-9' -and (@($c.'id:swsh7-9') -join ',') -eq 'swsh7-9') "web search: id: is the whole id, quoted or not (the app does the same)"
+    Assert (@($c.'-pikachu set:30th').Count -eq @($r.c30).Count - @($r.pika | Where-Object { @($r.c30) -contains $_ }).Count) "web search: -pikachu leaves the Pikachu cards out"
+    Assert ((@($c.'lyc owned') -join ',') -eq 'swsh7-92') "web search: a state word tests the card (lyc owned)"
+    Assert ((& $has $c.'rarity:"rare rainbow"' $r.rainbows) -and @($c.'rarity:rare rainbow').Count -ge @($c.'rarity:"rare rainbow"').Count) "web search: a quoted value keeps its spaces"
+    Assert (($r.sets -join ' ') -eq 'swsh1 swsh7,swsh1,swsh10 swsh7 me55,cel25 swsh7') "web search: set: names the best-matching sets like the app (swsh1 is not swsh10; swsh = every swsh; evsk; celebration is both): $($r.sets -join ' / ')"
+  } else { Write-Host "  skip  node not found: the page's matcher is not run" -ForegroundColor Yellow }
   Assert ($data.counts.kept -eq 7 -and $data.counts.pending -eq 1) "data.json counts kept pulls only; pending apart ($($data.counts.kept) kept, $($data.counts.pending) pending)"
 
   # tools\binder_web.py on its own: the text half, pending not counted, unreadable lines, checklist order, the art cache
