@@ -957,6 +957,12 @@ def main():
     slot = lambda p: (p["pack"], p["card"] if layout.get(p["pack"]) == "cards" else p["char"], None if layout.get(p["pack"]) in ("cards", "dex") else p["tier"])
     caught_slots = {slot(p) for p in pulls if p["status"] == "collected"}
     seen_slots = {slot(p) for p in pulls} - caught_slots
+    # the text half (HP, abilities, attacks ...) is for caught cards only (docs/BINDER_SPEC.md "Empty, seen, caught"):
+    # an empty or seen card's text isn't even in data.json, so neither the page nor its search can show it
+    for pk in packs:
+        for c in pk.get("cards") or []:
+            if (pk["id"], c["id"], None) not in caught_slots:
+                c.pop("text", None)
     data = {
         "owner": a.owner,
         "generated": dt.datetime.now().isoformat(timespec="seconds"),

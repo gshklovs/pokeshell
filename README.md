@@ -248,8 +248,8 @@ pane), the `binder ⏎` link under a pulled card (`pokeshell urlhandler on`; Win
 in which case the hint tells you what to type), and `binder --web` (a static page). In the app: arrows / `hjkl` move,
 `1`-`9` switch packs, `S` opens the set picker (each set's completion; type to filter, Enter opens that set's whole
 checklist, with empty pockets for the cards you haven't pulled), `#17` jumps to a printed number, `/` searches, `o` /
-`m` show only the cards you caught / haven't caught, `v` shows the card's text half (HP, attacks, weakness) under the art when
-`packs/<pack>/cards/<card id>.json` exists, `d` toggles one-slot-per-character, `?` lists the rest.
+`m` show only the cards you caught / haven't caught, `v` shows a caught card's text half (HP, attacks, weakness) under the art when
+`packs/<pack>/cards/<card id>.json` exists (cards you haven't caught keep it hidden until you catch them), `d` toggles one-slot-per-character, `?` lists the rest.
 
 **Tags and search** (the app and the web page): every card is tagged with its set (id and name), printed rarity and
 tier, subtypes (V, VMAX...), types (Grass, Water...), character, artist and pack, plus `caught`, `seen`, `missing`,

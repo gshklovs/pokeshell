@@ -804,10 +804,10 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     let caught = state == SlotState::Caught;
     let shiny = caught && (shown.is_some_and(|i| app.coll.pulls[i].shiny) || app.shiny_only);
     let count = app.shown_pull(k).0.len();
-    // the text half shows for a caught card, and for one never pulled (a set checklist can be read too); a seen card
-    // keeps it hidden until it is caught
+    // the text half (its moveset) shows for a caught card only: an empty or seen card keeps it hidden until it is
+    // caught (docs/BINDER_SPEC.md "Empty, seen, caught")
     let seen = state == SlotState::Seen;
-    let text = if app.show_text && !seen { app.card_text(k) } else { None };
+    let text = if app.show_text && caught { app.card_text(k) } else { None };
     let scroll = app.text_scroll_for(k);
     let new = caught && app.coll.slot_new(k, app.shiny_only);
     let pack = &app.coll.packs[k.pack];
@@ -873,7 +873,13 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
             app.hits.text = tr;
         }
     } else if th == 1 {
-        let note = if seen { "seen: catch it to read its text (v)" } else { "no card text for this card (v)" };
+        let note = if seen {
+            "seen: catch it to read its text (v)"
+        } else if !caught {
+            "not caught yet: catch it to read its text (v)"
+        } else {
+            "no card text for this card (v)"
+        };
         puts(buf, area.x as i32 + (area.width as i32 - width(note) as i32).max(0) / 2, (cy + ch) as i32, note, t.faint, None, false, area.width as usize);
     }
     app.hits.text_more = hidden;

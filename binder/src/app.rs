@@ -2076,6 +2076,40 @@ mod tests {
     }
 
     #[test]
+    fn text_half_is_for_caught_cards_only() {
+        // v: the moveset (HP, abilities, attacks ...) shows for a caught card; an empty or a seen card shows a short
+        // note instead, and never its moves
+        let d = fixture_pack("textcaught");
+        seen_log(&d);
+        std::fs::create_dir_all(d.join("packs/p/cards")).unwrap();
+        for id in ["swsh7-91", "me55-28", "swsh7-187"] {
+            let json = format!(
+                r#"{{"id":"{id}","name":"X","supertype":"Pokémon","hp":"210","types":["Fighting"],"abilities":[{{"name":"Secret Ability {id}","text":"Does a thing.","type":"Ability"}}],"attacks":[{{"name":"Secret Move {id}","cost":["Fighting"],"damage":"120","text":""}}],"weaknesses":[],"resistances":[],"retreatCost":["Colorless"]}}"#
+            );
+            std::fs::write(d.join(format!("packs/p/cards/{id}.json")), json).unwrap();
+        }
+        let screen = |id: &str| {
+            let mut a = app(&d, "", "", Start::Card(format!("p/{id}")));
+            assert_eq!(sel_id(&mut a), id);
+            a.show_text = true;
+            let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(140, 50)).unwrap();
+            let buf = t.draw(|f| crate::ui::render(&mut a, f.buffer_mut())).unwrap().buffer.clone();
+            (0..buf.area.height).map(|y| (0..buf.area.width).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>() + "\n").collect::<String>()
+        };
+        // caught (Lycanroc V): its text half
+        let caught = screen("swsh7-91");
+        assert!(caught.contains("Secret Move swsh7-91") && caught.contains("Secret Ability swsh7-91"), "{caught}");
+        assert!(!caught.contains("catch it to read its text"), "{caught}");
+        // seen (a pending Pikachu): the seen note, no moves
+        let seen = screen("me55-28");
+        assert!(seen.contains("seen: catch it to read its text") && !seen.contains("Secret"), "{seen}");
+        // empty (Lycanroc V rare ultra, never pulled): the not-caught note, no moves
+        let empty = screen("swsh7-187");
+        assert!(empty.contains("not caught yet: catch it to read its text") && !empty.contains("Secret"), "{empty}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
     fn search_opens_the_real_page() {
         // the search shows only the matching cards; Enter opens the selected one on its real, unfiltered page (its
         // neighbours around it), selected and glowing; Esc instead goes back to where you were before searching

@@ -230,6 +230,14 @@ Assert ($r.Earn -eq 'off' -and $line[7] -eq '' -and $line[8] -eq "id=$($r.Id)") 
 Assert ([Pokeshell.Core]::EarnMode('MINUTES:1.5') -eq 'minutes:1.5' -and [Pokeshell.Core]::EarnMode('junk') -eq 'first-command') "EarnMode normalizes"
 
 Write-Host "6. binder: the app, the text fallback, --pull / --card" -ForegroundColor Cyan
+# card text (docs/CARD_FORMAT.md) for a caught card (Glaceon V swsh7-40), a seen one (Squirtle sv3pt5-170, pending) and
+# an empty one (Charmander sv3pt5-168, never pulled): the text half is the caught card's only, in both binders
+$fxCards = Join-Path $fx 'packs\pokemon\cards'; [void][IO.Directory]::CreateDirectory($fxCards)
+foreach ($tc in 'swsh7-40', 'sv3pt5-170', 'sv3pt5-168') {
+  [IO.File]::WriteAllText((Join-Path $fxCards "$tc.json"), ('{"id":"' + $tc + '","name":"X","supertype":"Pokémon","hp":"120","types":["Water"],' +
+    '"abilities":[{"name":"Hidden Ability ' + $tc + '","text":"Does a thing.","type":"Ability"}],' +
+    '"attacks":[{"name":"Hidden Move ' + $tc + '","cost":["Water"],"damage":"30","text":""}],"weaknesses":[],"resistances":[],"retreatCost":["Colorless"]}'), [Text.UTF8Encoding]::new($false))
+}
 $out = Strip (Invoke-Cli $rs 'binder' @{ POKESHELL_BINDER = (Join-Path $rs 'no-such-binder.exe') })
 Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+7 pulls') "no exe: the text table"
 $exe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
@@ -256,6 +264,13 @@ if (Test-Path $exe) {
   Assert ($frame -match 'Charmander' -and $frame -match 'not pulled yet') "--card of a card never pulled: empty"
   $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-170' --first-frame | Out-String)
   Assert ($frame -match 'Squirtle' -and $frame -match 'seen' -and $frame -match 'use the tab it was pulled in') "--card pack/<card id> opens that real card; a pending pull is seen: use its tab to catch it"
+  # v (the text half, --text here): a caught card's moveset only; an empty or seen card says how to read it instead
+  $tCaught = Strip (& $exe --root $fx --state $rs --card 'pokemon/swsh7-40' --text --first-frame | Out-String)
+  Assert ($tCaught -match 'Hidden Move swsh7-40' -and $tCaught -match 'Hidden Ability swsh7-40' -and $tCaught -notmatch 'catch it to read its text') "v on a caught card (Glaceon V): its text half (ability, attack)"
+  $tSeen = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-170' --text --first-frame | Out-String)
+  Assert ($tSeen -match 'seen: catch it to read its text' -and $tSeen -notmatch 'Hidden (Move|Ability)') "v on a seen card (Squirtle, pending): 'seen: catch it to read its text', no moves"
+  $tEmpty = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-168' --text --first-frame | Out-String)
+  Assert ($tEmpty -match 'not caught yet: catch it to read its text' -and $tEmpty -notmatch 'Hidden (Move|Ability)') "v on an empty card (Charmander, never pulled): 'not caught yet: catch it to read its text', no moves"
   $frame = Strip (& $exe --root $fx --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
@@ -297,6 +312,10 @@ if ($py) {
   Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
   $wpk0 = $data.packs | Where-Object id -eq 'pokemon'
   $sq = $wpk0.characters | Where-Object id -eq 'squirtle'; $cm = $wpk0.characters | Where-Object id -eq 'charmander'
+  $tx = { param($id) ($wpk0.cards | Where-Object id -eq $id).text }
+  Assert ((& $tx 'swsh7-40').attacks -and -not (& $tx 'sv3pt5-170') -and -not (& $tx 'sv3pt5-168')) "data.json has the text half of caught cards only (Glaceon V swsh7-40); the seen Squirtle's and the empty Charmander's are left out"
+  $pg = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
+  Assert ($pg.Contains("status === 'none' ? ghostEl(slot)") -and $pg.Contains('moveTags(cd.text, summarize(slot).caught)')) "the page's detail of an empty card is its empty pocket (no art, no text half); moves are search tags of caught cards only"
   Assert ($sq.seen -eq 'base1-63' -and $cm.seen -eq 'base1-46' -and ($wpk0.cards | Where-Object id -eq 'base1-44').sprite) "silhouettes: a seen scene card takes its character's common (squirtle: base1-63; charmander: base1-46); a common (transparent art) is its own"
   $pageHtml = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
   Assert ($pageHtml.Contains('function seenEl') -and $pageHtml.Contains('seen__sil') -and $pageHtml.Contains('brightness(0)') -and -not $pageHtml.Contains('.card.pending') -and -not $pageHtml.Contains('pill--pending')) "the page draws seen cards as flat silhouettes; no pending ribbon"
@@ -352,6 +371,31 @@ console.log(JSON.stringify(out));
     Assert ((@($c.'lyc seen') -join ',') -eq 'swsh7-91' -and (@($c.'lyc pending') -join ',') -eq 'swsh7-91' -and @($c.'lyc missing').Count -eq @($r.lyc).Count - 1 -and @($c.'lyc missing') -notcontains 'swsh7-92') "web search: seen (and its old word pending); missing = not caught (seen and empty)"
     Assert ((& $has $c.'rarity:"rare rainbow"' $r.rainbows) -and @($c.'rarity:rare rainbow').Count -ge @($c.'rarity:"rare rainbow"').Count) "web search: a quoted value keeps its spaces"
     Assert (($r.sets -join ' ') -eq 'swsh1 swsh7,swsh1,swsh10 swsh7 me55,cel25 swsh7') "web search: set: names the best-matching sets like the app (swsh1 is not swsh10; swsh = every swsh; evsk; celebration is both): $($r.sets -join ' / ')"
+    # moves: attack: / ability: find caught cards only, whatever text a seen or empty card has (the exported
+    # data.json of this state, and every card given its text as if it had been exported)
+    $js2 = Join-Path $fx 'move-check.js'
+    [IO.File]::WriteAllText($js2, @'
+const fs = require('fs');
+const [html, dataJson, cardsDir] = process.argv.slice(2);
+const src = fs.readFileSync(html, 'utf8');
+const api = new Function(src.slice(src.indexOf('/* search:begin */'), src.indexOf('/* search:end */')) + '; return { parseQuery, matchHay, field, moveTags };')();
+const data = JSON.parse(fs.readFileSync(dataJson, 'utf8'));
+const pk = data.packs.find(p => p.id === 'pokemon');
+const caught = new Set(data.pulls.filter(p => p.status === 'collected').map(p => p.card));
+const seen = new Set(data.pulls.filter(p => p.status !== 'collected').map(p => p.card));
+const own = id => { try { const d = JSON.parse(fs.readFileSync(`${cardsDir}/${id}.json`, 'utf8')); return { attacks: d.attacks, abilities: d.abilities }; } catch { return null; } };
+const run = (q, textOf) => { const p = api.parseQuery(q); return pk.cards.filter(c => {
+  const hay = [['name', c.name], ['id', c.id], ...api.moveTags(textOf(c), caught.has(c.id))].filter(([, v]) => v).map(([k, v]) => [k, api.field(v)]);
+  return api.matchHay(p.terms, hay, () => ({ caught: caught.has(c.id), seen: !caught.has(c.id) && seen.has(c.id), missing: !caught.has(c.id) }));
+}).map(c => c.id); };
+const out = {};
+for (const q of ['attack:hidden', 'ability:hidden', 'attack:"hidden move sv3pt5"', 'hidden move'])
+  out[q] = { exported: run(q, c => c.text), forced: run(q, c => own(c.id)) };
+console.log(JSON.stringify(out));
+'@, [Text.UTF8Encoding]::new($false))
+    $m = (& $node.Source $js2 (Join-Path $fx 'tools\binder-web\index.html') (Join-Path $rs 'web\data.json') $fxCards | Out-String) | ConvertFrom-Json
+    Assert ((@($m.'attack:hidden'.exported) -join ',') -eq 'swsh7-40' -and (@($m.'attack:hidden'.forced) -join ',') -eq 'swsh7-40' -and (@($m.'ability:hidden'.forced) -join ',') -eq 'swsh7-40') "web search: attack: / ability: match the caught Glaceon V only, never the seen Squirtle or the empty Charmander (even given their text)"
+    Assert (@($m.'attack:"hidden move sv3pt5"'.forced).Count -eq 0 -and @($m.'hidden move'.forced).Count -eq 0) "web search: an uncaught card's move finds nothing; bare words never match moves (attack: / ability: are key-only)"
   } else { Write-Host "  skip  node not found: the page's matcher is not run" -ForegroundColor Yellow }
   Assert ($data.counts.pulls -eq 7 -and $data.counts.caught -eq 7 -and $data.counts.seen -eq 3) "data.json counts caught pulls and cards; seen cards apart ($($data.counts.pulls) pulls, caught $($data.counts.caught), seen $($data.counts.seen))"
 

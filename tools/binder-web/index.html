@@ -270,6 +270,8 @@ button.seen:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px
 .seen__label small { display: block; font: 700 7.5cqi/1.3 var(--ff-pix); }
 .seen__name { position: absolute; top: 3.5%; left: 7%; right: 7%; font: 700 10cqi/1.1 var(--ff-round); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail__stage .seen { width: min(100%, 360px); cursor: default; box-shadow: 0 2px 3px rgba(0,0,0,.25), 0 30px 50px -18px rgba(0,0,0,.45); }
+/* an empty card's detail: its empty pocket (no art and no text half until it is caught) */
+.detail__stage .ghost { width: min(100%, 360px); }
 
 /* ================================================================ cards */
 .card {
@@ -1120,7 +1122,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
   .tab[aria-selected="true"] small { display: inline; }
   .detail__box { grid-template-columns: 1fr; padding: 18px 16px; gap: 6px; border-radius: 18px; }
   .detail__stage { position: static; padding-top: 28px; }
-  .detail__stage .card { width: min(82vw, 320px); }
+  .detail__stage .card, .detail__stage .ghost { width: min(82vw, 320px); }
   .d-name { font-size: 28px; }
   .d-grid { gap: 6px; }
   .d-stat { padding: 8px 9px; }
@@ -1511,6 +1513,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
   // hay: [[key, field]]; flags: () => { shiny, foil, new, seen, caught, missing, owned, pending } (only asked for by state words)
   const matchHay = (terms, hay, flags) => terms.every(t => termOk(t, hay, flags) !== t.neg);
+  // the moves (attack: / ability:, key-only) are the text half: a caught card's only, so a search can't reveal them
+  // (docs/BINDER_SPEC.md "Empty, seen, caught"; data.json leaves an uncaught card's text out as well)
+  const moveTags = (text, caught) => !caught || !text ? []
+    : [...(text.attacks || []).map(a => ['attack', a.name]), ...(text.abilities || []).map(a => ['ability', a.name])];
   /* search:end */
   const hayCache = new Map();
   function slotHay(slot) {
@@ -1541,8 +1547,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       tags.push(['name', cd.name], ['id', cd.id], ['number', cd.number], ['rarity', cd.rarity], ['set', cd.set_id], ['set', cd.set_name], ['artist', cd.artist]);
       for (const x of cd.subtypes || []) tags.push(['subtype', x]);
       for (const x of cd.types || []) tags.push(['type', x]);
-      for (const a of cd.text?.attacks || []) tags.push(['attack', a.name]);
-      for (const a of cd.text?.abilities || []) tags.push(['ability', a.name]);
+      tags.push(...moveTags(cd.text, summarize(slot).caught));   // caught cards only
     } else tags.push(['name', c?.name], ['number', c?.tag], ['rarity', t?.label]);
     const out = tags.filter(([, v]) => v);
     if (!slot.pulls.length || slot.card) tagCache.set(slot.key, out);
@@ -2410,7 +2415,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const nameTxt = cd ? cd.name : pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
 
     const stage = h('div', { class: 'detail__stage' });
-    const big = status === 'seen' ? seenEl(slot, { static: true })
+    // the text half is for caught cards only: a seen card is its silhouette, an empty one its empty pocket
+    const big = status === 'seen' ? seenEl(slot, { static: true }) : status === 'none' ? ghostEl(slot)
       : cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: gotV.length, isNew: gotV.some(p => p.new), static: true });
     stage.append(big);
     if (hasShiny && hasPlain) {
