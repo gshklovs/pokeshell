@@ -71,10 +71,12 @@ pub struct Hits {
 }
 
 /// Where the binder opens: the last card you caught (default; never a seen one), a pull id (--pull, the card's link)
-/// or a card (--card): those two land on their slot even when it is only seen (it shows its silhouette).
+/// or a card (--card): those two land on their slot even when it is only seen (it shows its silhouette). Newest
+/// (--pull latest, the Ctrl+Shift+B pane): the last card pulled, seen or caught, unless that pull has expired.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Start {
     Latest,
+    Newest,
     Pull(String),
     Card(String),
 }
@@ -343,6 +345,7 @@ impl App {
         let start = app.opts.start.clone();
         let landed = match &start {
             Start::Latest => false,
+            Start::Newest => app.select_newest(),
             Start::Pull(id) => app.select_pull(id) || {
                 app.notice = Some(format!("pull {id} isn't in the binder (hidden or not in pulls.log): showing the last card you caught"));
                 false
@@ -481,6 +484,19 @@ impl App {
 
     /// Start on the card you caught most recently (the exact card, in any view). Never a seen card: a pull that is
     /// pending or expired isn't in the binder yet. Nothing caught: the selection stays where it is.
+    /// Land on the newest pull (a fresh tab's card, caught or not yet), unless it has expired: false then, and the
+    /// usual landing (the last card you caught) applies.
+    pub fn select_newest(&mut self) -> bool {
+        let hit = (0..self.coll.pulls.len()).rev().find_map(|i| self.coll.slot_of[i].map(|k| (i, k)));
+        match hit {
+            Some((i, k)) if !matches!(self.coll.pulls[i].status, crate::data::Status::Expired) => {
+                self.jump_to(k, Some(i));
+                true
+            }
+            _ => false,
+        }
+    }
+
     pub fn select_latest(&mut self) {
         if let Some((i, k)) = self.coll.last_caught() {
             self.jump_to(k, Some(i));
@@ -2015,6 +2031,18 @@ mod tests {
         assert!(a.notice.is_none());
         let mut a = app(&d, "", "", Start::Pull(e.clone()));
         assert_eq!(sel_id(&mut a), "swsh7-92", "an expired pull still opens its (seen) slot");
+        // --pull latest (the hotkey pane): the newest pull, unless it expired (here it did: the last caught card)
+        let mut a = app(&d, "", "", Start::Newest);
+        assert_eq!(sel_id(&mut a), "swsh7-91", "the newest pull expired: the last caught card");
+        {
+            let d2 = fixture_pack("newest");
+            let q = ulid_now("QQQQQQQQQQQQQQQ1");
+            let l2 = format!("2026-09-29T08:01:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\tpending\tid={q}\tboot={}", crate::data::boot_id());
+            write_log(&d2, &["2026-09-29T08:00:00\tp\tlycanroc\trare-holo-v\tswsh7-91\t\t0\t", &l2]);
+            let mut a = app(&d2, "", "", Start::Newest);
+            assert_eq!(sel_id(&mut a), "me55-28", "the newest pull, still pending: its (seen) slot");
+            let _ = std::fs::remove_dir_all(&d2);
+        }
         let mut a = app(&d, "", "", Start::Card("p/me55-B".into()));
         assert_eq!(sel_id(&mut a), "me55-B");
         // L: the last caught card again

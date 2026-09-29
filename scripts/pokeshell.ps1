@@ -48,8 +48,9 @@ pokeshell - every new Windows Terminal tab is a pack pull
                                           what earns a pull: its tab's first command (default), the tab
                                           staying open N minutes, or nothing (off: every pull counts)
   pokeshell hotkey [on|off] [-Keys ctrl+shift+b] [-SettingsPath <p>]
-                                          a Windows Terminal key that opens the binder in a split pane
-  pokeshell urlhandler [on|off] [-DryRun] register pokeshell:// links (the card's "binder" link)
+                                          the Windows Terminal key that opens the binder in a split pane on
+                                          your newest pull (install adds it; off keeps it out)
+  pokeshell urlhandler [on|off] [-DryRun] the card's Ctrl+click "binder" link (pokeshell://; install adds it)
   pokeshell show <pack>/<character> [variant|card id|tier] [-shiny] [-picture|-card]
                                           print a card (pokeshell show: list what's available; also pokemon/<card id>)
   pokeshell display [card|picture]        how pulls print: the full card (default) or just the picture
@@ -60,7 +61,8 @@ pokeshell - every new Windows Terminal tab is a pack pull
   pokeshell colorwatch [on|off]           tint the tab to match Claude Code's /color (new tabs)
   pokeshell on | off                      enable / disable startup pulls (kill switch)
   pokeshell install [-SettingsPath <p>] [-Shell pwsh|powershell] [-Art auto|download|local|skip] [-ArtStillOnly]
-                                          add the skin profiles to Windows Terminal (re-run after Update-Module)
+                                          add the skin profiles, the binder hotkey and the card link to
+                                          Windows Terminal (re-run after Update-Module)
                                           and download the card art release art.json pins (auto: if missing)
   pokeshell update                        update the module from the PowerShell Gallery and re-install
   pokeshell version                       which pokeshell is running, and where new tabs run from
@@ -140,12 +142,20 @@ function Invoke-Install {
     $o = @(($new | ConvertFrom-Json).profiles.list).Count; $b = @(($baseline | ConvertFrom-Json).profiles.list).Count
     if ($o -ne $b + $skins.Count) { throw "verification failed: expected $($b + $skins.Count) profiles, found $o; nothing written" }
   }
+  # the binder from a pulled card, by default: Ctrl+Shift+B (a split pane on the newest pull) and the card's
+  # Ctrl+click link (pokeshell://, "safeUriSchemes"); `pokeshell hotkey off` / `urlhandler off` keep them out
+  $access = Get-BinderAccessPlan $new -Hotkey (-not [IO.File]::Exists((Join-Path $State 'hotkey.off'))) -Link (-not [IO.File]::Exists((Join-Path $State 'urlhandler.off')))
+  if (-not (Remove-BinderAccessText $access.text $access).Equals((Remove-BinderAccessText $new $access))) { throw "verification failed: removing the binder hotkey / link again would not restore settings.json; nothing written" }
+  $new = $access.text
+  [void](ConvertFrom-Jsonc $new)
+  if ($strictOk) { [void]($new | ConvertFrom-Json) }
 
   $backupDir = Join-Path $State 'backups'
   [void][IO.Directory]::CreateDirectory($backupDir)
   $backup = Join-Path $backupDir ("settings-{0:yyyyMMdd-HHmmss}.json" -f (Get-Date))
   Copy-Item -LiteralPath $path -Destination $backup
   if (-not $new.Equals($orig.text)) { Write-WtSettingsFile $path $new $orig.bom }
+  Complete-BinderAccess $access $path
 
   # compile the startup core now (so no tab has to), and drop older builds that no tab has loaded
   $core = New-PokeshellCore $State
@@ -160,6 +170,9 @@ function Invoke-Install {
   $packs = $skins | Group-Object pack | ForEach-Object { "$($_.Name) ($($_.Count))" }
   Write-Host "pokeshell: $($skins.Count) skin profiles synced into $path  [$($packs -join ', ')]" -ForegroundColor Green
   Write-Host "  backup of the previous settings: $backup"
+  if ($access.hotkey) { Write-Host "  binder: $($access.hotkey.combo) opens it in a split pane on your newest pull" }
+  if ($access.link) { Write-Host "  binder: Ctrl+click the ``binder`` link under a pulled card opens it on that card" }
+  foreach ($n in $access.notes) { Write-Host "  $n" -ForegroundColor Yellow }
   if ($Packaged) { Write-Host "  pokeshell $Version; new tabs run from $RuntimeRoot (after Update-Module, run pokeshell install again)" }
   Write-Host ''
   Write-Host 'Add this line to your PowerShell profile (notepad $PROFILE):' -ForegroundColor Yellow
@@ -189,13 +202,15 @@ function Invoke-Uninstall {
       Write-Host "pokeshell: removed the skin profiles from $path (backup: $backup)" -ForegroundColor Green
     }
   } else { Write-Host "pokeshell: Windows Terminal settings.json not found; nothing to remove there" }
-  # the binder hotkey and the pokeshell:// handler, if this state dir installed them
+  # the binder hotkey, the "safeUriSchemes" entry and the pokeshell:// handler, if this state dir installed them
   $hk = Join-Path $State 'hotkey.tsv'
   if ([IO.File]::Exists($hk)) {
     $hp = [IO.File]::ReadAllText($hk).Trim().Split("`t")[0]
     if ($hp -and (Test-Path $hp)) { $b = Remove-PokeshellHotkey $hp; Write-Host "pokeshell: removed the binder hotkey from $hp$(if ($b) { " (backup: $b)" })" }
     Remove-Item $hk -ErrorAction SilentlyContinue
   }
+  $su = Read-StateTsv 'safeuri.tsv'
+  if ($su.Count) { $b = Remove-PokeshellSafeScheme $su[0]; Write-Host "pokeshell: removed `"pokeshell`" from safeUriSchemes in $($su[0])$(if ($b) { " (backup: $b)" })" }
   if ([IO.File]::Exists((Join-Path $State 'urlhandler.txt'))) {
     [void](Set-PokeshellUrlHandler -Remove); Remove-Item (Join-Path $State 'urlhandler.txt') -ErrorAction SilentlyContinue
     Write-Host "pokeshell: removed the pokeshell:// link handler"
@@ -556,8 +571,10 @@ function Invoke-Earn {
 
 function Get-HotkeySettingsPath {
   if ($Opts.settingspath) { return (Resolve-Path $Opts.settingspath).ProviderPath }
-  $f = Join-Path $State 'hotkey.tsv'
-  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); if ($x[0] -and (Test-Path $x[0])) { return $x[0] } }
+  foreach ($n in 'hotkey.tsv', 'safeuri.tsv') {
+    $f = Join-Path $State $n
+    if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); if ($x[0] -and (Test-Path $x[0])) { return $x[0] } }
+  }
   $p = Get-PokeshellWtSettingsPath
   if (-not $p) { throw "Windows Terminal settings.json not found (pass -SettingsPath <path>)" }
   $p
@@ -575,67 +592,172 @@ function Save-HotkeySettings([string]$Path, $Orig, [string]$New, [string]$Tag) {
   $backup
 }
 
+# a state file's tab-separated fields (settings path, ...), or @() when it isn't there
+function Read-StateTsv([string]$Name) {
+  $f = Join-Path $State $Name
+  if ([IO.File]::Exists($f)) { , @([IO.File]::ReadAllText($f).Trim().Split("`t")) } else { , @() }
+}
+
 function Remove-PokeshellHotkey([string]$Path) {
-  $f = Join-Path $State 'hotkey.tsv'
-  $created = $false
-  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); $created = $x.Count -ge 3 -and $x[2] -eq '1' }
+  $x = Read-StateTsv 'hotkey.tsv'
+  $created = $x.Count -ge 3 -and $x[2] -eq '1'
   $orig = Read-WtSettingsFile $Path
   $new = Remove-PokeshellHotkeyText $orig.text -DropEmptyActions:$created
   $b = Save-HotkeySettings $Path $orig $new 'hotkey-off'
-  Remove-Item $f -ErrorAction SilentlyContinue
+  Remove-Item (Join-Path $State 'hotkey.tsv') -ErrorAction SilentlyContinue
   $b
 }
 
-# `pokeshell hotkey on|off`: a Windows Terminal key (default Ctrl+Shift+B) that opens the binder in a split pane
+# "safeUriSchemes": ["pokeshell"] out of settings.json again, if we put it there (safeuri.tsv: path, created)
+function Remove-PokeshellSafeScheme([string]$Path) {
+  $x = Read-StateTsv 'safeuri.tsv'
+  if (-not $x.Count) { return $null }
+  $b = $null
+  if ($Path -and (Test-Path $Path)) {
+    $orig = Read-WtSettingsFile $Path
+    $b = Save-HotkeySettings $Path $orig (Remove-PokeshellSafeSchemeText $orig.text -DropEmpty:($x.Count -ge 2 -and $x[1] -eq '1')) 'link-off'
+  }
+  Remove-Item (Join-Path $State 'safeuri.tsv') -ErrorAction SilentlyContinue
+  $b
+}
+
+<#
+The binder's two ways in from a pulled card, both set up by `pokeshell install` unless turned off (hotkey.off /
+urlhandler.off, written by `pokeshell hotkey off` / `urlhandler off`):
+  hotkey  a settings.json action + keybinding (default Ctrl+Shift+B): a split pane running binder.exe --pull latest
+  link    Ctrl+click on the card's `binder` footer: pokeshell://binder?pull=<id>, registered under HKCU (binder-link.exe
+          opens `wt -w 0 sp` on that pull), plus "safeUriSchemes": ["pokeshell"] so Windows Terminal opens it without
+          its "may lead to an unsafe location" dialog
+Returns @{ text (the settings text with them added); hotkey / scheme (what to record, or $null); link (binder-link.exe
+or $null); notes }. Nothing is written here.
+#>
+function Get-BinderAccessPlan([string]$Text, [bool]$Hotkey = $true, [bool]$Link = $true, [string]$Keys) {
+  $plan = @{ text = $Text; hotkey = $null; scheme = $null; link = $null; exe = $null; notes = [Collections.Generic.List[string]]::new() }
+  $exe = Get-PokeshellBinderExe $RuntimeRoot
+  if (-not $exe) {
+    $plan.notes.Add($(if ($Packaged) { "this pokeshell package has no binder app: no Ctrl+Shift+B and no card link; ``binder`` shows the text binder" }
+                      else { "the binder app isn't built (binder\build.ps1, then pokeshell install again): no Ctrl+Shift+B and no card link yet; ``binder`` shows the text binder" }))
+    return $plan
+  }
+  $plan.exe = $exe
+  if ($Hotkey) {
+    $old = Read-StateTsv 'hotkey.tsv'
+    if (-not $Keys) { $Keys = if ($old.Count -ge 2 -and $old[1]) { $old[1] } else { 'ctrl+shift+b' } }
+    try {
+      # take out what an earlier install added exactly as its removal would (an "actions" it created goes too), so
+      # adding it again gives the same bytes: a re-install is idempotent
+      $base = Remove-PokeshellHotkeyText $plan.text -DropEmptyActions:($old.Count -ge 3 -and $old[2] -eq '1')
+      $res = Add-PokeshellHotkeyText $base (Get-PokeshellBinderCommand $exe $RuntimeRoot $State '--pull latest') $Keys
+      $plan.text = $res.text
+      $plan.hotkey = @{ combo = $Keys; created = ($res.created -or ($old.Count -ge 3 -and $old[2] -eq '1')) }
+    } catch { $plan.notes.Add("no binder hotkey: $($_.Exception.Message) (pokeshell hotkey on -Keys <keys>)") }
+  }
+  if ($Link) {
+    $linkExe = Get-PokeshellBinderLinkExe $exe
+    if (-not $linkExe) { $plan.notes.Add("no card link: binder-link.exe isn't built next to $exe (binder\build.ps1)") }
+    else {
+      $plan.link = $linkExe
+      $old = Read-StateTsv 'safeuri.tsv'
+      $base = if ($old.Count) { Remove-PokeshellSafeSchemeText $plan.text -DropEmpty:($old.Count -ge 2 -and $old[1] -eq '1') } else { $plan.text }
+      $res = Add-PokeshellSafeSchemeText $base
+      $plan.text = $res.text
+      if ($res.ours -or $old.Count) { $plan.scheme = @{ created = ($res.created -or ($old.Count -ge 2 -and $old[1] -eq '1')) } }
+    }
+  }
+  $plan
+}
+
+# the settings text without anything Get-BinderAccessPlan adds (for the Remove(Add(x)) == Remove(x) check)
+function Remove-BinderAccessText([string]$Text, $Plan) {
+  $t = Remove-PokeshellHotkeyText $Text -DropEmptyActions:($Plan.hotkey -and $Plan.hotkey.created)
+  Remove-PokeshellSafeSchemeText $t -DropEmpty:($Plan.scheme -and $Plan.scheme.created)
+}
+
+# after settings.json was written: record the plan, and register the pokeshell:// handler (HKCU)
+function Complete-BinderAccess($Plan, [string]$Path) {
+  if ($Plan.hotkey) {
+    [IO.File]::WriteAllText((Join-Path $State 'hotkey.tsv'), "$Path`t$($Plan.hotkey.combo)`t$(if ($Plan.hotkey.created) { '1' } else { '0' })")
+    Remove-Item (Join-Path $State 'hotkey.off') -ErrorAction SilentlyContinue
+  }
+  if ($Plan.scheme) { [IO.File]::WriteAllText((Join-Path $State 'safeuri.tsv'), "$Path`t$(if ($Plan.scheme.created) { '1' } else { '0' })") }
+  if ($Plan.link) {
+    $ops = @(Set-PokeshellUrlHandler -Exe $Plan.exe -LinkExe $Plan.link -Root $RuntimeRoot -StateDir $State)
+    [IO.File]::WriteAllText((Join-Path $State 'urlhandler.txt'), $Plan.link)
+    Remove-Item (Join-Path $State 'urlhandler.off') -ErrorAction SilentlyContinue
+    if ($env:POKESHELL_REGISTRY -eq 'dryrun') { foreach ($o in $ops) { Write-Host "  (registry dry run) would $o" -ForegroundColor DarkGray } }
+  }
+}
+
+# `pokeshell hotkey on|off`: a Windows Terminal key (default Ctrl+Shift+B) that opens the binder in a split pane on
+# the newest pull. `pokeshell install` adds it by default; `off` also keeps later installs from adding it again.
 function Invoke-Hotkey {
   . (Join-Path $PSScriptRoot 'lib\wtsettings.ps1')
   $path = Get-HotkeySettingsPath
-  $keys = if ($Opts['keys']) { $Opts['keys'] } else { 'ctrl+shift+b' }
-  $f = Join-Path $State 'hotkey.tsv'
   if (-not $Pos) {
-    $on = $null -ne (Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $path).text) 'actions') -and
-          @((Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $path).text) 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ }).Count -gt 0
+    $acts = Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $path).text) 'actions'
+    $on = $acts -and @($acts.items | Where-Object { Test-PokeshellHotkeyNode $_ }).Count -gt 0
     Write-Host "hotkey: $(if ($on) { 'on' } else { 'off' })  ($path)  (pokeshell hotkey on|off [-Keys ctrl+shift+b])"
     return
   }
   $want = $Pos[0].ToLower()
   if ($want -in 'off', 'remove', 'uninstall') {
     $b = Remove-PokeshellHotkey $path
+    [IO.File]::WriteAllText((Join-Path $State 'hotkey.off'), 'pokeshell install leaves the binder hotkey out (pokeshell hotkey on adds it back)')
     Write-Host "pokeshell: binder hotkey removed from $path$(if ($b) { " (backup: $b)" })"
     return
   }
   if ($want -notin 'on', 'install') { throw "hotkey is on or off, not '$want'" }
-  $exe = Get-PokeshellBinderExe $RuntimeRoot
-  if (-not $exe) { throw "the binder app isn't built (binder\build.ps1), so there is nothing for the hotkey to open" }
+  if (-not (Get-PokeshellBinderExe $RuntimeRoot)) { throw "the binder app isn't built (binder\build.ps1), so there is nothing for the hotkey to open" }
   $orig = Read-WtSettingsFile $path
-  $res = Add-PokeshellHotkeyText $orig.text (Get-PokeshellBinderCommand $exe $RuntimeRoot $State) $keys
+  $plan = Get-BinderAccessPlan $orig.text -Link $false -Keys $Opts['keys']
+  if (-not $plan.hotkey) { throw ($plan.notes -join '; ') }
   # verify like install: removing it again gives back exactly what was there
-  $undo = Remove-PokeshellHotkeyText $res.text -DropEmptyActions:$res.created
-  if (-not $undo.Equals((Remove-PokeshellHotkeyText $orig.text))) { throw "verification failed: removing the hotkey again would not restore settings.json; nothing written" }
-  $created = $res.created
-  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); if ($x.Count -ge 3 -and $x[2] -eq '1') { $created = $true } }
-  $b = Save-HotkeySettings $path $orig $res.text 'hotkey'
-  [IO.File]::WriteAllText($f, "$path`t$keys`t$(if ($created) { '1' } else { '0' })")
-  Write-Host "pokeshell: $keys opens the binder in a split pane ($path$(if ($b) { "; backup: $b" }))" -ForegroundColor Green
+  if (-not (Remove-BinderAccessText $plan.text $plan).Equals((Remove-PokeshellHotkeyText $orig.text))) { throw "verification failed: removing the hotkey again would not restore settings.json; nothing written" }
+  $b = Save-HotkeySettings $path $orig $plan.text 'hotkey'
+  Complete-BinderAccess $plan $path
+  Write-Host "pokeshell: $($plan.hotkey.combo) opens the binder in a split pane ($path$(if ($b) { "; backup: $b" }))" -ForegroundColor Green
 }
 
-# `pokeshell urlhandler on|off [-DryRun]`: the pokeshell:// link handler (HKCU\Software\Classes\pokeshell)
+# `pokeshell urlhandler on|off [-DryRun]`: the card's Ctrl+click link (pokeshell:// under HKCU\Software\Classes, and
+# "safeUriSchemes" in settings.json). `pokeshell install` sets it up by default; `off` keeps later installs from it.
 function Invoke-UrlHandler {
+  . (Join-Path $PSScriptRoot 'lib\wtsettings.ps1')
   $f = Join-Path $State 'urlhandler.txt'
   $dry = Has @('dryrun')
   if (-not $Pos) { Write-Host "urlhandler: $(if (Test-Path $f) { 'on' } else { 'off' })  (pokeshell urlhandler on|off [-DryRun])"; return }
   $want = $Pos[0].ToLower()
   if ($want -in 'off', 'remove', 'uninstall') {
     $ops = @(Set-PokeshellUrlHandler -Remove -DryRun:$dry)
-    if (-not $dry) { Remove-Item $f -ErrorAction SilentlyContinue }
+    if (-not $dry) {
+      $x = Read-StateTsv 'safeuri.tsv'
+      if ($x.Count) { [void](Remove-PokeshellSafeScheme $x[0]) }
+      Remove-Item $f -ErrorAction SilentlyContinue
+      [IO.File]::WriteAllText((Join-Path $State 'urlhandler.off'), 'pokeshell install leaves the card link out (pokeshell urlhandler on adds it back)')
+    }
   } elseif ($want -in 'on', 'install') {
     $exe = Get-PokeshellBinderExe $RuntimeRoot
     if (-not $exe) { throw "the binder app isn't built (binder\build.ps1), so there is nothing for pokeshell:// links to open" }
-    $ops = @(Set-PokeshellUrlHandler -Exe $exe -Root $RuntimeRoot -StateDir $State -DryRun:$dry)
-    if (-not $dry) { [IO.File]::WriteAllText($f, $exe) }
+    $linkExe = Get-PokeshellBinderLinkExe $exe
+    if (-not $linkExe) { throw "binder-link.exe isn't built next to $exe (binder\build.ps1)" }
+    if ($dry) { $ops = @(Set-PokeshellUrlHandler -Exe $exe -LinkExe $linkExe -Root $RuntimeRoot -StateDir $State -DryRun) }
+    else {
+      # Windows Terminal's settings.json, if there is one (other terminals only need the handler)
+      $path = try { Get-HotkeySettingsPath } catch { $null }
+      if ($path) {
+        $orig = Read-WtSettingsFile $path
+        $plan = Get-BinderAccessPlan $orig.text -Hotkey $false
+        if (-not (Remove-BinderAccessText $plan.text $plan).Equals((Remove-PokeshellSafeSchemeText $orig.text))) { throw "verification failed: removing the link again would not restore settings.json; nothing written" }
+        [void](Save-HotkeySettings $path $orig $plan.text 'link')
+        $plan.link = $null   # registered below
+        Complete-BinderAccess $plan $path
+      }
+      $ops = @(Set-PokeshellUrlHandler -Exe $exe -LinkExe $linkExe -Root $RuntimeRoot -StateDir $State)
+      [IO.File]::WriteAllText($f, $linkExe); Remove-Item (Join-Path $State 'urlhandler.off') -ErrorAction SilentlyContinue
+    }
   } else { throw "urlhandler is on or off, not '$want'" }
-  foreach ($o in $ops) { Write-Host "  $(if ($dry) { 'would ' })$o" }
-  Write-Host "pokeshell: pokeshell:// handler $(if ($want -in 'on', 'install') { 'registered' } else { 'removed' })$(if ($dry) { ' (dry run: nothing changed)' })"
+  $regDry = $dry -or $env:POKESHELL_REGISTRY -eq 'dryrun'
+  foreach ($o in $ops) { Write-Host "  $(if ($regDry) { 'would ' })$o" }
+  Write-Host "pokeshell: pokeshell:// handler $(if ($want -in 'on', 'install') { 'registered' } else { 'removed' })$(if ($dry) { ' (dry run: nothing changed)' } elseif ($regDry) { ' (registry dry run)' })"
 }
 
 # ---------------------------------------------------------------- holo / color / colorwatch

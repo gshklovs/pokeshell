@@ -45,8 +45,21 @@ $t1 = [DateTime]::UtcNow.Ticks
 $ids = @(1..50 | ForEach-Object { [Pokeshell.Core]::NewPullId($t1 + $_ * 10000) })
 Assert (@($ids | Sort-Object -Unique).Count -eq 50 -and (($ids | Sort-Object) -join ',') -eq ($ids -join ',')) "ids are unique and sort by time"
 $text = Strip $r.r.Text
-Assert ($text.Contains("binder $([char]0x23ce)") -and $r.r.Text.Contains("$e]8;;pokeshell://binder?pull=$($r.r.Id)$e\")) "the card's footer: 'binder ⏎', an OSC 8 link to pokeshell://binder?pull=<id>"
+Assert ($text.TrimEnd().EndsWith("binder $([char]0x23ce)") -and -not $r.r.Text.Contains("$e]8;;")) "nothing installed: the footer is the plain 'binder ⏎' (what to type), no link"
+# what `pokeshell install` records once the handler and the hotkey are in: the footer offers both
+[IO.File]::WriteAllText((Join-Path $st 'urlhandler.txt'), 'C:\x\binder-link.exe')
+[IO.File]::WriteAllText((Join-Path $st 'hotkey.tsv'), "C:\x\settings.json`tctrl+shift+b`t0")
+$r = Invoke-Fresh { $x = [Pokeshell.Core]::Roll($RepoRoot, $st, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, 7, 0, 'x', $env:TEMP, $env:TEMP); [pscustomobject]@{ r = $x } }
+$text = Strip $r.r.Text
+Assert ($r.r.Link -and $r.r.Keys -eq 'ctrl+shift+b' -and $r.r.Text.Contains("$e]8;;pokeshell://binder?pull=$($r.r.Id)$e\binder $([char]0x23ce)$e]8;;$e\")) "installed: 'binder ⏎' is an OSC 8 link to pokeshell://binder?pull=<id>"
+Assert ($text.TrimEnd().EndsWith("binder $([char]0x23ce)  ctrl+click $([char]0x00b7) ctrl+shift+b")) "...followed by what works: ctrl+click and the hotkey ($(($text.TrimEnd() -split "`n")[-1].Trim()))"
+$lines = @($text.TrimEnd() -split "`r?`n"); $cardW = ($lines[0..($lines.Count - 2)] | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
+Assert ($lines[-1].Length -le $cardW) "the footer stays within the card's width ($($lines[-1].Length) <= $cardW)"
 Assert ($r.r.Text.LastIndexOf([char]0x2570) -lt $r.r.Text.IndexOf("$e]8;;")) "the art itself is not inside the link (it opens after the card's bottom edge)"
+Assert ([Pokeshell.Core]::WithFooter('x', $r.r.Id, $st) -eq [Pokeshell.Core]::WithFooter('x', $r.r.Id, $true, 'ctrl+shift+b')) "the foil tab's footer (WithFooter with the state folder) reads the same setup"
+[IO.File]::Delete((Join-Path $st 'hotkey.tsv'))
+Assert ((Strip ([Pokeshell.Core]::WithFooter(('x' * 60), $r.r.Id, $st))).TrimEnd().EndsWith("binder $([char]0x23ce)  ctrl+click")) "no hotkey: just ctrl+click"
+Assert ((Strip ([Pokeshell.Core]::WithFooter(('x' * 30), $r.r.Id, $true, 'ctrl+shift+b'))).TrimEnd().EndsWith("x`r`n         binder $([char]0x23ce)  ctrl+click")) "a card too narrow for the whole hint drops the key (never wider than the card)"
 $f = Roll-Common $st ([DateTime]::UtcNow.Ticks + 3600 * $tps) 1
 $cmd = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($f.WtArgs[-1]))
 Assert ($f.Action -eq 'foil' -and $cmd.StartsWith("`$env:POKESHELL_PULL='$($f.Id)';") -and $cmd.Contains("-PullId '$($f.Id)'") -and $cmd.Contains("-StateDir '$st'")) "a foil's skinned tab carries the id (POKESHELL_PULL + Show-PokeshellPull -PullId)"
@@ -468,7 +481,7 @@ foreach ($name in $cases.Keys) {
   $kb = Get-JsoncMember $tree 'keybindings'
   $keys = if ($kb) { (Get-JsoncMember @($kb.items | Where-Object { Test-PokeshellHotkeyNode $_ })[0] 'keys').value } else { (Get-JsoncMember $act[0] 'keys').value }
   Assert ($act.Count -eq 1 -and (Get-JsoncMember $cmdNode 'action').value -eq 'splitPane' -and (Get-JsoncMember $cmdNode 'split').value -eq 'vertical' -and
-          (Get-JsoncMember $cmdNode 'commandline').value.StartsWith("`"$fakeExe`"") -and $keys -eq 'ctrl+shift+b') "${name}: splitPane vertical -> binder.exe on ctrl+shift+b"
+          (Get-JsoncMember $cmdNode 'commandline').value.StartsWith("`"$fakeExe`"") -and (Get-JsoncMember $cmdNode 'commandline').value.EndsWith(' --pull latest') -and $keys -eq 'ctrl+shift+b') "${name}: splitPane vertical -> binder.exe --pull latest (the newest pull) on ctrl+shift+b"
   Assert (@(Get-ChildItem (Join-Path $hsState 'backups') -Filter *.json).Count -ge 1) "${name}: backup written first"
   $once = [IO.File]::ReadAllBytes($file)
   $null = Invoke-Cli $hsState 'hotkey' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe }
@@ -485,15 +498,35 @@ $null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'on' '-SettingsPath' $file '-K
 Assert ((Read-WtSettingsFile $file).text -match '"keys": "ctrl\+alt\+b"') "-Keys picks other keys"
 $null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'off'
 Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($before)) "hotkey off: exactly as before"
+Assert (Test-Path (Join-Path $rs 'hk1\hotkey.off')) "hotkey off is remembered (hotkey.off), so pokeshell install leaves it out"
 $out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'hotkey' 'on' '-SettingsPath' (Join-Path $rs 'hk2\settings.json') @{ POKESHELL_BINDER = (Join-Path $rs 'missing.exe') })
 Assert ($out -match "binder app isn't built") "no binder app: no hotkey"
 
-Write-Host "9. the pokeshell:// handler (dry run only)" -ForegroundColor Cyan
+Write-Host "9. the pokeshell:// handler (registry: dry run only; settings.json: copies)" -ForegroundColor Cyan
 $us = Join-Path $rs 'url'; [void][IO.Directory]::CreateDirectory($us)
+$fakeLink = Join-Path $rs 'binder-link.exe'; Set-Content $fakeLink 'not a real exe'
+$out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = (Join-Path $rs 'hk2inder.exe') })
+Assert ($out -match "binder app isn't built") "no binder app: no handler"
 $out = Strip (Invoke-Cli $us 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = $fakeExe })
 Assert ($out -match [regex]::Escape("would set $regKey [(default)] = URL:pokeshell binder") -and $out -match [regex]::Escape("would set $regKey [URL Protocol] = ")) "registers HKCU\Software\Classes\pokeshell as a URL protocol"
-Assert ($out -match [regex]::Escape("would set $regKey\shell\open\command [(default)] = `"$fakeExe`" --root `"$RepoRoot`" --state `"$us`" --url `"%1`"")) "the open command runs the binder with --url `"%1`""
+Assert ($out -match [regex]::Escape("would set $regKey\shell\open\command [(default)] = `"$fakeLink`" --root `"$RepoRoot`" --state `"$us`" --url `"%1`"")) "the open command runs binder-link.exe (windowless) with --url `"%1`""
 Assert (-not (Test-Path (Join-Path $us 'urlhandler.txt'))) "dry run: nothing recorded"
+# on / off for real (the registry part stays a dry run: POKESHELL_REGISTRY=dryrun): "safeUriSchemes" in a settings copy
+$schemeCases = [ordered]@{
+  'no safeUriSchemes'       = "{`r`n    `"profiles`": { `"list`": [] }`r`n}`r`n"
+  'safeUriSchemes: ["ftp"]' = "{`n  `"safeUriSchemes`": [`n    `"ftp`"`n  ],`n  `"profiles`": { `"list`": [] }`n}`n"
+  'already has "pokeshell"' = '{ "safeUriSchemes": [ "POKESHELL" ], "profiles": { "list": [] } }'
+}
+$k = 0
+foreach ($name in $schemeCases.Keys) {
+  $k++; $ss = Join-Path $rs "su$k"; [void][IO.Directory]::CreateDirectory($ss)
+  $file = Join-Path $ss 'settings.json'; [IO.File]::WriteAllText($file, $schemeCases[$name], $utf8); $orig = [IO.File]::ReadAllBytes($file)
+  $out = Strip (Invoke-Cli $ss 'urlhandler' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe })
+  $list = Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $file).text) 'safeUriSchemes'
+  Assert (@($list.items | Where-Object { $_.value -ieq 'pokeshell' }).Count -eq 1 -and (Test-Path (Join-Path $ss 'urlhandler.txt')) -and $out -match 'would set') "${name}: on lists pokeshell in safeUriSchemes once, records urlhandler.txt, registry only reported"
+  $out = Strip (Invoke-Cli $ss 'urlhandler' 'off')
+  Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($orig) -and -not (Test-Path (Join-Path $ss 'urlhandler.txt')) -and (Test-Path (Join-Path $ss 'urlhandler.off'))) "${name}: off restores settings.json byte for byte (and is remembered)"
+}
 $out = Strip (Invoke-Cli $us 'urlhandler' 'off' '-DryRun')
 Assert ($out -match [regex]::Escape("would remove $regKey")) "off removes the key"
 $ops = @(Set-PokeshellUrlHandler -Exe 'C:\b\binder.exe' -Root 'C:\r' -StateDir 'C:\s' -DryRun -Key 'HKCU:\Software\Classes\pokeshell-test')

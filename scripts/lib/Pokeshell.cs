@@ -47,6 +47,8 @@ namespace Pokeshell
         public string Earn = "first-command";   // the use rule (config `earn`): first-command | minutes:N | off
         public long Boot;                 // boot session (unix seconds of the last boot)
         public long PullTicks;            // UTC ticks of the roll
+        public bool Link;                 // the footer's `binder` is a pokeshell:// link (the handler is installed)
+        public string Keys = "";          // the binder hotkey the footer advertises ("" = none installed)
 
         // The earned rule's additions are made on the way out, so Roll() sets these as before:
         //   Text / FallbackText read back with the binder footer (Core.WithFooter) once the pull has an id;
@@ -54,9 +56,9 @@ namespace Pokeshell
         //   complete: the pending flag and the id / boot columns added (Core.FinishLine).
         string text = "", fallbackText = "", logHead = "", fallbackHead = "";
         /// art + banner to print (common / denied pulls)
-        public string Text { get { return Core.WithFooter(text, Id); } set { text = value ?? ""; } }
+        public string Text { get { return Core.WithFooter(text, Id, Link, Keys); } set { text = value ?? ""; } }
         /// what to print if opening the foil tab fails
-        public string FallbackText { get { return Core.WithFooter(fallbackText, Id); } set { fallbackText = value ?? ""; } }
+        public string FallbackText { get { return Core.WithFooter(fallbackText, Id, Link, Keys); } set { fallbackText = value ?? ""; } }
         public string LogLine { get { return Core.FinishLine(logHead, "", this); } set { logHead = value ?? ""; } }
         /// the log line if the foil ends up shown here as a common
         public string FallbackLogLine { get { return Core.FinishLine(fallbackHead, "", this); } set { fallbackHead = value ?? ""; } }
@@ -797,9 +799,11 @@ namespace Pokeshell
             return list.ToArray();
         }
 
-        /// The small footer printed under a pulled card: "binder \u23ce", an OSC 8 link to pokeshell://binder?pull=<id>
-        /// (the art itself is left unlinked: Windows Terminal underlines link text). Right-aligned to the card.
-        public static string WithFooter(string text, string id)
+        /// The small footer printed under a pulled card, right-aligned to it: "binder \u23ce", an OSC 8 link to
+        /// pokeshell://binder?pull=<id> once the handler is installed (Windows Terminal opens links on Ctrl+click), then,
+        /// dimmer, what works: "ctrl+click" and the binder hotkey ("ctrl+shift+b"). With neither, "binder \u23ce" is what
+        /// to type. The art itself is left unlinked: Windows Terminal underlines link text.
+        public static string WithFooter(string text, string id, bool link, string keys)
         {
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(text)) return text;
             int e = text.Length;
@@ -807,10 +811,42 @@ namespace Pokeshell
             string body = text.Substring(0, e), tail = text.Substring(e);
             int w = 0;
             foreach (string l in body.Split('\n')) w = Math.Max(w, VisibleWidth(l.TrimEnd('\r')));
-            const string hint = "binder \u23ce";
-            string url = "pokeshell://binder?pull=" + id;
-            string link = "\u001b]8;;" + url + "\u001b\\" + hint + "\u001b]8;;\u001b\\";
-            return body + "\r\n" + new string(' ', Math.Max(2, w - hint.Length - 1)) + "\u001b[2;38;2;140;140;150m" + link + "\u001b[0m" + (tail.Length > 0 ? tail : "\r\n");
+            const string label = "binder \u23ce";
+            string hint = link ? "ctrl+click" : "";
+            if (!string.IsNullOrEmpty(keys)) hint += (hint.Length > 0 ? " \u00b7 " : "") + keys;
+            // never wider than the card (the animation player relies on it): a narrow card drops the key, then the hint
+            if (hint.Length > 0 && label.Length + 2 + hint.Length + 1 > w) hint = link ? "ctrl+click" : "";
+            if (hint.Length > 0 && label.Length + 2 + hint.Length + 1 > w) hint = "";
+            int width = label.Length + (hint.Length > 0 ? 2 + hint.Length : 0);
+            string shown = link ? "\u001b]8;;pokeshell://binder?pull=" + id + "\u001b\\" + label + "\u001b]8;;\u001b\\" : label;
+            string footer = "\u001b[2;38;2;140;140;150m" + shown + (hint.Length > 0 ? "\u001b[0;2;38;2;100;100;112m  " + hint : "") + "\u001b[0m";
+            return body + "\r\n" + new string(' ', Math.Max(2, w - width - 1)) + footer + (tail.Length > 0 ? tail : "\r\n");
+        }
+
+        /// The plain footer (no link, no hotkey).
+        public static string WithFooter(string text, string id) { return WithFooter(text, id, false, ""); }
+
+        /// The footer as `pokeshell install` set it up in this state folder (the foil tab, Show-PokeshellPull).
+        public static string WithFooter(string text, string id, string stateDir)
+        {
+            bool link; string keys;
+            FooterSetup(stateDir, out link, out keys);
+            return WithFooter(text, id, link, keys);
+        }
+
+        /// What the footer offers here: the link once the pokeshell:// handler is registered (urlhandler.txt), the keys
+        /// once the hotkey is in settings.json (hotkey.tsv: path, keys, created). Two small file checks per pull.
+        public static void FooterSetup(string stateDir, out bool link, out string keys)
+        {
+            link = false; keys = "";
+            if (string.IsNullOrEmpty(stateDir)) return;
+            try
+            {
+                link = File.Exists(Path.Combine(stateDir, "urlhandler.txt"));
+                string hk = Path.Combine(stateDir, "hotkey.tsv");
+                if (File.Exists(hk)) { string[] f = File.ReadAllText(hk).Trim().Split('\t'); if (f.Length > 1) keys = f[1].Trim(); }
+            }
+            catch (Exception) { }
         }
 
         public static void Log(string stateDir, string file, string line)
@@ -988,6 +1024,7 @@ namespace Pokeshell
             string earn; cfg.TryGetValue("earn", out earn);
             res.Earn = EarnMode(earn); res.PullTicks = now; res.Id = NewPullId(now); res.Boot = BootId();
             Environment.SetEnvironmentVariable("POKESHELL_PULL", res.Id);   // layer 3 as well: set in every tab that rolled
+            FooterSetup(stateDir, out res.Link, out res.Keys);               // what the card's footer offers (link, hotkey)
 
             res.LogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch[1] + "\t" +
                           t[1] + "\t" + art + "\t" + res.Skin + "\t" + (shiny ? "1" : "0") + "\t" + note;

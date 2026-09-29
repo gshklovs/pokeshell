@@ -2,8 +2,10 @@
 //!
 //!   binder                     run it (reads the real pulls.log + packs/*/pack.json); opens on the last card you caught
 //!   binder --pull <id>         open on that pull (its id is the tab's POKESHELL_PULL; not caught yet: its silhouette)
+//!   binder --pull latest       open on the newest pull (the Ctrl+Shift+B pane): the last card pulled, unless it has
+//!                              expired (then the last card you caught)
 //!   binder --card <pack/character/tier>   open on that card
-//!   binder --url pokeshell://binder?pull=<id>   what the pokeshell:// link handler runs (also ?card=...)
+//!   binder --url pokeshell://binder?pull=<id>   the card's link (binder-link.exe hands it over as --pull; also ?card=...)
 //!   binder --search <query>    open with a search: words and tag filters (set:evolving rarity:"rare rainbow" type:water caught)
 //!   binder --set <set>         open on a set's checklist: its id or name, fuzzy (swsh7, evolving, "30th")
 //!   binder --state <dir>       the state folder (default: $POKESHELL_HOME, else %LOCALAPPDATA%\pokeshell)
@@ -23,6 +25,7 @@ mod cardtext;
 mod color;
 mod data;
 mod draw;
+mod linkurl;
 mod query;
 mod snapshot;
 mod theme;
@@ -80,32 +83,12 @@ fn default_state() -> PathBuf {
     base.join("pokeshell")
 }
 
-/// pokeshell://binder?pull=<ulid> | pokeshell://binder?card=<pack/character/tier>. Anything else is ignored (the
-/// URL comes from a link anyone could write, so only these two exact shapes are accepted). The scheme and host are
-/// case-insensitive, a slash after the host or at the end is fine, and the pull/card parameter may come after others
-/// (D-06).
+/// The `binder ⏎` link (linkurl.rs): only `?pull=<ulid>` and `?card=<pack/character/tier>` are accepted.
 fn parse_url(u: &str) -> Option<Start> {
-    let u = u.trim();
-    let lower = u.to_ascii_lowercase();
-    if !lower.starts_with("pokeshell://") {
-        return None;
-    }
-    let rest = &u["pokeshell://".len()..];
-    let rest = if rest.len() >= 6 && rest[..6].eq_ignore_ascii_case("binder") { &rest[6..] } else { rest };
-    let q = rest.trim_start_matches('/').strip_prefix('?')?;
-    for pair in q.split('&') {
-        let Some((k, v)) = pair.split_once('=') else { continue };
-        let v = v.trim_end_matches('/').replace("%2F", "/").replace("%2f", "/").replace("%20", " ").replace('+', " ");
-        match k.to_ascii_lowercase().as_str() {
-            "pull" if data::is_pull_id(&v) => return Some(Start::Pull(v)),
-            "card" if !v.is_empty() && v.len() <= 120 && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_./ ".contains(c)) && v.matches('/').count() <= 2 => {
-                return Some(Start::Card(v));
-            }
-            "pull" | "card" => return None,
-            _ => {}
-        }
-    }
-    None
+    linkurl::parse_url(u).map(|l| match l {
+        linkurl::Link::Pull(id) => Start::Pull(id),
+        linkurl::Link::Card(c) => Start::Card(c),
+    })
 }
 
 struct Args {
@@ -159,7 +142,10 @@ fn parse_args() -> Args {
             "--state" => a.state = Some(val("--state", &mut it)),
             "--search" => a.search = val("--search", &mut it),
             "--set" => a.set = val("--set", &mut it),
-            "--pull" => a.start = Start::Pull(val("--pull", &mut it)),
+            "--pull" => {
+                let v = val("--pull", &mut it);
+                a.start = if v.eq_ignore_ascii_case("latest") { Start::Newest } else { Start::Pull(v) }
+            }
             "--card" => a.start = Start::Card(val("--card", &mut it)),
             "--url" => {
                 let u = val("--url", &mut it);

@@ -250,6 +250,12 @@ function Get-PokeshellRuntimeFiles([string]$Root) {
          'scripts\lib\roll.ps1', 'scripts\lib\common.ps1', 'scripts\lib\Pokeshell.cs', 'scripts\lib\anim.ps1', 'scripts\lib\Anim.cs'
   foreach ($r in $rel) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } }
   [pscustomobject]@{ from = Join-Path $Root 'scripts\lib\pokeshell-shim.ps1'; to = 'scripts\pokeshell.ps1' }
+  # a prebuilt binder app and its link launcher next to the scripts, if the package has them: the hotkey and the
+  # pokeshell:// handler then point into <state>\current, which survives Update-Module
+  foreach ($r in 'bin\binder.exe', 'bin\binder-link.exe') { if ([IO.File]::Exists((Join-Path $Root $r))) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } } }
+  # a prebuilt binder app (and its link launcher) next to the scripts, when the package has one: the hotkey and the
+  # pokeshell:// handler then point into <state>\current, which survives Update-Module
+  foreach ($r in 'bininder.exe', 'bininder-link.exe') { if ([IO.File]::Exists((Join-Path $Root $r))) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } } }
   foreach ($id in Get-PokeshellPackIds $Root) {
     $pd = Join-Path $Root "packs\$id"
     [pscustomobject]@{ from = Join-Path $pd 'pack.json'; to = "packs\$id\pack.json" }
@@ -319,7 +325,7 @@ function Get-PokeshellBinderExe([string]$Root) {
   $null
 }
 
-# the command line that opens the binder (hotkey pane, pokeshell:// handler); --state only when it isn't the default
+# the command line that opens the binder (hotkey pane) or binder-link (pokeshell:// handler); --state only when it isn't the default
 function Get-PokeshellBinderCommand([string]$Exe, [string]$Root, [string]$StateDir, [string]$Extra = '') {
   $c = "`"$Exe`" --root `"$Root`""
   if ($env:POKESHELL_HOME) { $c += " --state `"$StateDir`"" }
@@ -327,18 +333,28 @@ function Get-PokeshellBinderCommand([string]$Exe, [string]$Root, [string]$StateD
   $c
 }
 
+# binder-link.exe (binder\src\link.rs), built next to the binder: the windowless launcher the pokeshell:// handler runs
+function Get-PokeshellBinderLinkExe([string]$Exe) {
+  if (-not $Exe) { return $null }
+  $p = Join-Path ([IO.Path]::GetDirectoryName($Exe)) 'binder-link.exe'
+  if ([IO.File]::Exists($p)) { $p } else { $null }
+}
+
 <#
-Register (or remove) the pokeshell:// URL handler under HKCU\Software\Classes\pokeshell, pointing at the binder:
-a click on the card's link opens the binder on that pull. Returns what it does (or would do, with -DryRun) as
-lines "set <key> [<name>] = <value>" / "remove <key>". The binder only accepts pokeshell://binder?pull=<ulid> or
-?card=<pack/char/tier> and opens a read-only view, so a crafted link can't make it do anything else.
+Register (or remove) the pokeshell:// URL handler under HKCU\Software\Classes\pokeshell. A Ctrl+click on the card's
+`binder` link runs binder-link.exe (windowless: no console flash), which checks the link and opens the binder on
+that pull in a Windows Terminal split pane (wt -w 0 sp). Returns what it does (or would do, with -DryRun) as lines
+"set <key> [<name>] = <value>" / "remove <key>". Only pokeshell://binder?pull=<ulid> or ?card=<pack/char/tier> is
+accepted, and the link never reaches wt.exe itself, so a crafted link can't do anything else.
+$env:POKESHELL_REGISTRY = 'dryrun' (the tests set it) turns every call into a dry run.
 #>
-function Set-PokeshellUrlHandler([string]$Exe, [string]$Root, [string]$StateDir, [switch]$Remove, [switch]$DryRun,
+function Set-PokeshellUrlHandler([string]$Exe, [string]$LinkExe, [string]$Root, [string]$StateDir, [switch]$Remove, [switch]$DryRun,
                                  [string]$Key = 'HKCU:\Software\Classes\pokeshell') {
+  if ($env:POKESHELL_REGISTRY -eq 'dryrun') { $DryRun = [switch]$true }
   $ops = [Collections.Generic.List[object]]::new()
   if ($Remove) { $ops.Add(@('remove', $Key)) }
   else {
-    $cmd = Get-PokeshellBinderCommand $Exe $Root $StateDir '--url "%1"'
+    $cmd = Get-PokeshellBinderCommand $(if ($LinkExe) { $LinkExe } else { $Exe }) $Root $StateDir '--url "%1"'
     $ops.Add(@('set', $Key, '', 'URL:pokeshell binder')); $ops.Add(@('set', $Key, 'URL Protocol', ''))
     $ops.Add(@('set', "$Key\DefaultIcon", '', "`"$Exe`",0")); $ops.Add(@('set', "$Key\shell\open\command", '', $cmd))
   }
