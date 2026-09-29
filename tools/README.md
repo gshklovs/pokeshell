@@ -36,6 +36,7 @@ card text are Nintendo's / copyrighted, so they are built locally and git-ignore
 .venv\Scripts\python -m pip install pillow
 .venv\Scripts\python tools\build_realcards.py import suite3     # the last batch: style-lab/suite3 (12 real cards)
 .venv\Scripts\python tools\build_realcards.py import evs        # the Evolving Skies batch, once style-lab/evs has its art
+.venv\Scripts\python tools\build_realcards.py import p30        # the 30th Celebration batch (style-lab/p30)
 .venv\Scripts\python tools\build_realcards.py                   # rebuild every card in pack.json from its source batch
 .venv\Scripts\python tools\build_realcards.py import evs --dry-run    # what it would add, without writing
 .venv\Scripts\python tools\fetch_cards.py --all                 # (re)fetch the card text only

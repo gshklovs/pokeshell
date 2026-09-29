@@ -125,7 +125,12 @@ if (-not $builtCards) {
   Clear-Markers
   Assert (-not $bad) "all $n rolls are real cards listed in pack.json with built art$(if ($bad) { ': ' + (($bad | Select-Object -Unique -First 5) -join ', ') })"
   Assert (-not ($byCard.Keys | Where-Object { $_ -match '\*|invented|^(common|holo|fullart|gold|top)$' })) "no invented card and no old art variant ever rolls"
-  Assert (@($byCard.Keys).Count -eq $builtCards.Count) "every built card turns up ($(@($byCard.Keys).Count) of $($builtCards.Count))"
+  # a fixed-seed sample can't reach the rarest cards (1 in ~6700), so only cards whose tier gives them >= 5 expected
+  # rolls in this sample must turn up; the tier-frequency check below covers the rest
+  $inTier = @{}; foreach ($c in $builtCards) { $inTier[$c.tierId]++ }
+  $due = @($builtCards | Where-Object { ([double]$byTier[$_.tierId] / $inTier[$_.tierId]) -ge 5 })
+  $missed = @($due | Where-Object { -not $byCard[$_.id] })
+  Assert (-not $missed) "every built card that should appear in $n rolls turns up ($($due.Count - $missed.Count) of $($due.Count)$(if ($missed) { '; missing ' + (($missed | Select-Object -First 5 | ForEach-Object id) -join ', ') }))"
   $live = @($builtCards | ForEach-Object tier | Sort-Object -Unique)
   $tot = 0; foreach ($i in $live) { $tot += [int]$pk.tiers[$i].weight }
   Write-Host ("  {0,-20} {1,7} {2,8} {3,8}" -f 'tier', 'rolls', 'actual', 'expected')

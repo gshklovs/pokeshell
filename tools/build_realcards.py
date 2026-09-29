@@ -3,6 +3,7 @@ r"""Assemble the real-card pokemon pack: every card is a real printed card keyed
   .venv\Scripts\python tools\build_realcards.py                    # rebuild every card in pack.json from its source
   .venv\Scripts\python tools\build_realcards.py import suite3      # import a batch: the last batch (style-lab/suite3)
   .venv\Scripts\python tools\build_realcards.py import evs         # the Evolving Skies batch (style-lab/evs), when it lands
+  .venv\Scripts\python tools\build_realcards.py import p30         # the 30th Celebration batch (style-lab/p30)
   .venv\Scripts\python tools\build_realcards.py import <folder>    # any folder of ART_FORMAT files (see "Batches" below)
   .venv\Scripts\python tools\build_realcards.py tiers              # sync tier labels/weights/families from rarities.json
   options: --lab <style-lab folder> (default: <repo>\style-lab), --vendor <folder> (default: <repo>\vendor),
@@ -28,7 +29,8 @@ Batches
   batch's skip_variants (suite3: common_bg, the scene-backed common; commons use the plain sprite).
   A batch may also have cards/<id>.json (CARD_FORMAT, e.g. style-lab/evs/cards): those are used instead of the API
   and every card listed there is imported. A Common card with no art in the batch gets the plain
-  pokemon-colorscripts sprite from vendor/ (2x2 grid px per sprite px, like suite3's commons).
+  pokemon-colorscripts sprite from vendor/ (2x2 grid px per sprite px, like suite3's commons). Listed Commons that
+  are Trainers or have no colorscripts sprite (the Gen 9 ones) are skipped and reported.
 
 Effects (later)
   --effects loads <lab>/rarities/effects.py and calls, per card,
@@ -54,6 +56,9 @@ BATCHES = {
     # name: folder under --lab, art file globs, variants to skip
     "suite3": {"dir": "suite3", "globs": ["*-suite3.json"], "skip_variants": ["common_bg"]},
     "evs": {"dir": "evs", "globs": ["*.json", "art/*.json", "out/*.json", "suite/*.json"], "skip_variants": ["common_bg"]},
+    # 30th Celebration (me55): one ART_FORMAT file per card in art/ (commons too; the importer uses the plain sprite
+    # for those anyway), card data in p30/cards/, effect loops in p30/anim/<id>[_shiny]/ as evs
+    "p30": {"dir": "p30", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
@@ -87,7 +92,7 @@ def name_matches(character, name):
     fold = lambda s: "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))  # Flabébé -> Flabebe  # noqa: E731
     squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
     # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
-    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*)$", "", character)
+    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|red|orange|yellow|green|blue|indigo|violet)$", "", character)
     return squash(character) in squash(name) or squash(base) in squash(name)
 
 
@@ -196,7 +201,7 @@ def sprite_rows(vendor, character):
     if len(n) != len(s) or len(n[0]) != len(s[0]):
         raise SystemExit(f"{character}: regular and shiny sprites differ in size")
     # palette keys may be any single code point (docs/ART_FORMAT.md); some sprites pair up >60 regular/shiny colours
-    keys = "abcdefghijmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" + "".join(chr(c) for c in range(0x3B1, 0x3CA)) + "".join(chr(c) for c in range(0x430, 0x450))
+    keys = "abcdefghijmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" + "".join(chr(c) for c in range(0x3B1, 0x3CA)) + "".join(chr(c) for c in range(0x430, 0x450)) + "".join(chr(c) for c in range(0x100, 0x180)) + "".join(chr(c) for c in range(0x410, 0x430))  # busy sprites (Moltres)
     pairs, pal, sh, rows = {}, {}, {}, []
     for rn, rs in zip(n, s):
         row = ""
@@ -371,6 +376,12 @@ def import_batch(batch, opts, pj, rarities, effects):
             card["tier"] = fetch_cards.tier_of(pj, card.get("rarity"))
         if card.get("rarity") == "Common":   # commons never get a background: always the plain sprite
             ch = by_id[cid][1] if cid in by_id else character_of(card["name"])
+            if card.get("supertype") not in ("Pokémon", "Pokemon"):
+                skipped.append(f"{cid} ({card['name']}, {card.get('rarity')}): {card.get('supertype')}, no Pokémon")
+                continue
+            if not (opts.vendor / "pokemon-colorscripts" / "colorscripts" / "large" / "regular" / ch).exists():
+                skipped.append(f"{cid} ({card['name']}, {card.get('rarity')}): no colorscripts sprite '{ch}'")
+                continue
             rows, pal, sh = sprite_rows(opts.vendor, ch)
             src = f"{batch}:sprite"
             art = card_art(ch, cid, card["name"], rows, pal, sh, src)
