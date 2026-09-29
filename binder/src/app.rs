@@ -1,4 +1,4 @@
-//! App state: which pack/page/card is selected, filters, focus, and input handling.
+﻿//! App state: which pack/page/card is selected, filters, focus, and input handling.
 
 use crate::art::ArtStore;
 use crate::data::{Collection, NO_CARD, Pull, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
@@ -329,7 +329,7 @@ impl App {
 
     /// --set <query>: the best-matching set across the packs (query::set_score), its checklist.
     fn open_set_arg(&mut self, q: &str) {
-        let all: Vec<(usize, usize, u8)> = self
+        let all: Vec<(usize, usize, i32)> = self
             .coll
             .packs
             .iter()
@@ -338,7 +338,7 @@ impl App {
             .filter(|x| x.2 > 0)
             .collect();
         let top = all.iter().map(|x| x.2).max().unwrap_or(0);
-        let best: Vec<&(usize, usize, u8)> = all.iter().filter(|x| x.2 == top).collect();
+        let best: Vec<&(usize, usize, i32)> = all.iter().filter(|x| x.2 == top).collect();
         let Some(&&(pi, si, _)) = best.first() else {
             let names: Vec<String> = self.coll.packs.iter().flat_map(|p| p.sets.iter().map(|s| format!("{} ({})", s.name, s.id))).collect();
             self.notice = Some(if names.is_empty() {
@@ -1000,7 +1000,7 @@ impl App {
     pub fn set_rows(&self) -> Vec<SetRow> {
         let Some(p) = self.coll.packs.get(self.pack) else { return vec![] };
         let f = self.picker.as_ref().map(|p| p.filter.trim().to_string()).unwrap_or_default();
-        let mut rows: Vec<(u8, SetRow)> = p
+        let mut rows: Vec<(i32, SetRow)> = p
             .sets
             .iter()
             .enumerate()
