@@ -63,6 +63,9 @@ BATCHES = {
     "p30": {"dir": "p30", "globs": ["art/*.json"], "skip_variants": []},
     # Crown Zenith (swsh12pt5 + its Galarian Gallery swsh12pt5gg, one data folder): as p30
     "cz": {"dir": "cz", "globs": ["art/*.json"], "skip_variants": []},
+    # Hidden Fates (sm115) + its Shiny Vault (sma): one ART_FORMAT file per card in hf/art/ (artlab/sets/hf), card data
+    # in hf/cards/, effect loops in hf/anim/<id>[_shiny]/. Shiny Vault art is the shiny sprite on both rolls.
+    "hf": {"dir": "hf", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")

@@ -161,8 +161,9 @@
       "family": "ultra",
       "weight": 1200,
       "skins": {
-        "crosshatch": 5,
-        "sunpillar": 5
+        "gx-web": 10,
+        "water-web": 4,
+        "sunpillar": 2
       },
       "frame": "rainbow"
     },
@@ -277,7 +278,9 @@
       "family": "special",
       "weight": 500,
       "skins": {
-        "shiny-vault": 10
+        "vault-foil": 10,
+        "shiny-vault": 4,
+        "starlight": 2
       },
       "frame": "silver"
     },
@@ -299,8 +302,9 @@
       "family": "special",
       "weight": 200,
       "skins": {
-        "shiny-vault": 5,
-        "sunpillar": 5
+        "vault-gx": 10,
+        "shiny-vault": 4,
+        "sunpillar": 2
       },
       "frame": "rainbow"
     },

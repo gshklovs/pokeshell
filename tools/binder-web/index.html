@@ -720,6 +720,31 @@ button.seen:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px
     linear-gradient(115deg, #f4b6d6, #c8e6f4 50%, #f4b6d6);
   opacity: .45;
 }
+.skin-gx-web .card__shine {
+  background:
+    repeating-conic-gradient(from 17deg at 30% 40%, rgba(255,255,255,.35) 0 1.5deg, transparent 1.5deg 31deg),
+    repeating-conic-gradient(from 5deg at 72% 65%, rgba(255,255,255,.3) 0 1.2deg, transparent 1.2deg 27deg),
+    linear-gradient(128deg, transparent 35%, hsl(0 100% 80%) 42%, hsl(55 100% 76%) 46%, hsl(140 90% 74%) 50%, hsl(200 100% 76%) 54%, hsl(270 100% 82%) 58%, transparent 65%) var(--pos) / 260% 260%,
+    linear-gradient(115deg, #b9c3cf, #f2f5f8 40%, #9aa6b4 70%, #dde3ea);
+  opacity: .5;
+}
+.skin-vault-foil .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .18cqi, transparent .4cqi) 0 0 / 2.3cqi 2.9cqi,
+    conic-gradient(from 45deg, transparent 0 22deg, rgba(210,220,235,.55) 22deg 23deg, transparent 23deg 112deg, rgba(210,220,235,.55) 112deg 113deg, transparent 113deg) 0 0 / 16cqi 16cqi,
+    linear-gradient(135deg, transparent 40%, hsl(190 100% 80%) 46%, #fff 50%, hsl(320 100% 84%) 54%, transparent 60%) var(--pos) / 300% 300%,
+    repeating-linear-gradient(90deg, #121419 0 .6cqi, #20242b .6cqi 1.1cqi),
+    linear-gradient(115deg, #0b0c10, #343942 45%, #121419 70%, #4f5661);
+  opacity: .6;
+}
+.skin-vault-gx .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .5cqi, transparent 1.4cqi) 0 0 / 18cqi 15cqi,
+    repeating-radial-gradient(circle at 20% 25%, rgba(200,210,225,.4) 0 .3cqi, transparent .35cqi 1.6cqi),
+    linear-gradient(135deg, transparent 38%, rgba(255,255,255,.85) 48%, hsl(200 80% 88%) 52%, transparent 62%) var(--pos) / 250% 250%,
+    linear-gradient(115deg, #07080b, #4f5661 40%, #121419 65%, #9aa3ae);
+  opacity: .6;
+}
 .skin-liquid-chrome .card__shine {
   background:
     linear-gradient(135deg, transparent 49.2%, #fff 50%, transparent 50.8%) var(--pos) / 250% 250%,

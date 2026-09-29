@@ -1,0 +1,128 @@
+{
+ "name": "Hidden Fates",
+ "set_id": "sm115",
+ "set_ids": [
+  "sm115",
+  "sma"
+ ],
+ "subsets": {
+  "sma": "Hidden Fates Shiny Vault: fetched with fetch_set.py hf --set-id sma --prefix hf into a scratch data root, then its cards/ ref/ merged in and setlist.json = sm115 + sma (setlist-sm115.json, setlist-sma.json kept)"
+ },
+ "prefix": "hf",
+ "printed_total": "68",
+ "lookbook": {
+  "section_prefix": "hfset_",
+  "anchor": "hf",
+  "place": "after"
+ },
+ "groups": {
+  "Common": "commons",
+  "Uncommon": "uncommon",
+  "Rare": "rare",
+  "Rare Holo": "holo",
+  "Rare Holo GX": "holo_gx",
+  "Rare Ultra": "ultra",
+  "Rare Rainbow": "rainbow",
+  "Rare Shiny": "shiny",
+  "Rare Shiny GX": "shiny_gx",
+  "Rare Secret": "secret"
+ },
+ "split": {
+  "shiny": [
+   "shiny_a",
+   "shiny_b"
+  ],
+  "shiny_gx": [
+   "shiny_gx_a",
+   "shiny_gx_b"
+  ]
+ },
+ "labels": {
+  "commons": "Common",
+  "uncommon": "Uncommon",
+  "rare": "Rare",
+  "holo": "Rare Holo",
+  "holo_gx": "Rare Holo GX",
+  "shiny_a": "Rare Shiny (Shiny Vault) 1",
+  "shiny_b": "Rare Shiny (Shiny Vault) 2",
+  "shiny_gx_a": "Rare Shiny GX 1",
+  "shiny_gx_b": "Rare Shiny GX 2",
+  "secret": "Rare Secret (gold GX)",
+  "ladder": "Hidden Fates rarity ladder"
+ },
+ "ladder": [
+  "sm115-7",
+  "sm115-8",
+  "sm115-32",
+  "sm115-18",
+  "sm115-9",
+  "sma-SV6",
+  "sma-SV49",
+  "sma-SV93"
+ ],
+ "forms": {
+  "sma-SV66": "lycanroc-midnight",
+  "sma-SV67": "lycanroc-dusk",
+  "sma-SV65": "zygarde-complete",
+  "sm115-6": "pinsir",
+  "sm115-9": "charizard",
+  "sm115-14": "starmie",
+  "sm115-16": "gyarados",
+  "sm115-20": "raichu",
+  "sm115-31": "mewtwo",
+  "sm115-36": "onix",
+  "sm115-42": "wigglytuff",
+  "sma-SV46": "leafeon",
+  "sma-SV47": "decidueye",
+  "sma-SV48": "golisopod",
+  "sma-SV49": "charizard",
+  "sma-SV50": "ho-oh",
+  "sma-SV51": "reshiram",
+  "sma-SV52": "turtonator",
+  "sma-SV53": "ninetales-alola",
+  "sma-SV54": "articuno",
+  "sma-SV55": "glaceon",
+  "sma-SV56": "greninja",
+  "sma-SV57": "electrode",
+  "sma-SV58": "xurkitree",
+  "sma-SV59": "mewtwo",
+  "sma-SV60": "espeon",
+  "sma-SV61": "banette",
+  "sma-SV62": "nihilego",
+  "sma-SV63": "naganadel",
+  "sma-SV64": "lucario",
+  "sma-SV68": "buzzwole",
+  "sma-SV69": "umbreon",
+  "sma-SV70": "darkrai",
+  "sma-SV71": "guzzlord",
+  "sma-SV72": "scizor",
+  "sma-SV73": "kartana",
+  "sma-SV74": "stakataka",
+  "sma-SV75": "gardevoir",
+  "sma-SV76": "sylveon",
+  "sma-SV77": "altaria",
+  "sma-SV78": "noivern",
+  "sma-SV79": "silvally",
+  "sma-SV80": "drampa",
+  "sma-SV91": "tapu-bulu",
+  "sma-SV92": "tapu-fini",
+  "sma-SV93": "tapu-koko",
+  "sma-SV94": "tapu-lele"
+ },
+ "shiny_vault": [
+  "sma"
+ ],
+ "flip_commons": [
+  "sm115-1",
+  "sm115-12"
+ ],
+ "notes": {
+  "sm115-44": "Moltres & Zapdos & Articuno-GX (TAG TEAM): three Pokemon, no single sprite; skipped",
+  "sm115-66": "Moltres & Zapdos & Articuno-GX full art (TAG TEAM): skipped, no single sprite",
+  "sm115-69": "Moltres & Zapdos & Articuno-GX rainbow (TAG TEAM): skipped, no single sprite",
+  "sma-SV65": "Zygarde-GX is the Complete Forme (read off the scan): the importer's name_matches needs 'complete' added to its form-suffix regex",
+  "_gx_forms": "SM names are '<name>-GX' (hyphen): make_plan's BADGE regex only strips ' GX', so every GX card's sprite is listed in forms",
+  "sm115-26": "Ekans: head turned up and back, mouth open: near-frontal, facing ambiguous (flagged, not flipped)",
+  "_flip_commons": "commons whose real card faces the other way from the vendor sprite: Caterpie 1, Slowpoke 12 (the importer applies the flip once the Crown Zenith branch's per-set flip_commons lands)"
+ }
+}
