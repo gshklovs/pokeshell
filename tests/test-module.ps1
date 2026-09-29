@@ -46,6 +46,17 @@ function Stage([string]$Ver) {
   $null = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publish -StageOnly -OutDir $d -Version $Ver 2>&1
   $d
 }
+# The published module ships no Pokemon card art (it is built locally and never committed), so the tests pull from
+# a tiny real-card fixture pack added to each staged copy, as a pack a user dropped in would be.
+function Add-FixturePack([string]$ModDir) {
+  foreach ($x in 'packs\fixture', 'dist\fixture') { [void][IO.Directory]::CreateDirectory((Join-Path $ModDir $x)) }
+  [IO.File]::WriteAllText((Join-Path $ModDir 'packs\fixture\pack.json'), '{ "id": "fixture", "name": "Fixture", "shiny_chance": 0,
+  "tiers": [ { "id": "common", "label": "common", "weight": 1, "skins": {}, "frame": "plain" } ],
+  "cards": { "fx-1": { "character": "bob", "tier": "common", "name": "Bob", "number": "1/1" } } }', $utf8)
+  [IO.File]::WriteAllText((Join-Path $ModDir 'dist\fixture\bob-fx-1.ans'), "$([char]27)[0;38;2;9;9;9m$([char]0x2580)$([char]27)[0m`n", $utf8)
+}
+[void][IO.Directory]::CreateDirectory($state)
+[IO.File]::WriteAllLines((Join-Path $state 'config.txt'), [string[]]@('pack=fixture'))
 
 # a child process as a user would have it: LOCALAPPDATA -> temp, the staged Modules folder first on PSModulePath
 $runner = Join-Path $work 'runner.ps1'
@@ -94,7 +105,9 @@ Assert ("$($m.Version)" -eq '0.1.0' -and @($m.ExportedFunctions.Keys) -join ',' 
 Assert (@($m.ExportedCmdlets.Keys).Count -eq 0 -and @($m.ExportedAliases.Keys).Count -eq 0 -and @($m.ExportedVariables.Keys).Count -eq 0) "nothing else exported"
 $rel = @(Get-ChildItem $v1 -Recurse -File | ForEach-Object { $_.FullName.Substring($v1.Length + 1) })
 Assert (-not @($rel | Where-Object { $_ -match '^(tests|tools|\.venv|previews|\.git)\\' })) "no tests, tools, .venv, previews or .git in the module ($($rel.Count) files)"
-Assert (@($rel | Where-Object { $_ -like 'dist\*.ans' }).Count -gt 0 -and @($rel | Where-Object { $_ -like 'packs\*\shaders\*.hlsl' }).Count -gt 0) "ships dist\*.ans and the shaders"
+Assert (@($rel | Where-Object { $_ -like 'packs\*\shaders\*.hlsl' }).Count -gt 0 -and (Test-Path (Join-Path $v1 'packs\pokemon\pack.json'))) "ships the shaders and packs\pokemon\pack.json"
+Assert (-not @($rel | Where-Object { $_ -like 'dist\pokemon\*' -or $_ -like 'packs\pokemon\art\*' -or $_ -like 'packs\pokemon\cards\*' })) "no Pokemon card art or card text (local-only, git-ignored)"
+Add-FixturePack $v1
 Assert ((Get-Content (Join-Path $v1 'packaged.txt')) -contains 'version=0.1.0') "packaged.txt marks it as a module"
 $ignored = @(Get-ChildItem (Join-Path $v1 'packs') -Directory | ForEach-Object Name | Where-Object { & git -C $RepoRoot check-ignore -q "packs/$_/pack.json"; $LASTEXITCODE -eq 0 })
 Assert (-not $ignored) "no git-ignored / locally excluded packs shipped$(if ($ignored) { ': ' + ($ignored -join ', ') })"
@@ -120,6 +133,7 @@ Assert (-not (Test-Path (Join-Path $state 'errors.log'))) "no hook errors"
 
 Write-Host "3. simulated Update-Module: 0.2.0 next to 0.1.0" -ForegroundColor Cyan
 $v2 = Stage '0.2.0'
+Add-FixturePack $v2
 $out = Run hook @('version')
 Assert ($out -match 'command=Function' -and $out -match 'pokeshell 0\.2\.0' -and $out -match '\(0\.1\.0\)') "the hook's pokeshell runs the newest module (0.2.0) while tabs still use 0.1.0"
 $out = Run hook @('odds')
@@ -138,7 +152,7 @@ Assert ($out -match 'ROLLED' -and $out -match (' : |' + [char]0x256d) -and (Test
 $out = Run hook @('version')
 Assert ($out -match 'pokeshell 0\.2\.0' -and $out -match '\(0\.2\.0\)' -and $out -notmatch 'still run') "`pokeshell` from the hook resolves to 0.2.0"
 $out = Run module @('odds')
-Assert ($out -match 'exports=pokeshell' -and $out -match 'Pokemon' -and $out -notmatch 'still run') "Import-Module pokeshell (0.2.0) works"
+Assert ($out -match 'exports=pokeshell' -and $out -match 'Fixture' -and $out -notmatch 'still run') "Import-Module pokeshell (0.2.0) works"
 
 Write-Host "4. module removed entirely: tabs keep working, the command explains" -ForegroundColor Cyan
 Move-Item (Join-Path $mods 'pokeshell') (Join-Path $work 'pokeshell-away')

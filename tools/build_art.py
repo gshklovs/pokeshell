@@ -2,6 +2,7 @@
 
   .venv/Scripts/python tools/build_art.py            # build everything
   .venv/Scripts/python tools/build_art.py pikachu    # only art ids containing "pikachu"
+  (real-card packs: tools/build_realcards.py writes the art JSON and calls build_file() for each card)
 
 Outputs
   dist/<pack>/<id>-<variant>.ans         truecolor half-block art (2 pixels per text row)
@@ -19,7 +20,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 ESC = "\x1b"
 UPPER, LOWER = "▀", "▄"  # ▀ ▄
-MAX_W, MAX_H = 48, 32
+# the largest art a card may have (docs/ART_FORMAT.md): 88 x 72 px = 88 columns x 36 lines. Real-card scenes
+# (the colorscripts sprite over the card's scene) go up to that; pixel-art sprites stay far smaller.
+MAX_W, MAX_H = 88, 72
 
 
 def hex_rgb(h):
@@ -76,27 +79,39 @@ def to_png(rows, palette, path, scale=12):
     img.resize((w * scale, h * scale), Image.NEAREST).save(path)
 
 
+def build_file(art_file, previews=True):
+    """render one art JSON to dist/<pack>/<id>-<variant>[-shiny].ans (+ previews); returns the files written"""
+    art_file = Path(art_file)
+    pack = art_file.parent.parent.name
+    art = json.loads(art_file.read_text(encoding="utf-8"))
+    art_id = art["id"]
+    (ROOT / "dist" / pack).mkdir(parents=True, exist_ok=True)
+    if previews:
+        (ROOT / "previews" / pack).mkdir(parents=True, exist_ok=True)
+    out = []
+    for vname, v in art["variants"].items():
+        base = {**art["palette"], **v.get("palette", {})}
+        palettes = {"": base}
+        if "shiny" in art or "shiny" in v:
+            palettes["-shiny"] = {**base, **art.get("shiny", {}), **v.get("shiny", {})}
+        for suffix, pal in palettes.items():
+            validate(v["rows"], pal, f"{art_file.name}:{vname}{suffix}")
+            name = f"{art_id}-{vname}{suffix}"
+            dst = ROOT / "dist" / pack / f"{name}.ans"
+            dst.write_text(to_ansi(v["rows"], pal), encoding="utf-8", newline="\n")
+            out.append(dst)
+            if previews:
+                to_png(v["rows"], pal, ROOT / "previews" / pack / f"{name}.png")
+    return out
+
+
 def build(filter_text=""):
     count = 0
     for art_file in sorted(ROOT.glob("packs/*/art/*.json")):
-        pack = art_file.parent.parent.name
-        art = json.loads(art_file.read_text(encoding="utf-8"))
-        art_id = art["id"]
-        if filter_text and filter_text not in art_id:
+        art_id = json.loads(art_file.read_text(encoding="utf-8"))["id"]
+        if filter_text and filter_text not in art_id and filter_text not in art_file.stem:
             continue
-        (ROOT / "dist" / pack).mkdir(parents=True, exist_ok=True)
-        (ROOT / "previews" / pack).mkdir(parents=True, exist_ok=True)
-        for vname, v in art["variants"].items():
-            base = {**art["palette"], **v.get("palette", {})}
-            palettes = {"": base}
-            if "shiny" in art:
-                palettes["-shiny"] = {**base, **art["shiny"], **v.get("shiny", {})}
-            for suffix, pal in palettes.items():
-                validate(v["rows"], pal, f"{art_file.name}:{vname}{suffix}")
-                name = f"{art_id}-{vname}{suffix}"
-                (ROOT / "dist" / pack / f"{name}.ans").write_text(to_ansi(v["rows"], pal), encoding="utf-8", newline="\n")
-                to_png(v["rows"], pal, ROOT / "previews" / pack / f"{name}.png")
-                count += 1
+        count += len(build_file(art_file))
     print(f"built {count} art files")
 
 

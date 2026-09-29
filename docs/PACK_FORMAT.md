@@ -77,3 +77,65 @@ rounded box:
   string (`wanted;palette=manga;seed=manga-rare`), which is what the roll cache stores and a foil passes to
   its tab. An unknown style draws a plain grey rounded box.
 - `display picture` still prints only the art.
+
+## Real-card packs (`cards`)
+
+A pack whose `pack.json` has a `"cards"` object is a **real-card pack**: every card it can drop is a real printed
+card, keyed by its [pokemontcg.io](https://pokemontcg.io) id. `packs/pokemon` is one. `characters`, `foil_chance`
+and the tiers' `art` are not used (characters come from the cards).
+
+```json
+{
+  "id": "pokemon", "name": "Pokemon", "shiny_chance": 0.015625,
+  "tiers": [
+    { "id": "common", "label": "common", "rarity": "Common", "family": "non-foil", "weight": 50000, "skins": {}, "frame": "plain" },
+    { "id": "rare-holo", "label": "rare holo", "rarity": "Rare Holo", "family": "holo", "weight": 5000,
+      "skins": { "starlight": 10, "cosmos": 10 }, "frame": "holo" },
+    { "id": "rare-ultra", "label": "rare ultra", "rarity": "Rare Ultra", "family": "full-art", "weight": 650,
+      "skins": { "sunpillar": 10, "illustration-rare": 4 }, "frame": "rainbow" }
+  ],
+  "cards": {
+    "base1-58":  { "character": "pikachu", "tier": "common", "name": "Pikachu", "number": "58/102",
+                   "rarity": "Common", "set": "Base", "source": "suite3:pikachu-suite3.json#common" },
+    "swsh4-170": { "character": "pikachu", "tier": "rare-ultra", "name": "Pikachu V", "number": "170/185",
+                   "rarity": "Rare Ultra", "set": "Vivid Voltage", "source": "suite3:pikachu-suite3.json#fullart" }
+  },
+  "retired": { "pikachu/common": "base1-58", "pikachu/holo": null, "pikachu/secret-rare": null }
+}
+```
+
+- **Tiers are the printed rarities**, one tier per rarity, as many as needed, all data:
+  - `rarity`: the API's `rarity` string this tier stands for. `tools/build_realcards.py` gives each card the tier
+    whose `rarity` is its printed rarity, and refuses a card whose rarity no tier names. A tier may have no
+    `rarity` (e.g. `reverse-holo`, a parallel print the API doesn't list as a rarity).
+  - `weight`: the tier's odds weight. A pull picks a tier with probability `weight / (sum of the weights of the tiers
+    that have at least one built card)`. A tier with no card never rolls; its odds are shared by the others (the same
+    as rerolling). There is no fallback art: nothing invented is ever shown.
+  - `skins`: the tier's shaders, with relative weights. A pull of a tier with skins opens the skinned tab (one skin,
+    by weight); a tier with `{}` (common, uncommon, rare) prints in the plain tab. A skin may serve several tiers.
+  - `family` (optional): a grouping for display (`non-foil`, `holo`, `special`, `ultra`, `full-art`, `secret`).
+  - `frame`, `label`: as above.
+  - Switching ladders (5 tiers, 6, or every rarity) is a `pack.json` edit; `pokeshell odds` prints what it means.
+- **Cards** (`cards`, written by `tools/build_realcards.py`): `character` is the sprite name, `tier` a tier id,
+  `name` and `number` are what the frame's top edge shows (`number` is the printed number, e.g. `170/185`).
+  Only cards whose art is built (`dist/<pack>/<character>-<card id>.ans`) can drop; the art and the card text
+  (`cards/<id>.json`, docs `CARD_FORMAT.md`) are local-only.
+- **The roll**: tier by weight (above), then one card of that tier uniformly, then a skin of that tier, then shiny.
+  A foil that the spawn gate denies, or that can't find its tab, shows the same character's lowest-tier card in
+  place (like tier 0 in other packs).
+- **Logging**: `pulls.log` keeps its columns; for a real-card pack the `tier` column is the card's tier id and the
+  `art` column is the card id (`...\tpokemon\tpikachu\trare-ultra\tswsh4-170\tsunpillar\t0\t`).
+
+### `retired`: old pulls in the binders
+
+`pulls.log` is append-only and keeps the pulls of art that no longer exists (e.g. the pokemon pack's hand-drawn
+art before it became real cards). `retired` maps an old `"<character>/<tier id>"` to what it shows now: a card id
+of this pack (an old common is the same Pokemon's real base-set common) or `null` (hidden). Every binder resolves a
+pull of a real-card pack the same way (`Resolve-PokeshellPull` in `scripts/lib/common.ps1`):
+
+1. the `art` column is a card id in `cards` and its `character` matches: **that card** (shown in the card's tier);
+2. else `retired["<character>/<tier>"]` is a card id: **that card**;
+3. else (`null`, or not listed): **hidden**. It stays in `pulls.log`, it just isn't shown or counted.
+
+Pulls of packs without `cards` show as logged. `pokeshell binder` / `collection` applies this and says how many
+retired pulls it left out; binder-tui and the web export should do the same.

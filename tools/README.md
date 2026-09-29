@@ -3,7 +3,7 @@
 ## build_art.py: rebuild the card art
 
 The runtime never needs Python: it prints the prebuilt ANSI files committed in `dist/`.
-You only need this when you add or change art in `packs/<pack>/art/*.json`.
+You only need this when you add or change art in `packs/<pack>/art/*.json` (the real-card pokemon pack: see below).
 
 ```powershell
 py -3 -m venv .venv
@@ -14,28 +14,68 @@ py -3 -m venv .venv
 
 Outputs:
 
-- `dist/<pack>/<id>-<variant>.ans` and `...-shiny.ans`: truecolor half-block art, two pixels per text row. **Commit these.**
+- `dist/<pack>/<id>-<variant>.ans` and `...-shiny.ans`: truecolor half-block art, two pixels per text row. **Commit these** (not `dist/pokemon`, which is local-only).
 - `previews/<pack>/<id>-<variant>[-shiny].png`: 12x upscaled PNGs for eyeballing (git-ignored).
 
 The art format and size limits are in `docs/ART_FORMAT.md`. After rebuilding, check the result in a terminal:
 
 ```powershell
-pokeshell show pokemon/pikachu gold -shiny
+pokeshell show pokemon/sv8-247 -shiny
 ```
 
 New tabs pick up changed art on their own (the roll cache stamps the `art/` folders and rebuilds when they change).
 
-## make_media.py: regenerate the README images
+## build_realcards.py / fetch_cards.py: the real-card pokemon pack
+
+`packs/pokemon` is a pack of real printed cards keyed by pokemontcg.io id (format: `docs/PACK_FORMAT.md`, "Real-card
+packs"). Only `pack.json` is committed. The art (the pokemon-colorscripts sprite over each card's scene) and the
+card text are Nintendo's / copyrighted, so they are built locally and git-ignored:
+`packs/pokemon/art/`, `packs/pokemon/cards/`, `dist/pokemon/`.
+
+```powershell
+.venv\Scripts\python -m pip install pillow
+.venv\Scripts\python tools\build_realcards.py import suite3     # the last batch: style-lab/suite3 (12 real cards)
+.venv\Scripts\python tools\build_realcards.py import evs        # the Evolving Skies batch, once style-lab/evs has its art
+.venv\Scripts\python tools\build_realcards.py                   # rebuild every card in pack.json from its source batch
+.venv\Scripts\python tools\build_realcards.py import evs --dry-run    # what it would add, without writing
+.venv\Scripts\python tools\fetch_cards.py --all                 # (re)fetch the card text only
+```
+
+Options: `--lab <folder>` / `--vendor <folder>` when `style-lab` and `vendor` aren't in this checkout (e.g. a git
+worktree: `--lab ..\pokeshell\style-lab --vendor ..\pokeshell\vendor`), `--only <id,id>`, `--no-previews`.
+
+What an import does, per card:
+
+1. Finds the batch's real cards: every ART_FORMAT variant with a `"card": "<pokemontcg.io id>"`. Ids that aren't
+   real (`invented`, `base1-44*`, a label saying "invented") are skipped, and so are the batch's `skip_variants`
+   (suite3: `common_bg`; commons are the plain sprite). A batch's `cards/<id>.json` (style-lab/evs has them) are used
+   instead of the API, and every card listed there is imported; a Common one without art gets the plain sprite
+   from `vendor/pokemon-colorscripts`.
+2. Fetches the card from the API (`fetch_cards.py`; retried, the API is flaky) into `packs/pokemon/cards/<id>.json`,
+   and maps its printed `rarity` to the pack tier with that `rarity`. An unknown rarity stops the import: add the tier.
+3. Checks the card's name contains the character (a wrong id in a batch fails loudly).
+4. Writes `packs/pokemon/art/<id>.json`, builds `dist/pokemon/<character>-<id>[-shiny].ans` (+ `previews/`), and
+   records the card in `pack.json` `cards`. Art of cards no longer in `pack.json` is removed.
+
+New tabs pick up new cards on their own (the roll cache stamps `dist/pokemon`). `pokeshell odds` shows the result.
+
+- `build_realcards.py tiers` copies label / family / weight / rarity / skins / frame from
+  `style-lab/rarities/rarities.json` into the `pack.json` tiers (matching ids; new ids appended).
+- `--effects` renders each card through `style-lab/rarities/effects.py`: it must define
+  `render_card(card=<CARD_FORMAT dict>, art=<the ART_FORMAT dict from the batch>, rarity=<its rarities.json entry or None>)`
+  returning an ART_FORMAT dict of the same shape. Without the flag the batch art is used as-is.
+
+## make_media.py: showcase images
 
 ```powershell
 .venv\Scripts\python -m pip install pillow fonttools
-.venv\Scripts\python tools\make_media.py
+.venv\Scripts\python tools\make_media.py                    # -> previews\media (git-ignored)
 ```
 
-Rebuilds `docs/media/hero.png`, `tiers.png` and `pull.gif` from the current `dist/pokemon` art: the card text
-comes from the real engine (`[Pokeshell.Core]::PullText`), drawn at terminal proportions by `tools/render_ansi.py`.
-Run it after rebuilding the art. `foil.png` / `foil-gold.png` are real Windows Terminal screenshots and are not
-regenerated.
+Renders `hero.png` (every built card), `tiers.png` (Pikachu's cards with their odds) and `pull.gif` from the locally
+built real cards: the card text comes from the real engine (`[Pokeshell.Core]::PullText`), drawn at terminal
+proportions by `tools/render_ansi.py`. It writes to `previews/media` because the images show Nintendo sprites;
+`--out docs/media` once it's settled that the README may show them.
 
 ## publish.ps1: publish the PowerShell Gallery module
 

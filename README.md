@@ -2,47 +2,52 @@
 
 Every new Windows Terminal PowerShell tab is a trading-card pack pull.
 
-![Framed pokeshell cards as printed in the terminal: Bulbasaur, Charmander, Squirtle and Pikachu across the common, holo, rare holo, ultra rare and secret rare tiers, including a shiny Pikachu and a shiny Bulbasaur](docs/media/hero.png)
+<!-- TODO(media): the README images (hero.png, tiers.png, pull.gif, foil.png, foil-gold.png) showed the old
+     hand-drawn art and were removed. tools/make_media.py renders new ones into previews/media from the locally built
+     real cards, but they show Nintendo sprites: put them back (make_media.py --out docs/media, plus new Windows
+     Terminal screenshots of a foil) only once it's decided the public repo may show them. -->
 
-Most tabs are a plain **common** pull: the pulled character's pixel art prints at the top of the tab with a banner
-like `common : Squirtle`. Some tabs are **foil** pulls: the tab reopens (same folder) wearing an animated holofoil
-pixel-shader skin (cracked ice, cosmos, rainbow rare, gold, ...) and prints the rarer art with a banner like
-`secret rare : Pikachu` or `ultra rare : Charmander (shiny)`. Every pull goes into your binder (`pokeshell collection`).
+Every pull is a **real printed card**: the Pokemon's pixel sprite over that card's scene, framed like a card with
+its name, printed number and rarity. Most tabs pull a common, which prints right there. Rarer cards (rare holo,
+rare ultra, illustration rare, rare secret, hyper rare, ...) reopen the tab (same folder) wearing an animated
+holofoil pixel-shader skin that matches the rarity (cosmos, sunpillar, illustration rare, gold, ...). Every pull
+goes into your binder (`pokeshell binder`).
 
-![Animated: eight new tabs in a row, each printing a freshly pulled card above the PowerShell prompt, from commons to a shiny Charmander, an ultra rare Squirtle and a secret rare Pikachu](docs/media/pull.gif)
+It's a fan project, not affiliated with the owners of the characters (see [Disclaimer](#disclaimer)).
 
-It's a fan project: all the art is original pixel art, and nothing here is affiliated with the owners of the
-characters (see [Disclaimer](#disclaimer)).
+> **The Pokemon card art is built locally and is not in this repository.** It embeds the
+> [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites (Nintendo artwork), and the
+> card text is copyrighted, so `tools/build_realcards.py` assembles it on your machine and git ignores the output.
+> A plain clone (or the Gallery module) has the `pokemon` pack's odds, tiers, card list and shaders, but no card
+> art: until it is built, the pack has nothing to pull and new tabs print nothing. How the public version will get
+> its cards (built at install, or a local-only pack) is still open.
 
 ## Packs and odds
 
-### Pokemon (`pokemon`): 4 characters, 18 foil skins
+### Pokemon (`pokemon`): real cards, one tier per printed rarity, 18 foil skins
 
-![Pikachu at every tier, side by side: common, holo, rare holo, ultra rare and secret rare, each tier with its own card frame, with the odds of each](docs/media/tiers.png)
+The pack is a list of real cards keyed by their [pokemontcg.io](https://pokemontcg.io) id (`swsh4-170` is Pikachu V,
+Vivid Voltage 170/185). A card's tier is its **printed rarity**: `pack.json` has one tier per real rarity (common,
+uncommon, rare, reverse holo, rare holo, rare holo V / VMAX / VSTAR, double rare, rare shiny, amazing rare, radiant
+rare, rare ultra, illustration rare, rare rainbow, rare secret, special illustration rare, hyper rare, ...), each with
+an odds weight, its holofoil skins and its card frame. A pull picks a tier by weight among the tiers that have a card,
+then one of that tier's cards; nothing invented is ever shown. With the cards built so far:
 
-Each tier has its own card frame (yellow, silver, holo, rainbow); the secret rare art carries its own gold frame.
-
-| tier | odds | about 1 tab in | art | skins |
+| tier | odds | about 1 tab in | cards | skins |
 |---|---:|---:|---|---|
-| common | 80.00% | 1.25 | common | none (plain tab) |
-| holo | 10.81% | 9 | holo | starlight, reverse, sheen, tinsel, water-web, crosshatch |
-| rare holo | 4.86% | 21 | holo | cracked-ice, cosmos, pokeball, galaxy-reverse |
-| ultra rare | 3.42% | 29 | fullart | radiant, sunpillar, illustration-rare, shiny-vault, masterball |
-| secret rare | 0.90% | 111 | gold | rainbow-rare, amazing-rare, gold |
+| common | 87.20% | 1.1 | base1-44 Bulbasaur, base1-46 Charmander, base1-58 Pikachu, base1-63 Squirtle | none (plain tab) |
+| rare holo | 8.72% | 11 | cel25-5 Pikachu | starlight, cosmos, cracked-ice, sheen, tinsel, water-web, crosshatch |
+| rare shiny | 0.87% | 115 | sma-SV6 Charmander | shiny-vault |
+| rare ultra | 1.13% | 88 | swsh4-170 Pikachu V | sunpillar, illustration-rare |
+| illustration rare | 1.31% | 76 | sv3pt5-166 Bulbasaur, sv3pt5-168 Charmander, sv3pt5-170 Squirtle | illustration-rare |
+| rare secret | 0.44% | 229 | ex3-98 Charmander | gold, rainbow-rare |
+| hyper rare | 0.33% | 302 | sv8-247 Pikachu ex | gold |
 
-Any pull, of any tier, is **shiny** (alternate palette) 1 time in 64.
-
-A foil pull reopens the tab wearing one of the tier's holofoil skins, an animated pixel shader over the whole tab
-(real Windows Terminal screenshots, `cosmos` on an ultra rare and `gold` on a secret rare):
-
-<p>
-  <img src="docs/media/foil.png" width="49%" alt="A Windows Terminal tab with the cosmos holo skin: a rainbow foil border and a starfield with planets behind an ultra rare Charmander card">
-  <img src="docs/media/foil-gold.png" width="49%" alt="A Windows Terminal tab with the gold holo skin: an engraved gold frame and dark gold marbling behind a secret rare Pikachu card">
-</p>
-
-`pokeshell odds` always prints the live numbers from each `pack.json`, down to each skin and
-"1 in N" for one specific card. More packs can be added under `packs/`; with several installed,
-`pokeshell pack all` makes each tab first pick a pack at random.
+Any pull, of any tier, is **shiny** (alternate palette) 1 time in 64. The odds and skins are data in
+`packs/pokemon/pack.json` (format: `docs/PACK_FORMAT.md`); `pokeshell odds` always prints the live numbers, down to
+"1 in N" for one specific card. New cards are added with `tools/build_realcards.py import <batch>`
+(`tools/README.md`). More packs can be added under `packs/`; with several installed, `pokeshell pack all` makes each
+tab first pick a pack at random.
 
 ## Requirements
 
@@ -135,7 +140,7 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 |---|---|
 | `pokeshell pack [<pack>\|all]` | show or choose the pack new tabs pull from |
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
-| `pokeshell collection` | your binder: per pack, every character x tier you've pulled, shiny counts, completion, best pulls |
+| `pokeshell collection` | your binder (also `pokeshell binder`): per pack, every character x tier you've pulled, shiny counts, completion, best pulls; pulls of retired art are left out |
 | `pokeshell show <pack>/<character> [variant] [-shiny] [-picture\|-card]` | print a card (`pokeshell show` lists everything built); `-picture` / `-card` override the display setting |
 | `pokeshell display [card\|picture]` | how pulls print: `card` (default) is the full card (a framed card for packs with tier frames, otherwise the art plus the `label : name` line); `picture` is just the art. Saved in `config.txt`; `$env:POKESHELL_DISPLAY = 'picture'` overrides it for one shell (and the foil tabs it opens) |
 | `pokeshell holo [<skin>\|plain] [-s] [-r]` | open a skinned tab here; `-s` splits a pane instead; `-r` moves the Claude Code session running in this tab into the new one (`claude --resume`), e.g. from inside Claude Code: `! pokeshell holo -r cosmos` |
@@ -154,9 +159,11 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 `scripts/pokeshell-profile.ps1` runs from your profile in every new shell. For a fresh tab of your plain
 PowerShell profile it rolls: pick a pack, then foil or not (`foil_chance`), then a skin weighted across the foil
 tiers (the tier it belongs to sets the label and which art variant shows), a character uniformly, and shiny
-(`shiny_chance`).
+(`shiny_chance`). A real-card pack (like `pokemon`) instead picks a rarity tier by its weight, one of that tier's
+cards, and one of the tier's skins (tiers without skins print in the plain tab).
 
-- **common**: print `dist/<pack>/<character>-<art>[-shiny].ans` and the banner, right there.
+- **common**: print `dist/<pack>/<character>-<art>[-shiny].ans` and the banner, right there (a real card's art is
+  `dist/<pack>/<character>-<card id>[-shiny].ans`).
 - **foil**: open a new tab (or a split pane, if this is a pane) with the skin's hidden profile, in the same folder,
   which prints the art and banner; then this tab exits with code 0, so Windows Terminal closes it and the skinned
   tab takes its place.
@@ -226,11 +233,13 @@ A pack is a folder `packs/<id>/`:
 - `shaders/<skin>.hlsl`: Windows Terminal pixel shaders, one per foil skin (spec: `docs/SHADER_SPEC.md`)
 
 `tools/build_art.py` renders the art to `dist/<pack>/<character>-<variant>[-shiny].ans` (24-bit color, two
-pixels per character cell with half blocks). `dist/` is committed, so users never need Python.
+pixels per character cell with half blocks). `dist/` is committed, so users never need Python, except for the
+real-card `pokemon` pack: its `art/<card id>.json`, `cards/<card id>.json` (the card text) and `dist/pokemon/` are
+built locally by `tools/build_realcards.py` and never committed (see the note at the top).
 
 ### Adding a pack
 
-1. Create `packs/<id>/pack.json` (copy `packs/pokemon/pack.json`): `foil_chance`, `shiny_chance`, `characters`,
+1. Create `packs/<id>/pack.json` (format: `docs/PACK_FORMAT.md`): `foil_chance`, `shiny_chance`, `characters`,
    and `tiers` (tier 0 is the plain, non-foil tier; each foil tier names its `art` variant and its skins with
    relative weights).
 2. Draw `packs/<id>/art/<character>.json` for every character, with every art variant the tiers name.
@@ -245,7 +254,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 | file | |
 |---|---|
 | `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), and `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.) |
-| `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, note |
+| `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, note (for a real card, tier is its rarity tier and art its card id). Append-only: pulls of art that no longer exists stay in it; the binder hides them (`retired` in `docs/PACK_FORMAT.md`) |
 | `color-misses.log` | color names that weren't in the table |
 | `installed.tsv` | the skin profiles install added (what uninstall removes) |
 | `roll.tsv` | the roll table cache (rebuilt automatically when a pack, its art, or the install changes) |
@@ -284,11 +293,12 @@ art, docs, README, LICENSE; files git ignores never ship) into a temp folder. Bu
 
 pokeshell is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by, or sponsored by
 Nintendo, Game Freak, Creatures Inc., or The Pokemon Company. Pokemon character names and related marks belong to their respective owners and are
-used here only to identify the characters. All pixel art in this repository is original fan art drawn for this
-project; no game sprites or official artwork are included. If you are a rights holder and want something changed
-or removed, please open an issue.
+used here only to identify the characters. This repository contains no game sprites, official artwork or card
+text: the `pokemon` pack's cards are assembled on the user's own machine by `tools/build_realcards.py` from the
+[pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites and the pokemontcg.io API, and
+are never committed. If you are a rights holder and want something changed or removed, please open an issue.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The license covers the code and this project's original art; it grants no rights in
+MIT, see [LICENSE](LICENSE). The license covers the code; it grants no rights in
 the characters themselves.

@@ -1,76 +1,535 @@
 {
   "id": "pokemon",
   "name": "Pokemon",
-  "foil_chance": 0.2,
+  "about": "Real printed cards, keyed by pokemontcg.io id. Each card's art is the unmodified pokemon-colorscripts sprite over that card's scene; its tier is its printed rarity. The card art and text are built locally by tools/build_realcards.py and never committed.",
   "shiny_chance": 0.015625,
-  "characters": [
-    "bulbasaur",
-    "charmander",
-    "squirtle",
-    "pikachu"
-  ],
   "tiers": [
     {
       "id": "common",
       "label": "common",
-      "art": "common",
+      "rarity": "Common",
+      "family": "non-foil",
+      "weight": 50000,
       "skins": {},
       "frame": "plain"
     },
     {
-      "id": "holo",
-      "label": "holo",
-      "art": "holo",
+      "id": "uncommon",
+      "label": "uncommon",
+      "rarity": "Uncommon",
+      "family": "non-foil",
+      "weight": 20000,
+      "skins": {},
+      "frame": "plain"
+    },
+    {
+      "id": "rare",
+      "label": "rare",
+      "rarity": "Rare",
+      "family": "non-foil",
+      "weight": 8000,
+      "skins": {},
+      "frame": "plain"
+    },
+    {
+      "id": "reverse-holo",
+      "label": "reverse holo",
+      "family": "holo",
+      "weight": 8000,
       "skins": {
-        "starlight": 10,
         "reverse": 10,
-        "sheen": 10,
-        "tinsel": 10,
-        "water-web": 10,
-        "crosshatch": 10
+        "galaxy-reverse": 6,
+        "pokeball": 3,
+        "masterball": 1
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "promo",
+      "label": "promo",
+      "rarity": "Promo",
+      "family": "holo",
+      "weight": 1500,
+      "skins": {
+        "cosmos": 10,
+        "crosshatch": 5
       },
       "frame": "silver"
     },
     {
       "id": "rare-holo",
       "label": "rare holo",
-      "art": "holo",
+      "rarity": "Rare Holo",
+      "family": "holo",
+      "weight": 5000,
       "skins": {
+        "starlight": 10,
+        "cosmos": 10,
         "cracked-ice": 7,
-        "cosmos": 7,
-        "pokeball": 7,
-        "galaxy-reverse": 6
+        "sheen": 7,
+        "tinsel": 7,
+        "water-web": 7,
+        "crosshatch": 7
       },
       "frame": "holo"
     },
     {
-      "id": "ultra-rare",
-      "label": "ultra rare",
-      "art": "fullart",
+      "id": "trainer-gallery-rare-holo",
+      "label": "trainer gallery",
+      "rarity": "Trainer Gallery Rare Holo",
+      "family": "holo",
+      "weight": 600,
       "skins": {
-        "radiant": 4,
-        "sunpillar": 4,
-        "illustration-rare": 4,
-        "shiny-vault": 4,
-        "masterball": 3
+        "sheen": 5,
+        "crosshatch": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "rare-holo-star",
+      "label": "rare holo star",
+      "rarity": "Rare Holo Star",
+      "family": "special",
+      "weight": 150,
+      "skins": {
+        "cracked-ice": 5,
+        "starlight": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "rare-holo-ex",
+      "label": "rare holo EX",
+      "rarity": "Rare Holo EX",
+      "family": "ultra",
+      "weight": 1200,
+      "skins": {
+        "sheen": 5,
+        "cracked-ice": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "rare-holo-lv-x",
+      "label": "rare holo LV.X",
+      "rarity": "Rare Holo LV.X",
+      "family": "ultra",
+      "weight": 400,
+      "skins": {
+        "cracked-ice": 5,
+        "sheen": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "rare-prime",
+      "label": "rare prime",
+      "rarity": "Rare Prime",
+      "family": "ultra",
+      "weight": 500,
+      "skins": {
+        "sheen": 5,
+        "tinsel": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "legend",
+      "label": "LEGEND",
+      "rarity": "LEGEND",
+      "family": "ultra",
+      "weight": 150,
+      "skins": {
+        "cracked-ice": 5,
+        "radiant": 5
       },
       "frame": "rainbow"
     },
     {
-      "id": "secret-rare",
-      "label": "secret rare",
-      "art": "gold",
+      "id": "rare-break",
+      "label": "rare BREAK",
+      "rarity": "Rare BREAK",
+      "family": "ultra",
+      "weight": 500,
       "skins": {
-        "rainbow-rare": 2,
-        "amazing-rare": 2,
-        "gold": 1
-      }
+        "sheen": 5,
+        "crosshatch": 5
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-holo-gx",
+      "label": "rare holo GX",
+      "rarity": "Rare Holo GX",
+      "family": "ultra",
+      "weight": 1200,
+      "skins": {
+        "crosshatch": 5,
+        "sunpillar": 5
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-prism-star",
+      "label": "rare prism star",
+      "rarity": "Rare Prism Star",
+      "family": "special",
+      "weight": 300,
+      "skins": {
+        "cracked-ice": 5,
+        "radiant": 5
+      },
+      "frame": "holo"
+    },
+    {
+      "id": "rare-holo-v",
+      "label": "rare holo V",
+      "rarity": "Rare Holo V",
+      "family": "ultra",
+      "weight": 1500,
+      "skins": {
+        "sunpillar": 10
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "rare-holo-vmax",
+      "label": "rare holo VMAX",
+      "rarity": "Rare Holo VMAX",
+      "family": "ultra",
+      "weight": 800,
+      "skins": {
+        "sunpillar": 10
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-holo-vstar",
+      "label": "rare holo VSTAR",
+      "rarity": "Rare Holo VSTAR",
+      "family": "ultra",
+      "weight": 700,
+      "skins": {
+        "sunpillar": 10
+      },
+      "frame": "gold"
+    },
+    {
+      "id": "double-rare",
+      "label": "double rare",
+      "rarity": "Double Rare",
+      "family": "ultra",
+      "weight": 1400,
+      "skins": {
+        "sunpillar": 10,
+        "cosmos": 5
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "ace-spec-rare",
+      "label": "ACE SPEC rare",
+      "rarity": "ACE SPEC Rare",
+      "family": "special",
+      "weight": 300,
+      "skins": {
+        "rainbow-rare": 5,
+        "sheen": 5
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-shining",
+      "label": "rare shining",
+      "rarity": "Rare Shining",
+      "family": "special",
+      "weight": 150,
+      "skins": {
+        "shiny-vault": 5,
+        "starlight": 5
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "rare-shiny",
+      "label": "rare shiny",
+      "rarity": "Rare Shiny",
+      "family": "special",
+      "weight": 500,
+      "skins": {
+        "shiny-vault": 10
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "shiny-rare",
+      "label": "shiny rare",
+      "rarity": "Shiny Rare",
+      "family": "special",
+      "weight": 500,
+      "skins": {
+        "shiny-vault": 10
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "rare-shiny-gx",
+      "label": "rare shiny GX",
+      "rarity": "Rare Shiny GX",
+      "family": "special",
+      "weight": 200,
+      "skins": {
+        "shiny-vault": 5,
+        "sunpillar": 5
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "amazing-rare",
+      "label": "amazing rare",
+      "rarity": "Amazing Rare",
+      "family": "special",
+      "weight": 300,
+      "skins": {
+        "amazing-rare": 10
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "radiant-rare",
+      "label": "radiant rare",
+      "rarity": "Radiant Rare",
+      "family": "special",
+      "weight": 400,
+      "skins": {
+        "radiant": 10
+      },
+      "frame": "silver"
+    },
+    {
+      "id": "rare-ultra",
+      "label": "rare ultra",
+      "rarity": "Rare Ultra",
+      "family": "full-art",
+      "weight": 650,
+      "skins": {
+        "sunpillar": 10,
+        "illustration-rare": 4
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "ultra-rare",
+      "label": "ultra rare",
+      "rarity": "Ultra Rare",
+      "family": "full-art",
+      "weight": 650,
+      "skins": {
+        "sunpillar": 10,
+        "illustration-rare": 4
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "illustration-rare",
+      "label": "illustration rare",
+      "rarity": "Illustration Rare",
+      "family": "full-art",
+      "weight": 750,
+      "skins": {
+        "illustration-rare": 10
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "shiny-ultra-rare",
+      "label": "shiny ultra rare",
+      "rarity": "Shiny Ultra Rare",
+      "family": "secret",
+      "weight": 200,
+      "skins": {
+        "shiny-vault": 5,
+        "rainbow-rare": 5
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-rainbow",
+      "label": "rare rainbow",
+      "rarity": "Rare Rainbow",
+      "family": "secret",
+      "weight": 250,
+      "skins": {
+        "rainbow-rare": 10
+      },
+      "frame": "rainbow"
+    },
+    {
+      "id": "rare-secret",
+      "label": "rare secret",
+      "rarity": "Rare Secret",
+      "family": "secret",
+      "weight": 250,
+      "skins": {
+        "gold": 5,
+        "rainbow-rare": 5
+      },
+      "frame": "gold"
+    },
+    {
+      "id": "special-illustration-rare",
+      "label": "special illustration rare",
+      "rarity": "Special Illustration Rare",
+      "family": "secret",
+      "weight": 300,
+      "skins": {
+        "illustration-rare": 10,
+        "rainbow-rare": 5
+      },
+      "frame": "gold"
+    },
+    {
+      "id": "hyper-rare",
+      "label": "hyper rare",
+      "rarity": "Hyper Rare",
+      "family": "secret",
+      "weight": 190,
+      "skins": {
+        "gold": 10
+      },
+      "frame": "gold"
     }
   ],
-  "tags": {
-    "bulbasaur": "#001",
-    "charmander": "#004",
-    "squirtle": "#007",
-    "pikachu": "#025"
+  "cards": {
+    "base1-44": {
+      "character": "bulbasaur",
+      "tier": "common",
+      "name": "Bulbasaur",
+      "number": "44/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "suite3:bulbasaur-suite3.json#common"
+    },
+    "sv3pt5-166": {
+      "character": "bulbasaur",
+      "tier": "illustration-rare",
+      "name": "Bulbasaur",
+      "number": "166/165",
+      "rarity": "Illustration Rare",
+      "set": "151",
+      "source": "suite3:bulbasaur-suite3.json#fullart"
+    },
+    "base1-46": {
+      "character": "charmander",
+      "tier": "common",
+      "name": "Charmander",
+      "number": "46/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "suite3:charmander-suite3.json#common"
+    },
+    "sma-SV6": {
+      "character": "charmander",
+      "tier": "rare-shiny",
+      "name": "Charmander",
+      "number": "SV6/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "suite3:charmander-suite3.json#holo"
+    },
+    "sv3pt5-168": {
+      "character": "charmander",
+      "tier": "illustration-rare",
+      "name": "Charmander",
+      "number": "168/165",
+      "rarity": "Illustration Rare",
+      "set": "151",
+      "source": "suite3:charmander-suite3.json#fullart"
+    },
+    "ex3-98": {
+      "character": "charmander",
+      "tier": "rare-secret",
+      "name": "Charmander",
+      "number": "98/97",
+      "rarity": "Rare Secret",
+      "set": "Dragon",
+      "source": "suite3:charmander-suite3.json#top"
+    },
+    "base1-58": {
+      "character": "pikachu",
+      "tier": "common",
+      "name": "Pikachu",
+      "number": "58/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "suite3:pikachu-suite3.json#common"
+    },
+    "cel25-5": {
+      "character": "pikachu",
+      "tier": "rare-holo",
+      "name": "Pikachu",
+      "number": "5/25",
+      "rarity": "Rare Holo",
+      "set": "Celebrations",
+      "source": "suite3:pikachu-suite3.json#holo"
+    },
+    "swsh4-170": {
+      "character": "pikachu",
+      "tier": "rare-ultra",
+      "name": "Pikachu V",
+      "number": "170/185",
+      "rarity": "Rare Ultra",
+      "set": "Vivid Voltage",
+      "source": "suite3:pikachu-suite3.json#fullart"
+    },
+    "sv8-247": {
+      "character": "pikachu",
+      "tier": "hyper-rare",
+      "name": "Pikachu ex",
+      "number": "247/191",
+      "rarity": "Hyper Rare",
+      "set": "Surging Sparks",
+      "source": "suite3:pikachu-suite3.json#gold"
+    },
+    "base1-63": {
+      "character": "squirtle",
+      "tier": "common",
+      "name": "Squirtle",
+      "number": "63/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "suite3:squirtle-suite3.json#common"
+    },
+    "sv3pt5-170": {
+      "character": "squirtle",
+      "tier": "illustration-rare",
+      "name": "Squirtle",
+      "number": "170/165",
+      "rarity": "Illustration Rare",
+      "set": "151",
+      "source": "suite3:squirtle-suite3.json#fullart"
+    }
+  },
+  "retired": {
+    "bulbasaur/common": "base1-44",
+    "bulbasaur/holo": null,
+    "bulbasaur/rare-holo": null,
+    "bulbasaur/ultra-rare": null,
+    "bulbasaur/secret-rare": null,
+    "charmander/common": "base1-46",
+    "charmander/holo": null,
+    "charmander/rare-holo": null,
+    "charmander/ultra-rare": null,
+    "charmander/secret-rare": null,
+    "squirtle/common": "base1-63",
+    "squirtle/holo": null,
+    "squirtle/rare-holo": null,
+    "squirtle/ultra-rare": null,
+    "squirtle/secret-rare": null,
+    "pikachu/common": "base1-58",
+    "pikachu/holo": null,
+    "pikachu/rare-holo": null,
+    "pikachu/ultra-rare": null,
+    "pikachu/secret-rare": null
   }
 }

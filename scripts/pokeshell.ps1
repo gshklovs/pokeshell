@@ -40,8 +40,8 @@ pokeshell - every new Windows Terminal tab is a pack pull
   pokeshell pack [<pack>|all]             show or choose the active pack
   pokeshell odds [pack]                   pull odds for the active pack (or the one named)
   pokeshell collection                    your binder: every character/variant/shiny pulled so far
-  pokeshell show <pack>/<character> [variant] [-shiny] [-picture|-card]
-                                          print a card (pokeshell show: list what's available)
+  pokeshell show <pack>/<character> [variant|card id|tier] [-shiny] [-picture|-card]
+                                          print a card (pokeshell show: list what's available; also pokemon/<card id>)
   pokeshell display [card|picture]        how pulls print: the full card (default) or just the picture
                                           (POKESHELL_DISPLAY=picture overrides it for one shell)
   pokeshell holo [<skin>|plain] [-s] [-r] open a skinned tab here (-s: split pane instead;
@@ -199,6 +199,7 @@ function Invoke-Odds {
   $ids = if ($Pos) { @($Pos[0].ToLower()) } else { Get-ActivePackIds }
   foreach ($id in $ids) {
     $p = Read-PokeshellPack $Root $id
+    if ($p.isCardPack) { Show-CardOdds $p; continue }
     $tiers = @($p.tiers)
     $total = 0; foreach ($t in $tiers[1..($tiers.Count - 1)]) { foreach ($s in $t.skins.PSObject.Properties) { $total += [int]$s.Value } }
     $n = @($p.characters).Count
@@ -218,6 +219,31 @@ function Invoke-Odds {
   if (-not @(Get-PokeshellInstalled $State)) { Write-Host "`n  not installed yet: until 'pokeshell install' every pull is a common" -ForegroundColor Yellow }
 }
 
+# a real-card pack's odds: a tier by its weight among the tiers that have a built card, then one of its cards
+function Show-CardOdds($p) {
+  $tiers = @($p.tiers)
+  $built = @($p.cardList | Where-Object { Test-PokeshellCardBuilt $Root $p.id $_ })
+  $live = @(for ($i = 0; $i -lt $tiers.Count; $i++) { if ([int]$tiers[$i].weight -gt 0 -and @($built | Where-Object tier -eq $i)) { $i } })
+  $total = 0; foreach ($i in $live) { $total += [int]$tiers[$i].weight }
+  Write-Host ''
+  Write-Host "$($p.name)  ($($built.Count) real cards in $($live.Count) of $($tiers.Count) rarity tiers; a pull picks a tier by weight, then one of its cards)" -ForegroundColor Cyan
+  if ($Cfg.pack -eq 'all') { Write-Host "  (pack 'all': each tab first picks one of $(@(Get-PokeshellPackIds $Root).Count) packs uniformly, so every number below happens that many times less often)" -ForegroundColor DarkGray }
+  if (-not $live) { Write-Host "  no card art built yet: nothing to pull (tools\build_realcards.py builds it; see tools\README.md)" -ForegroundColor Yellow; return }
+  $rows = foreach ($i in $live) {
+    $t = $tiers[$i]; $pr = [int]$t.weight / $total
+    $cs = @($built | Where-Object tier -eq $i)
+    $sk = @($t.skins.PSObject.Properties | ForEach-Object Name)
+    [pscustomobject]@{ tier = $t.label; odds = ('{0,6:0.00}%' -f (100 * $pr)); 'one in' = ('{0:0}' -f (1 / $pr)); 'a given card' = ('1 in {0:0}' -f ($cs.Count / $pr))
+      cards = (($cs | ForEach-Object { "$($_.id) $($_.name)" }) -join ', '); skins = $(if ($sk) { $sk -join ', ' } else { '(plain tab)' }) }
+  }
+  $rows | Format-Table -AutoSize -Wrap | Out-String -Width 220 | Write-Host
+  $empty = @(for ($i = 0; $i -lt $tiers.Count; $i++) { if ($live -notcontains $i) { $tiers[$i].label } })
+  if ($empty) { Write-Host "  no card yet (these never roll; the tiers listed above share their odds): $($empty -join ', ')" -ForegroundColor DarkGray }
+  $unbuilt = @($p.cardList | Where-Object { -not (Test-PokeshellCardBuilt $Root $p.id $_) })
+  if ($unbuilt) { Write-Host "  $($unbuilt.Count) cards in pack.json have no art built: $(($unbuilt | ForEach-Object id) -join ', ')" -ForegroundColor Yellow }
+  if ($p.shiny_chance -gt 0) { Write-Host ("  shiny: {0:0.00}% of pulls (1 in {1:0}), any tier" -f (100 * $p.shiny_chance), (1 / $p.shiny_chance)) }
+}
+
 function Read-Pulls {
   $log = Join-Path $State 'pulls.log'
   if (-not (Test-Path $log)) { return @() }
@@ -228,14 +254,31 @@ function Read-Pulls {
   }
 }
 
+# Real-card packs: each pull as the card it resolves to today (Resolve-PokeshellPull), its tier/art columns set to
+# that card's; pulls of retired art (pack.json "retired") are left out and counted in $script:HiddenPulls.
+# pulls.log itself is never rewritten.
+function Get-ShownPulls($Pulls) {
+  $packs = @{}; $script:HiddenPulls = 0
+  foreach ($x in $Pulls) {
+    if (-not $packs.ContainsKey($x.pack)) { $packs[$x.pack] = try { Read-PokeshellPack $Root $x.pack } catch { $null } }
+    $pk = $packs[$x.pack]
+    if (-not $pk -or -not $pk.isCardPack) { $x; continue }
+    $c = Resolve-PokeshellPull $pk $x.character $x.tier $x.art
+    if (-not $c) { $script:HiddenPulls++; continue }
+    $x.tier = $c.tierId; $x.art = $c.id; $x
+  }
+}
+
 function Invoke-Collection {
-  $pulls = @(Read-Pulls)
-  if (-not $pulls) { Write-Host "pokeshell: no pulls yet. Open a new tab!"; return }
+  $pulls = @(Get-ShownPulls @(Read-Pulls))
+  $hidden = if ($script:HiddenPulls) { "  ($script:HiddenPulls pulls of retired art not shown)" } else { '' }
+  if (-not $pulls) { Write-Host "pokeshell: no pulls yet. Open a new tab!$hidden"; return }
   Write-Host ''
-  Write-Host "BINDER  $($pulls.Count) pulls since $($pulls[0].time.Replace('T', ' '))" -ForegroundColor Cyan
+  Write-Host "BINDER  $($pulls.Count) pulls since $($pulls[0].time.Replace('T', ' '))$hidden" -ForegroundColor Cyan
   foreach ($grp in ($pulls | Group-Object pack)) {
     $pack = try { Read-PokeshellPack $Root $grp.Name } catch { $null }
-    $tiers = if ($pack) { @($pack.tiers) } else { @($grp.Group | Select-Object -ExpandProperty tier -Unique | ForEach-Object { [pscustomobject]@{ id = $_; label = $_ } }) }
+    $tiers = if ($pack -and $pack.isCardPack) { $has = @($pack.cardList | ForEach-Object tier); @(for ($i = 0; $i -lt @($pack.tiers).Count; $i++) { if ($has -contains $i) { $pack.tiers[$i] } }) }   # the rarities it has cards in
+             elseif ($pack) { @($pack.tiers) } else { @($grp.Group | Select-Object -ExpandProperty tier -Unique | ForEach-Object { [pscustomobject]@{ id = $_; label = $_ } }) }
     $chars = if ($pack) { @($pack.characters) } else { @($grp.Group | Select-Object -ExpandProperty character -Unique) }
     $caught = ''
     if ($chars.Count -gt 40) {   # big packs: only the rows you have pulled
@@ -248,6 +291,7 @@ function Invoke-Collection {
       $mine = @($grp.Group | Where-Object character -eq $c)
       $row = [ordered]@{ character = $(if ($pack) { $pack.names[$c] } else { $c }) }
       foreach ($t in $tiers) {
+        if ($pack -and $pack.isCardPack -and -not @($pack.cardList | Where-Object { $_.character -eq $c -and $_.tierId -eq $t.id })) { $row[$t.label] = '-'; continue }   # no such real card
         $k = @($mine | Where-Object tier -eq $t.id).Count; $slots++; if ($k) { $owned++ }
         $row[$t.label] = if ($k) { "$k" } else { '.' }
       }
@@ -273,10 +317,51 @@ function Invoke-Collection {
   }
 }
 
+# Real-card packs: `show pokemon/pikachu` (the character's lowest-tier card), `show pokemon/pikachu <card id | tier>`,
+# `show pokemon/<card id>` or `show <card id>`. Returns $false when the reference isn't in a real-card pack.
+function Show-Card {
+  $ref = $Pos[0]; $want = if ($Pos.Count -gt 1) { $Pos[1] } else { '' }
+  $packIds = @(Get-PokeshellPackIds $Root); $name = $ref
+  if ($ref -match '^([^/\\]+)[/\\]([^/\\]+)$') { $packIds = @($Matches[1].ToLower()); $name = $Matches[2] }
+  foreach ($id in $packIds) {
+    if (-not (Test-Path (Join-Path $Root "packs\$id\pack.json"))) { return $false }
+    $p = Read-PokeshellPack $Root $id
+    if (-not $p.isCardPack) { continue }
+    $card = @($p.cardList | Where-Object { $_.id -eq $name })[0]
+    if (-not $card) {
+      $mine = @($p.cardList | Where-Object { $_.character -eq $name.ToLower() } | Sort-Object tier)
+      if (-not $mine) {
+        if ($packIds.Count -gt 1) { continue }
+        throw "pack '$id' has no character '$name' and no card '$name' (cards: $(($p.cardList | ForEach-Object { "$($_.character)/$($_.id)" }) -join ' '))"
+      }
+      $card = if (-not $want) { $mine[0] } else {
+        @($mine | Where-Object { $_.id -eq $want -or $_.tierId -eq $want.ToLower() -or ($p.tiers[$_.tier].label -replace ' ', '-') -eq $want.ToLower() })[0] }
+      if (-not $card) { throw "no $name card '$want' in $id (has: $(($mine | ForEach-Object { "$($_.id) ($($_.tierId))" }) -join ', '))" }
+    }
+    $shiny = Has @('shiny')
+    $file = Join-Path $Root "dist\$id\$($card.character)-$($card.id)$(if ($shiny) { '-shiny' }).ans"
+    if (-not (Test-Path $file)) { throw "$id/$($card.id) has no art built$(if ($shiny) { ' (shiny)' }) (tools\build_realcards.py; see tools\README.md)" }
+    $t = $p.tiers[$card.tier]
+    $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
+    Show-PokeshellPull -Root $Root -Pack $id -Character $card.character -Name $card.name -Art $card.id -Label $t.label -Tier $card.tier -Shiny:$shiny -Frame $p.frames[$card.tier] -Tag $card.tag -Picture:$picture
+    return $true
+  }
+  $false
+}
+
 function Invoke-Show {
   if (-not $Pos) {
     foreach ($id in Get-PokeshellPackIds $Root) {
       $p = Read-PokeshellPack $Root $id
+      if ($p.isCardPack) {   # real cards: per character, its cards and their rarity tiers
+        Write-Host "$id" -ForegroundColor Cyan
+        foreach ($g in ($p.cardList | Group-Object character)) {
+          $cs = @($g.Group | Sort-Object tier | ForEach-Object { "$($_.id) ($($p.tiers[$_.tier].label))$(if (-not (Test-PokeshellCardBuilt $Root $id $_)) { ' [not built]' })" })
+          Write-Host ("  {0,-22} {1}" -f "$id/$($g.Name)", ($cs -join '  '))
+        }
+        if (-not $p.cardList) { Write-Host "  (no cards)" }
+        continue
+      }
       $built = @(Get-ChildItem (Join-Path $Root "dist\$id") -Filter '*.ans' -File -ErrorAction SilentlyContinue | ForEach-Object BaseName)
       $chars = @($p.characters)
       Write-Host "$id" -ForegroundColor Cyan
@@ -290,9 +375,10 @@ function Invoke-Show {
         Write-Host ("  {0,-22} {1}" -f "$id/$c", $(if ($v) { $v -join ' ' } else { '(no art built yet)' }))
       }
     }
-    Write-Host "`nusage: pokeshell show <pack>/<character> [variant] [-shiny]"
+    Write-Host "`nusage: pokeshell show <pack>/<character> [variant] [-shiny]   (real-card packs: <pack>/<character> [card id|tier], or <pack>/<card id>)"
     return
   }
+  if (Show-Card) { return }
   $ref = $Pos[0].ToLower()
   if ($ref -notmatch '^([^/\\]+)[/\\]([^/\\]+)$') {   # bare character: search the packs
     $hits = @(Get-PokeshellPackIds $Root | Where-Object { @((Read-PokeshellPack $Root $_).characters) -contains $ref })

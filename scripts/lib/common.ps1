@@ -24,9 +24,32 @@ function ConvertTo-PokeshellTitle([string]$Id) {
 # "frame" are normalized to .tags, .posterNames, .bounties and .frames. A frame is a preset name or a list of
 # #rrggbb gradient stops (kept as "a,b,..."), or a style object ({ "style": "wanted", "palette": "manga" },
 # kept as "wanted;palette=manga;seed=<tier id>": the one string the roll cache and the core pass around).
+#
+# Real-card packs (pack.json "cards": { "<pokemontcg.io id>": { character, tier, name, number, ... } }) are normalized
+# too: .isCardPack, .cardList ({ id, character, tier (index), tierId, name, tag } in pack.json order), .cardIndex
+# (id -> card), .tierIndex (tier id -> index), .retired (old "character/tier" -> card id or $null), and .characters
+# (the cards' characters, when pack.json doesn't list them). A card is built when its dist .ans exists (Test-PokeshellCardBuilt).
 function Read-PokeshellPack([string]$Root, [string]$Id) {
   $dir = Join-Path $Root "packs\$Id"
   $pack = [IO.File]::ReadAllText((Join-Path $dir 'pack.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+  $isCards = [bool]$pack.PSObject.Properties['cards']
+  $tierIx = @{}; $tl = @($pack.tiers); for ($i = 0; $i -lt $tl.Count; $i++) { $tierIx[[string]$tl[$i].id] = $i }
+  $cardList = @(); $cardIndex = @{}; $retired = @{}
+  if ($isCards) {
+    $order = [Collections.Generic.List[string]]::new()
+    if ($pack.cards) {
+      foreach ($p in $pack.cards.PSObject.Properties) {
+        $c = $p.Value; $ti = $tierIx[[string]$c.tier]
+        if ($null -eq $ti) { throw "pack $Id, card $($p.Name): no tier '$($c.tier)' in pack.json" }
+        $card = [pscustomobject]@{ id = $p.Name; character = [string]$c.character; tier = $ti; tierId = [string]$c.tier
+                                  name = [string]$c.name; tag = [string]$c.number }
+        $cardList += $card; $cardIndex[$p.Name] = $card
+        if (-not $order.Contains($card.character)) { $order.Add($card.character) }
+      }
+    }
+    if (-not $pack.characters) { $pack | Add-Member -NotePropertyName characters -NotePropertyValue @($order) -Force }
+    if ($pack.retired) { foreach ($p in $pack.retired.PSObject.Properties) { $retired[$p.Name] = $(if ($p.Value) { [string]$p.Value } else { $null }) } }
+  }
   $given = @{}; if ($pack.names) { foreach ($p in $pack.names.PSObject.Properties) { $given[$p.Name] = [string]$p.Value } }
   $tags = @{}; if ($pack.tags) { foreach ($p in $pack.tags.PSObject.Properties) { $tags[$p.Name] = [string]$p.Value } }
   $posters = @{}; if ($pack.poster_names) { foreach ($p in $pack.poster_names.PSObject.Properties) { $posters[$p.Name] = [string]$p.Value } }
@@ -58,7 +81,34 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
   $pack | Add-Member -NotePropertyName bounties -NotePropertyValue $bounties -Force
   $pack | Add-Member -NotePropertyName frames -NotePropertyValue $frames -Force
   $pack | Add-Member -NotePropertyName dir -NotePropertyValue $dir -Force
+  $pack | Add-Member -NotePropertyName isCardPack -NotePropertyValue $isCards -Force
+  $pack | Add-Member -NotePropertyName cardList -NotePropertyValue $cardList -Force
+  $pack | Add-Member -NotePropertyName cardIndex -NotePropertyValue $cardIndex -Force
+  $pack | Add-Member -NotePropertyName tierIndex -NotePropertyValue $tierIx -Force
+  $pack | Add-Member -NotePropertyName retired -NotePropertyValue $retired -Force
   $pack
+}
+
+# a real card's prebuilt art: dist\<pack>\<character>-<card id>.ans (tools\build_realcards.py); cards without it never roll
+function Test-PokeshellCardBuilt([string]$Root, [string]$Pack, $Card) {
+  [IO.File]::Exists((Join-Path $Root "dist\$Pack\$($Card.character)-$($Card.id).ans"))
+}
+
+<#
+What a pulls.log line shows today, for the binders: the real card it resolves to, or $null (hide it).
+  - packs without "cards": every pull shows as logged ('legacy' is returned)
+  - the art column is a card id of this pack (and the character matches): that card
+  - else pack.json "retired" names the old character/tier: its card id (e.g. an old common -> the base-set common), or null
+  - anything else doesn't resolve to a current real card: hidden
+Mirrored by binder-tui / the web export (docs/PACK_FORMAT.md, "retired").
+#>
+function Resolve-PokeshellPull($Pack, [string]$Character, [string]$Tier, [string]$Art) {
+  if (-not $Pack.isCardPack) { return 'legacy' }
+  $c = $Pack.cardIndex[$Art]
+  if ($c -and $c.character -eq $Character) { return $c }
+  $k = "$Character/$Tier"
+  if ($Pack.retired.ContainsKey($k) -and $Pack.retired[$k]) { return $Pack.cardIndex[$Pack.retired[$k]] }
+  $null
 }
 
 # WT profile GUID for a skin: .NET Guid(md5("pokeshell:<pack>/<skin>")), stable across installs
@@ -75,6 +125,7 @@ function Get-PokeshellSkins([string]$Root) {
     for ($i = 1; $i -lt @($pack.tiers).Count; $i++) {
       $t = $pack.tiers[$i]
       foreach ($prop in $t.skins.PSObject.Properties) {
+        if ($seen[$prop.Name]) { continue }   # a skin several tiers share is one profile (its first tier here)
         $seen[$prop.Name] = $true
         [pscustomobject]@{ pack = $id; skin = $prop.Name; tier = $i; tierId = $t.id; label = $t.label; weight = [int]$prop.Value
           shader = Join-Path $pack.dir "shaders\$($prop.Name).hlsl"; guid = Get-PokeshellSkinGuid $id $prop.Name }
@@ -130,6 +181,7 @@ function Update-PokeshellRollCache([string]$Root, [string]$StateDir, [hashtable]
     $pack = Read-PokeshellPack $Root $id
     $stampFiles += (Join-Path $pack.dir 'pack.json'), (Join-Path $pack.dir 'art')
     $body.Add("pack`t$id`t$(([double]$pack.foil_chance).ToString($inv))`t$(([double]$pack.shiny_chance).ToString($inv))")
+    if ($pack.isCardPack) { Add-PokeshellCardRows $Root $id $pack $body $installed; $stampFiles += (Join-Path $Root "dist\$id"); continue }
     foreach ($c in $pack.characters) {
       # char id name [tag [poster bounty]] (trailing empty columns left off)
       $cols = @("char", $c, $pack.names[$c], $pack.tags[$c], $pack.posterNames[$c], $pack.bounties[$c])
@@ -151,6 +203,33 @@ function Update-PokeshellRollCache([string]$Root, [string]$StateDir, [hashtable]
   $tmp = Join-Path $StateDir "roll.tsv.$PID.tmp"
   [IO.File]::WriteAllLines($tmp, [string[]](@($stamp) + $body))
   Move-Item -Force $tmp (Join-Path $StateDir 'roll.tsv')
+}
+
+<#
+roll.tsv rows of a real-card pack (the core's card mode, Pokeshell.cs):
+  tier  id label art [frame]                  every tier, by index (art is unused: each card is its own art)
+  odds  <tier index> <weight>                 only tiers with at least one built card: a tier is rolled by weight
+                                              among these, so an empty tier never rolls (its odds go to the others)
+  card  <tier index> <character> <name> <card id> [tag]    every built card; one is picked uniformly in the tier
+  skin  name weight <tier index> guid         installed skins of any tier (a tier with none prints in the plain tab)
+#>
+function Add-PokeshellCardRows([string]$Root, [string]$Id, $Pack, $Body, [hashtable]$Installed) {
+  $tiers = @($Pack.tiers)
+  $built = @($Pack.cardList | Where-Object { Test-PokeshellCardBuilt $Root $Id $_ })
+  for ($i = 0; $i -lt $tiers.Count; $i++) {
+    $t = $tiers[$i]
+    $Body.Add("tier`t$($t.id)`t$($t.label)`t$($t.art)$(if ($Pack.frames[$i]) { "`t$($Pack.frames[$i])" })")
+    $w = [int]$t.weight
+    if ($w -gt 0 -and @($built | Where-Object { $_.tier -eq $i }).Count -gt 0) { $Body.Add("odds`t$i`t$w") }
+    foreach ($prop in $t.skins.PSObject.Properties) {
+      $g = $Installed["$Id/$($prop.Name)"]
+      if ($g -and [int]$prop.Value -gt 0) { $Body.Add("skin`t$($prop.Name)`t$([int]$prop.Value)`t$i`t$g") }
+    }
+  }
+  foreach ($c in $built) {
+    $name = if ($c.name) { $c.name } else { $Pack.names[$c.character] }
+    $Body.Add("card`t$($c.tier)`t$($c.character)`t$name`t$($c.id)$(if ($c.tag) { "`t$($c.tag)" })")
+  }
 }
 
 <#

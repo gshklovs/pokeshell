@@ -531,7 +531,11 @@ namespace Pokeshell
             catch (Exception) { }
         }
 
-        class PackRows { public string Id; public double Foil, Shiny; public List<string[]> Chars = new List<string[]>(), Tiers = new List<string[]>(), Skins = new List<string[]>(); public int Weight; }
+        class PackRows
+        {
+            public string Id; public double Foil, Shiny; public List<string[]> Chars = new List<string[]>(), Tiers = new List<string[]>(), Skins = new List<string[]>(); public int Weight;
+            public List<string[]> Cards = new List<string[]>(), Odds = new List<string[]>();   // real-card packs (card mode, below)
+        }
 
         // roll.tsv rows, or null when it's missing/stale (line 1 stamps its inputs' mtimes; line 2 the pack selection)
         static List<PackRows> ReadCache(string stateDir, string selection)
@@ -559,9 +563,65 @@ namespace Pokeshell
                 else if (f[0] == "char" && f.Length >= 3) p.Chars.Add(f);                                   // char id name [tag [poster bounty]]
                 else if (f[0] == "tier" && f.Length >= 4) p.Tiers.Add(f);                                   // tier id label art [frame]
                 else if (f[0] == "skin" && f.Length >= 5) { p.Skins.Add(f); p.Weight += int.Parse(f[2]); }  // skin name weight tier guid
+                else if (f[0] == "card" && f.Length >= 5) p.Cards.Add(f);                                   // card tier character name cardid [tag]
+                else if (f[0] == "odds" && f.Length >= 3) p.Odds.Add(f);                                    // odds tier weight
             }
             return packs;
         }
+
+        // ---- card mode: a real-card pack (pack.json "cards"; the roll.tsv card / odds rows, see lib\common.ps1)
+        // A tier is rolled by its odds weight among the tiers that have cards (an empty tier never rolls: its odds
+        // spread over the others, as if rerolled), then one of that tier's cards uniformly, then a skin of that tier
+        // (weighted; a tier with no installed skin prints in the plain tab, no spawn). A forced foilChance >= 0 (tests,
+        // measurements) first decides skinned or not, then rolls among the tiers on that side (one side empty: all).
+        static bool TierHasSkin(PackRows p, string tier)
+        {
+            foreach (string[] s in p.Skins) if (s[3] == tier) return true;
+            return false;
+        }
+
+        static string[] RollCard(PackRows p, Random rng, double foilChance, out int tier, out string[] skin)
+        {
+            int total = 0, foilW = 0;
+            foreach (string[] o in p.Odds) { int w = int.Parse(o[2]); total += w; if (TierHasSkin(p, o[1])) foilW += w; }
+            int side = -1;   // -1 any tier, 1 skinned tiers only, 0 plain tiers only
+            if (foilChance >= 0) { side = rng.NextDouble() < foilChance ? 1 : 0; if ((side == 1 ? foilW : total - foilW) <= 0) side = -1; }
+            int pick = rng.Next(Math.Max(1, side < 0 ? total : side == 1 ? foilW : total - foilW));
+            string tid = p.Odds[0][1];
+            foreach (string[] o in p.Odds)
+            {
+                if (side >= 0 && TierHasSkin(p, o[1]) != (side == 1)) continue;
+                pick -= int.Parse(o[2]); if (pick < 0) { tid = o[1]; break; }
+            }
+            tier = int.Parse(tid);
+            skin = null; int sw = 0;
+            foreach (string[] s in p.Skins) if (s[3] == tid) sw += int.Parse(s[2]);
+            if (sw > 0)
+            {
+                int k = rng.Next(sw);
+                foreach (string[] s in p.Skins) if (s[3] == tid) { k -= int.Parse(s[2]); if (k < 0) { skin = s; break; } }
+            }
+            int n = 0; foreach (string[] c in p.Cards) if (c[1] == tid) n++;
+            int j = rng.Next(Math.Max(1, n));
+            foreach (string[] c in p.Cards) if (c[1] == tid && j-- == 0) return c;
+            return p.Cards[0];
+        }
+
+        /// the card a denied / unplaced foil shows instead: the same character's card in its lowest tier (else the
+        /// pack's lowest-tier card), as a legacy pack falls back to tier 0
+        static string[] LowestCard(PackRows p, string[] card)
+        {
+            string[] best = null, any = null;
+            foreach (string[] c in p.Cards)
+            {
+                if (any == null || int.Parse(c[1]) < int.Parse(any[1])) any = c;
+                if (c[2] == card[2] && (best == null || int.Parse(c[1]) < int.Parse(best[1]))) best = c;
+            }
+            return best ?? any;
+        }
+
+        // a card row (card tier character name cardid [tag]) as a char row (char character name tag)
+        static string[] CardChar(string[] c) { return new[] { "char", c[2], c[3], c.Length > 5 ? c[5] : "" }; }
 
         /// What the $PROFILE hook calls: Roll with the real clock and fresh dice (fewer PowerShell call sites).
         public static Pull Startup(string root, string stateDir, string profileId, string[] argv, string libDir, double foilChance)
@@ -593,37 +653,41 @@ namespace Pokeshell
 
             var rng = new Random(seed);
             PackRows p = packs[rng.Next(packs.Count)];
-            if (p.Chars.Count == 0 || p.Tiers.Count == 0) { res.Reason = "empty-pack"; return res; }
-            if (foilChance < 0) foilChance = p.Foil;
-            int tier = 0; string[] skin = null;
-            if (p.Weight > 0 && rng.NextDouble() < foilChance)
+            bool cards = p.Cards.Count > 0 && p.Odds.Count > 0;   // a real-card pack (card mode)
+            if ((p.Chars.Count == 0 && !cards) || p.Tiers.Count == 0) { res.Reason = "empty-pack"; return res; }
+            int tier = 0; string[] skin = null, card = null;
+            if (cards) card = RollCard(p, rng, foilChance, out tier, out skin);
+            else if (foilChance < 0) foilChance = p.Foil;
+            if (!cards && p.Weight > 0 && rng.NextDouble() < foilChance)
             {
                 int pick = rng.Next(p.Weight);
                 foreach (string[] s in p.Skins) { pick -= int.Parse(s[2]); if (pick < 0) { skin = s; break; } }
                 tier = int.Parse(skin[3]);
                 if (tier < 0 || tier >= p.Tiers.Count) { skin = null; tier = 0; }
             }
-            string[] ch = p.Chars[rng.Next(p.Chars.Count)];
+            string[] ch = card != null ? CardChar(card) : p.Chars[rng.Next(p.Chars.Count)];
             bool shiny = rng.NextDouble() < p.Shiny;
             string note = "";
             if (skin != null)
             {
                 string gate = EnterSpawnGate(stateDir, now);   // layer 4
                 if (gate != "ok") { note = "denied:" + gate; res.Action = "foil-denied"; tier = 0; skin = null; }
+                if (gate != "ok" && card != null) { card = LowestCard(p, card); tier = int.Parse(card[1]); ch = CardChar(card); }
             }
             string[] t = p.Tiers[tier];
-            res.Pack = p.Id; res.Character = ch[1]; res.Name = ch[2]; res.Tier = tier; res.TierId = t[1]; res.Label = t[2]; res.Art = t[3]; res.Shiny = shiny;
+            string art = card != null ? card[4] : t[3];   // a real card is its own art: dist\<pack>\<character>-<card id>.ans, logged in the art column
+            res.Pack = p.Id; res.Character = ch[1]; res.Name = ch[2]; res.Tier = tier; res.TierId = t[1]; res.Label = t[2]; res.Art = art; res.Shiny = shiny;
             if (skin != null) { res.Skin = skin[1]; res.Guid = skin[4]; }
             res.Frame = t.Length > 4 ? t[4] : ""; res.Tag = ch.Length > 3 ? ch[3] : ""; res.Display = Display(cfg);
             res.Poster = ch.Length > 4 ? ch[4] : ""; res.Bounty = ch.Length > 5 ? ch[5] : "";
             bool picture = res.Display == "picture";
             res.LogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch[1] + "\t" +
-                          t[1] + "\t" + t[3] + "\t" + res.Skin + "\t" + (shiny ? "1" : "0") + "\t" + note;
+                          t[1] + "\t" + art + "\t" + res.Skin + "\t" + (shiny ? "1" : "0") + "\t" + note;
 
             if (skin == null)
             {
                 if (res.Action != "foil-denied") res.Action = "common";
-                res.Text = PullText(root, p.Id, ch[1], ch[2], t[3], t[2], tier, shiny, res.Frame, res.Tag, picture, res.Poster, res.Bounty);
+                res.Text = PullText(root, p.Id, ch[1], ch[2], art, t[2], tier, shiny, res.Frame, res.Tag, picture, res.Poster, res.Bounty);
                 Log(stateDir, "pulls.log", res.LogLine);
                 return res;
             }
@@ -634,13 +698,14 @@ namespace Pokeshell
             if (string.IsNullOrEmpty(exe))   // the shell running this: powershell.exe or pwsh.exe
                 try { exe = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName; } catch (Exception) { exe = "powershell.exe"; }
             if (string.IsNullOrEmpty(cwd)) cwd = Environment.CurrentDirectory;   // at profile time = the tab's folder   // layer 3: inherited if WT passes our environment on
-            string[] t0 = p.Tiers[0];
-            res.FallbackText = PullText(root, p.Id, ch[1], ch[2], t0[3], t0[2], 0, shiny, t0.Length > 4 ? t0[4] : "", res.Tag, picture, res.Poster, res.Bounty);
-            res.FallbackLogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch[1] + "\t" +
-                                  t0[1] + "\t" + t0[3] + "\t\t" + (shiny ? "1" : "0") + "\t";
+            string[] t0 = p.Tiers[0], ch0 = ch; string art0 = t0[3]; int tier0 = 0;   // shown here if the foil can't open
+            if (card != null) { string[] low = LowestCard(p, card); tier0 = int.Parse(low[1]); t0 = p.Tiers[tier0]; ch0 = CardChar(low); art0 = low[4]; }
+            res.FallbackText = PullText(root, p.Id, ch0[1], ch0[2], art0, t0[2], tier0, shiny, t0.Length > 4 ? t0[4] : "", ch0.Length > 3 ? ch0[3] : "", picture, res.Poster, res.Bounty);
+            res.FallbackLogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch0[1] + "\t" +
+                                  t0[1] + "\t" + art0 + "\t\t" + (shiny ? "1" : "0") + "\t";
             string cmd = "$env:POKESHELL_PULL='1'; $env:POKESHELL_ROLLED='1'; $env:" + SharedMarker + "='1'; . " + Quote(Path.Combine(libDir, "roll.ps1")) +
                          "; Show-PokeshellPull -Root " + Quote(root) + " -Pack " + Quote(p.Id) + " -Character " + Quote(ch[1]) +
-                         " -Name " + Quote(ch[2]) + " -Art " + Quote(t[3]) + " -Label " + Quote(t[2]) + " -Tier " + tier + (shiny ? " -Shiny" : "") +
+                         " -Name " + Quote(ch[2]) + " -Art " + Quote(art) +" -Label " + Quote(t[2]) + " -Tier " + tier + (shiny ? " -Shiny" : "") +
                          (res.Frame != "" ? " -Frame " + Quote(res.Frame) : "") + (res.Tag != "" ? " -Tag " + Quote(res.Tag) : "") +
                          (res.Poster != "" ? " -Poster " + Quote(res.Poster) : "") + (res.Bounty != "" ? " -Bounty " + Quote(res.Bounty) : "") + (picture ? " -Picture" : "");   // the pulled tab prints the same way
             string enc = Convert.ToBase64String(Encoding.Unicode.GetBytes(cmd));

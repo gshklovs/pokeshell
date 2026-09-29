@@ -2,3 +2,9 @@
 .venv/
 previews/
 __pycache__/
+.gstack/
+# the real-card pokemon pack is built locally by tools/build_realcards.py and never committed: its art embeds
+# the pokemon-colorscripts sprites (Nintendo artwork) and its card text is copyrighted (pack.json stays tracked)
+packs/pokemon/art/
+packs/pokemon/cards/
+dist/pokemon/

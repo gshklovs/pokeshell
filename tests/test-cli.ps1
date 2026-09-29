@@ -19,7 +19,18 @@ foreach ($grp in ($ans | Group-Object { $_.Directory.Name })) {
     $pack = $f.Directory.Name
     if (-not $packCache[$pack]) { $packCache[$pack] = Read-PokeshellPack $RepoRoot $pack }
     $packObj = $packCache[$pack]
-    $char = @($packObj.characters | Where-Object { $f.BaseName.StartsWith("$_-") } | Sort-Object Length -Descending)[0]
+    if ($packObj.isCardPack) {   # real cards: dist\<pack>\<character>-<card id>[-shiny].ans, framed in the card's tier
+      $stem = $f.BaseName; $shiny = $stem.EndsWith('-shiny'); if ($shiny) { $stem = $stem.Substring(0, $stem.Length - 6) }
+      $card = @($packObj.cardList | Where-Object { "$($_.character)-$($_.id)" -eq $stem })[0]
+      if (-not $card) { $bad += "$pack/$stem is not a card in pack.json (stale build?)"; continue }
+      $a = @('show', "$pack/$($card.id)"); if ($shiny) { $a += '-shiny' }
+      $lines = @((Strip (Invoke-Cli @a)) -split "`r?`n" | Where-Object { $_.Trim() }); $shown++
+      $ok = $lines.Count -ge 3 -and $lines[0].StartsWith([string][char]0x256d) -and $lines[0].Contains($card.name) -and $lines[0].Contains($card.tag) -and
+            $lines[-1].Contains($packObj.tiers[$card.tier].label) -and ($lines[0].Contains([string][char]0x2726) -eq $shiny)
+      if (-not $ok) { $bad += "$pack/$($card.id)$(if ($shiny) { ' shiny' }): '$($lines[0])' / '$($lines[-1])'" }
+      continue
+    }
+    $char =@($packObj.characters | Where-Object { $f.BaseName.StartsWith("$_-") } | Sort-Object Length -Descending)[0]
     if (-not $char) { continue }
     $variant = $f.BaseName.Substring($char.Length + 1); $shiny = $variant.EndsWith('-shiny'); if ($shiny) { $variant = $variant.Substring(0, $variant.Length - 6) }
     $a = @('show', "$pack/$char", $variant); if ($shiny) { $a += '-shiny' }
@@ -232,7 +243,7 @@ Assert ($out -match 'card or picture' -and (Get-Content (Join-Path $st 'config.t
 $out = Strip (Invoke-Cli show pokemon/pikachu)
 Assert ($out.Contains([string][char]0x2580) -and -not $out.Contains([string][char]0x256d) -and -not $out.Contains('common : Pikachu')) "show follows display=picture: art, no frame, no banner"
 $out = Strip (Invoke-Cli show pokemon/pikachu -card)
-Assert ($out.Contains([string][char]0x256d) -and $out.Contains('Pikachu') -and $out.Contains('#025')) "show -card overrides it (framed card)"
+Assert ($out.Contains([string][char]0x256d) -and $out.Contains('Pikachu') -and $out.Contains('58/102')) "show -card overrides it (framed card: base1-58, its printed number on the frame)"
 $null = Invoke-Cli display card
 $out = Strip (Invoke-Cli show pokemon/pikachu -picture)
 Assert (-not $out.Contains('common : Pikachu') -and $out.Contains([string][char]0x2580)) "show -picture overrides display=card"
