@@ -37,6 +37,7 @@ SETS = [
     ("Brilliant Stars + Trainer Gallery", "brs", ["swsh9", "swsh9tg"],
      {"swsh9tg-TG20": "no dotfiles sprite for Rapid Strike Urshifu (only its Gigantamax form), and the Single Strike "
                       "sprite would be the wrong form"}),
+    ("Neo Genesis", "neo1", ["neo1"], {}),
 ]
 
 

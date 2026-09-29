@@ -8626,6 +8626,735 @@
       "rarity": "Rare Secret",
       "set": "Brilliant Stars Trainer Gallery",
       "source": "brs:swsh9tg-TG30.json#rare-secret"
+    },
+    "neo1-1": {
+      "character": "ampharos",
+      "tier": "rare-holo",
+      "name": "Ampharos",
+      "number": "1/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-1.json#rare-holo"
+    },
+    "neo1-10": {
+      "character": "meganium",
+      "tier": "rare-holo",
+      "name": "Meganium",
+      "number": "10/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-10.json#rare-holo"
+    },
+    "neo1-11": {
+      "character": "meganium",
+      "tier": "rare-holo",
+      "name": "Meganium",
+      "number": "11/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-11.json#rare-holo"
+    },
+    "neo1-12": {
+      "character": "pichu",
+      "tier": "rare-holo",
+      "name": "Pichu",
+      "number": "12/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-12.json#rare-holo"
+    },
+    "neo1-13": {
+      "character": "skarmory",
+      "tier": "rare-holo",
+      "name": "Skarmory",
+      "number": "13/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-13.json#rare-holo"
+    },
+    "neo1-14": {
+      "character": "slowking",
+      "tier": "rare-holo",
+      "name": "Slowking",
+      "number": "14/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-14.json#rare-holo"
+    },
+    "neo1-15": {
+      "character": "steelix",
+      "tier": "rare-holo",
+      "name": "Steelix",
+      "number": "15/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-15.json#rare-holo"
+    },
+    "neo1-16": {
+      "character": "togetic",
+      "tier": "rare-holo",
+      "name": "Togetic",
+      "number": "16/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-16.json#rare-holo"
+    },
+    "neo1-17": {
+      "character": "typhlosion",
+      "tier": "rare-holo",
+      "name": "Typhlosion",
+      "number": "17/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-17.json#rare-holo"
+    },
+    "neo1-18": {
+      "character": "typhlosion",
+      "tier": "rare-holo",
+      "name": "Typhlosion",
+      "number": "18/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-18.json#rare-holo"
+    },
+    "neo1-2": {
+      "character": "azumarill",
+      "tier": "rare-holo",
+      "name": "Azumarill",
+      "number": "2/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-2.json#rare-holo"
+    },
+    "neo1-20": {
+      "character": "cleffa",
+      "tier": "rare",
+      "name": "Cleffa",
+      "number": "20/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-20.json#rare"
+    },
+    "neo1-21": {
+      "character": "donphan",
+      "tier": "rare",
+      "name": "Donphan",
+      "number": "21/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-21.json#rare"
+    },
+    "neo1-22": {
+      "character": "elekid",
+      "tier": "rare",
+      "name": "Elekid",
+      "number": "22/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-22.json#rare"
+    },
+    "neo1-23": {
+      "character": "magby",
+      "tier": "rare",
+      "name": "Magby",
+      "number": "23/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-23.json#rare"
+    },
+    "neo1-24": {
+      "character": "murkrow",
+      "tier": "rare",
+      "name": "Murkrow",
+      "number": "24/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-24.json#rare"
+    },
+    "neo1-25": {
+      "character": "sneasel",
+      "tier": "rare",
+      "name": "Sneasel",
+      "number": "25/111",
+      "rarity": "Rare",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-25.json#rare"
+    },
+    "neo1-26": {
+      "character": "aipom",
+      "tier": "uncommon",
+      "name": "Aipom",
+      "number": "26/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-26.json#uncommon"
+    },
+    "neo1-27": {
+      "character": "ariados",
+      "tier": "uncommon",
+      "name": "Ariados",
+      "number": "27/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-27.json#uncommon"
+    },
+    "neo1-28": {
+      "character": "bayleef",
+      "tier": "uncommon",
+      "name": "Bayleef",
+      "number": "28/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-28.json#uncommon"
+    },
+    "neo1-29": {
+      "character": "bayleef",
+      "tier": "uncommon",
+      "name": "Bayleef",
+      "number": "29/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-29.json#uncommon"
+    },
+    "neo1-3": {
+      "character": "bellossom",
+      "tier": "rare-holo",
+      "name": "Bellossom",
+      "number": "3/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-3.json#rare-holo"
+    },
+    "neo1-30": {
+      "character": "clefairy",
+      "tier": "uncommon",
+      "name": "Clefairy",
+      "number": "30/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-30.json#uncommon"
+    },
+    "neo1-31": {
+      "character": "croconaw",
+      "tier": "uncommon",
+      "name": "Croconaw",
+      "number": "31/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-31.json#uncommon"
+    },
+    "neo1-32": {
+      "character": "croconaw",
+      "tier": "uncommon",
+      "name": "Croconaw",
+      "number": "32/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-32.json#uncommon"
+    },
+    "neo1-33": {
+      "character": "electabuzz",
+      "tier": "uncommon",
+      "name": "Electabuzz",
+      "number": "33/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-33.json#uncommon"
+    },
+    "neo1-34": {
+      "character": "flaaffy",
+      "tier": "uncommon",
+      "name": "Flaaffy",
+      "number": "34/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-34.json#uncommon"
+    },
+    "neo1-35": {
+      "character": "furret",
+      "tier": "uncommon",
+      "name": "Furret",
+      "number": "35/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-35.json#uncommon"
+    },
+    "neo1-36": {
+      "character": "gloom",
+      "tier": "uncommon",
+      "name": "Gloom",
+      "number": "36/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-36.json#uncommon"
+    },
+    "neo1-37": {
+      "character": "granbull",
+      "tier": "uncommon",
+      "name": "Granbull",
+      "number": "37/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-37.json#uncommon"
+    },
+    "neo1-38": {
+      "character": "lanturn",
+      "tier": "uncommon",
+      "name": "Lanturn",
+      "number": "38/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-38.json#uncommon"
+    },
+    "neo1-39": {
+      "character": "ledian",
+      "tier": "uncommon",
+      "name": "Ledian",
+      "number": "39/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-39.json#uncommon"
+    },
+    "neo1-4": {
+      "character": "feraligatr",
+      "tier": "rare-holo",
+      "name": "Feraligatr",
+      "number": "4/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-4.json#rare-holo"
+    },
+    "neo1-40": {
+      "character": "magmar",
+      "tier": "uncommon",
+      "name": "Magmar",
+      "number": "40/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-40.json#uncommon"
+    },
+    "neo1-41": {
+      "character": "miltank",
+      "tier": "uncommon",
+      "name": "Miltank",
+      "number": "41/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-41.json#uncommon"
+    },
+    "neo1-42": {
+      "character": "noctowl",
+      "tier": "uncommon",
+      "name": "Noctowl",
+      "number": "42/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-42.json#uncommon"
+    },
+    "neo1-43": {
+      "character": "phanpy",
+      "tier": "uncommon",
+      "name": "Phanpy",
+      "number": "43/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-43.json#uncommon"
+    },
+    "neo1-44": {
+      "character": "piloswine",
+      "tier": "uncommon",
+      "name": "Piloswine",
+      "number": "44/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-44.json#uncommon"
+    },
+    "neo1-45": {
+      "character": "quagsire",
+      "tier": "uncommon",
+      "name": "Quagsire",
+      "number": "45/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-45.json#uncommon"
+    },
+    "neo1-46": {
+      "character": "quilava",
+      "tier": "uncommon",
+      "name": "Quilava",
+      "number": "46/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-46.json#uncommon"
+    },
+    "neo1-47": {
+      "character": "quilava",
+      "tier": "uncommon",
+      "name": "Quilava",
+      "number": "47/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-47.json#uncommon"
+    },
+    "neo1-48": {
+      "character": "seadra",
+      "tier": "uncommon",
+      "name": "Seadra",
+      "number": "48/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-48.json#uncommon"
+    },
+    "neo1-49": {
+      "character": "skiploom",
+      "tier": "uncommon",
+      "name": "Skiploom",
+      "number": "49/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-49.json#uncommon"
+    },
+    "neo1-5": {
+      "character": "feraligatr",
+      "tier": "rare-holo",
+      "name": "Feraligatr",
+      "number": "5/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-5.json#rare-holo"
+    },
+    "neo1-50": {
+      "character": "sunflora",
+      "tier": "uncommon",
+      "name": "Sunflora",
+      "number": "50/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-50.json#uncommon"
+    },
+    "neo1-51": {
+      "character": "togepi",
+      "tier": "uncommon",
+      "name": "Togepi",
+      "number": "51/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-51.json#uncommon"
+    },
+    "neo1-52": {
+      "character": "xatu",
+      "tier": "uncommon",
+      "name": "Xatu",
+      "number": "52/111",
+      "rarity": "Uncommon",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-52.json#uncommon"
+    },
+    "neo1-53": {
+      "character": "chikorita",
+      "tier": "common",
+      "name": "Chikorita",
+      "number": "53/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-54": {
+      "character": "chikorita",
+      "tier": "common",
+      "name": "Chikorita",
+      "number": "54/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-55": {
+      "character": "chinchou",
+      "tier": "common",
+      "name": "Chinchou",
+      "number": "55/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-56": {
+      "character": "cyndaquil",
+      "tier": "common",
+      "name": "Cyndaquil",
+      "number": "56/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-57": {
+      "character": "cyndaquil",
+      "tier": "common",
+      "name": "Cyndaquil",
+      "number": "57/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-58": {
+      "character": "girafarig",
+      "tier": "common",
+      "name": "Girafarig",
+      "number": "58/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-59": {
+      "character": "gligar",
+      "tier": "common",
+      "name": "Gligar",
+      "number": "59/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-6": {
+      "character": "heracross",
+      "tier": "rare-holo",
+      "name": "Heracross",
+      "number": "6/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-6.json#rare-holo"
+    },
+    "neo1-60": {
+      "character": "hoothoot",
+      "tier": "common",
+      "name": "Hoothoot",
+      "number": "60/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-61": {
+      "character": "hoppip",
+      "tier": "common",
+      "name": "Hoppip",
+      "number": "61/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-62": {
+      "character": "horsea",
+      "tier": "common",
+      "name": "Horsea",
+      "number": "62/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-63": {
+      "character": "ledyba",
+      "tier": "common",
+      "name": "Ledyba",
+      "number": "63/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-64": {
+      "character": "mantine",
+      "tier": "common",
+      "name": "Mantine",
+      "number": "64/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-65": {
+      "character": "mareep",
+      "tier": "common",
+      "name": "Mareep",
+      "number": "65/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-66": {
+      "character": "marill",
+      "tier": "common",
+      "name": "Marill",
+      "number": "66/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-67": {
+      "character": "natu",
+      "tier": "common",
+      "name": "Natu",
+      "number": "67/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-68": {
+      "character": "oddish",
+      "tier": "common",
+      "name": "Oddish",
+      "number": "68/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-69": {
+      "character": "onix",
+      "tier": "common",
+      "name": "Onix",
+      "number": "69/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-7": {
+      "character": "jumpluff",
+      "tier": "rare-holo",
+      "name": "Jumpluff",
+      "number": "7/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-7.json#rare-holo"
+    },
+    "neo1-70": {
+      "character": "pikachu",
+      "tier": "common",
+      "name": "Pikachu",
+      "number": "70/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-71": {
+      "character": "sentret",
+      "tier": "common",
+      "name": "Sentret",
+      "number": "71/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-72": {
+      "character": "shuckle",
+      "tier": "common",
+      "name": "Shuckle",
+      "number": "72/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-73": {
+      "character": "slowpoke",
+      "tier": "common",
+      "name": "Slowpoke",
+      "number": "73/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-74": {
+      "character": "snubbull",
+      "tier": "common",
+      "name": "Snubbull",
+      "number": "74/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-75": {
+      "character": "spinarak",
+      "tier": "common",
+      "name": "Spinarak",
+      "number": "75/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-76": {
+      "character": "stantler",
+      "tier": "common",
+      "name": "Stantler",
+      "number": "76/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-77": {
+      "character": "sudowoodo",
+      "tier": "common",
+      "name": "Sudowoodo",
+      "number": "77/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-78": {
+      "character": "sunkern",
+      "tier": "common",
+      "name": "Sunkern",
+      "number": "78/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-79": {
+      "character": "swinub",
+      "tier": "common",
+      "name": "Swinub",
+      "number": "79/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-8": {
+      "character": "kingdra",
+      "tier": "rare-holo",
+      "name": "Kingdra",
+      "number": "8/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-8.json#rare-holo"
+    },
+    "neo1-80": {
+      "character": "totodile",
+      "tier": "common",
+      "name": "Totodile",
+      "number": "80/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite:flip"
+    },
+    "neo1-81": {
+      "character": "totodile",
+      "tier": "common",
+      "name": "Totodile",
+      "number": "81/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-82": {
+      "character": "wooper",
+      "tier": "common",
+      "name": "Wooper",
+      "number": "82/111",
+      "rarity": "Common",
+      "set": "Neo Genesis",
+      "source": "neo1:sprite"
+    },
+    "neo1-9": {
+      "character": "lugia",
+      "tier": "rare-holo",
+      "name": "Lugia",
+      "number": "9/111",
+      "rarity": "Rare Holo",
+      "set": "Neo Genesis",
+      "source": "neo1:neo1-9.json#rare-holo"
     }
   },
   "retired": {
