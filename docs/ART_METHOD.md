@@ -367,7 +367,7 @@ Evolving Skies the alt arts are 205, 209, 212, 218 and 220. Among the Rare Ultra
 | Special Illustration Rare (`special-illustration-rare`) | Gengar ex 154 | `gengar` | the alt-art textured painting (section 11) + a **pearl lustre** `PEARL = (0.83, 0.5)` (pink → cyan, s 0.3, peak 0.36 at 26 % of the diagonal) | `sir`: the paint light swing + a pearl sweep | `#f0c850` | `pearl` |
 | Futuristic Rare (`futuristic-rare`) | Mewtwo ex 157 | `mewtwo` | smooth fill (`texture=False`); **liquid chrome** `chrome()`: luminance → `PLATINUM` ramp, the scene colour laid back at 0.72, cyan / magenta reflection bands 0.22; a hard specular line; median 180; rim 0.45; plus the **Futuristic tint** on the sprite (section 10) | `chrome`: the reflections roll, the tint flows with them, the specular line crosses | `#c07cff` | `liquid-chrome` |
 
-### Crown Zenith (`swsh12pt5` + Galarian Gallery `swsh12pt5gg`): the new rarities (pending the user's sign-off)
+### Crown Zenith (`swsh12pt5` + Galarian Gallery `swsh12pt5gg`): the new rarities (signed off 2026-09-29)
 
 Built in `artlab/sets/cz` (`czcards.py`: every builder, driven by a per-card `CFG` row; `batch_<group>.py` hold only
 rows; `czbatch.py` runs masks -> build -> anim -> verify -> sheet). Both sets share one data folder and one scan
@@ -376,13 +376,22 @@ prefix (`ref/swsh12pt5_GG05.png`); `fetch_cz.py` / `plan_cz.py` wrap the shared 
 | printed rarity (tier id) | example | builder (`czcards`) | scene and effect | anim kind | frame | tab skin |
 |---|---|---|---|---|---|---|
 | Rare Holo VSTAR (`rare-holo-vstar`) | Leafeon VSTAR 14 | `build_vstar` | the VMAX scene (k-means 40, contour grooves, sunpillar stripes) in a heavier grooved **platinum-into-gold** frame (`PLAT_GOLD`, width 3) + a gold **star crest**: 24 alternating long / short 1-px rays from the Pokemon (`star_rays`), median 120 | `vstar`: the sunpillar pair + a gold pulse running out along the rays | `#e6c86e` | `vstar-crest` |
-| Radiant Rare (`radiant-rare`) | Radiant Charizard 20 | `build_radiant` | the art window (`RAD_WIN`), k-means 32; a silver **log-spiral crosshatch** of diamonds bursting from the Pokemon (`radiant_lattice`, K 6.5, M 20), a faint angular rainbow 0.10, glints at the crossings, a 1-px light silver frame | `radiant`: a ring of light runs outward over the lattice, hue turning round the centre, crossings glint | `#b9c6ff` | `radiant` (existing) |
+| Radiant Rare (`radiant-rare`) | Radiant Charizard 20 | `build_radiant` | the **shiny** sprite (`czlib.ShinySprite`: the real Radiant cards print the shiny Pokemon; tier `"shiny": "printed"`, never rolled shiny); the art window (`RAD_WIN`), k-means 32; a silver **log-spiral crosshatch** of diamonds bursting from the Pokemon (`radiant_lattice`, K 6.5, M 20), a faint angular rainbow 0.10, glints at the crossings, a 1-px light silver frame | `radiant`: a ring of light runs outward over the lattice, hue turning round the centre, crossings glint | `#b9c6ff` | `radiant` (existing) |
 | Trainer Gallery Rare Holo (`trainer-gallery-rare-holo`) | Lapras GG05 | `build_gallery` | the painting family's lighter step: the painting (LANCZOS), 2/3 of the Umbreon 215 emboss, a **linen basket-weave** (+-0.03) and a static pastel holo sheen on the lit left | `gallery`: gentle light swing, a vertical pastel band sweeps across, the weave glints in it | `#f4b6d6` | `gallery` |
 | Galarian Gallery V / VMAX / VSTAR, painted Rare Secret (Pikachu 160) | Entei V GG36 | `build_alt` | the approved Umbreon 215 painting at the printed tier | `paint` | per card | the tier's |
 
 Two lessons from this set: the window kinds box out everything outside the art window (and the window's own silver
 border) *before* the texture fill, or the fill mirrors the name bar / stat line into a hole that touches the window
 edge; and the stage icon's plate reaches y ~162 on SWSH scans (`STAGE_ICON`), below evs's `STAGE_BOX`.
+
+### Hidden Fates (`sm115` + Shiny Vault `sma`, signed off 2026-09-29)
+
+Built in `artlab/sets/hf` (`hfcards.py`). Rare Holo GX (Charizard-GX 9): the art frame to frame under a **silver**
+frame, the GX cracked-web foil, anim `gxweb`, text-half frame `#c9d1da`, pack frame `silver`. Rare Shiny (Charmander
+SV6) and Rare Shiny GX (Charizard-GX SV49): the colorscripts **shiny** sprite (`hflib.ShinySprite`) over the window's
+printed stars recut as **bright-silver** vault foil (`VAULT_TONE = "silver"`, the signed-off alternative to the black
+vault), anims `vault` / `vaultgx`, skins `vault-foil` / `vault-gx`, pack frame `silver`. Both vault tiers are
+`"shiny": "printed"`.
 
 The other printed rarities, 60 in all, each have a family and recipe in `artlab/rarities/rarities.json` and
 `CATALOG.md`. Examples: Hyper Rare, Shiny Rare, Radiant, Amazing, ACE SPEC, the old-era holos. `effects.py` is a
@@ -564,7 +573,7 @@ the following:
 
 1. **Real ids only.** It takes only real ids: variants named `invented`, containing `*`, or in `skip_variants` are skipped.
 2. **Card data.** It copies `cards/<id>.json` into `packs/pokemon/cards/<id>.json`, and maps the printed rarity to the pack tier whose `rarity` equals it. **An unknown rarity stops the import:** add the tier first (section 18).
-3. **Name check.** It checks that the card's name contains the sprite's Pokémon (`name_matches`): accents folded, and form suffixes stripped (`-gmax`, `-galar`, `-alola`, `-hisui`, `-paldea`, `-dusk`, `-midday`, `-midnight`, `-mega…`, `-sunshine`, `-poke-ball`, `-low-key`, `-crowned`, Minior's colours). **A new form suffix must be added to that regex.**
+3. **Name check.** It checks that the card's name contains the sprite's Pokémon (`name_matches`): accents folded, and form suffixes stripped (`-gmax`, `-galar`, `-alola`, `-hisui`, `-paldea`, `-dusk`, `-midday`, `-midnight`, `-mega…`, `-sunshine`, `-poke-ball`, `-low-key`, `-crowned`, `-complete`, Minior's colours). **A new form suffix must be added to that regex.**
 4. **Commons.** A card whose rarity is Common is built from the plain vendor sprite (`sprite_rows`) whatever the batch holds, mirrored when `artlab/sets/<batch>/set.json` `flip_commons` lists it (its source then reads `<batch>:sprite:flip`). Commons that are Trainers or have no sprite are skipped and reported.
 5. **Palette.** It trims the palette to the keys the rows use. Rows using a key with no colour abort the import ("missing palette keys"). Busy sprites need the extended key alphabets (`sprite_rows` keys, `SPRITE_KEYS_EXT`).
 6. **Build.** It writes `packs/pokemon/art/<id>.json` and builds `dist/pokemon/<character>-<id>[-shiny].ans` (`build_art`, cap 140 × 110). It copies the `.anim` files if their last frame equals the `.ans`, and records the card in `pack.json` `cards`.

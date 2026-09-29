@@ -1,7 +1,7 @@
 // ============================================================================
 // Skin: VAULT GX
 // Imitates: the Hidden Fates Shiny Vault Rare Shiny GX (Charizard-GX SV49) -
-//   the step above the Shiny Vault foil: black-and-silver vault metal cut with
+//   the step above the Shiny Vault foil: bright-silver vault metal cut with
 //   an etched fingerprint texture, a silver beam pair (a main beam and a
 //   fainter counter beam, a whisper of prism in the silver) that makes the
 //   etched lines flash as it passes, glitter, and big four-point star flares
@@ -16,7 +16,7 @@
 //   ETCH_PX    spacing of the etched lines in pixels at 100% scaling
 // ============================================================================
 
-#define STRENGTH  0.27
+#define STRENGTH  0.23
 #define SPEED     1.0
 #define BORDER_PX 13.0
 #define CORNER_PX 0.0   // frame corner radius in px: 0 = square corners
@@ -119,8 +119,8 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
   float k2 = tent(u2) * 0.4;
   float3 prism = lerp(hue(u1 * 0.5 + 0.55), float3(1.0, 1.0, 1.0), 0.72);
 
-  // --- black-and-silver metal, the etch raised in silver
-  float3 metal = float3(0.11, 0.12, 0.15) + float3(0.30, 0.32, 0.36) * etch * 0.5;
+  // --- bright-silver metal, the etch cut in a shade darker
+  float3 metal = float3(0.70, 0.73, 0.78) - float3(0.24, 0.25, 0.26) * etch * 0.5;
 
   float2 gc = floor(p / 3.0);
   float gl = pow(saturate(cos(6.28318 * (t / 5.0 + hash21(gc + 5.9)))), 24.0);

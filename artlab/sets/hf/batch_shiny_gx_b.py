@@ -1,7 +1,7 @@
 r"""Group "shiny_gx_b" of Hidden Fates' Shiny Vault (sma-SV64 .. SV80): the Rare Shiny GX cards, built exactly like
 the approved Charizard-GX SV49 (hfcards.charizard_svgx): the SHINY colorscripts sprite (flip only), full-art crop
 from y 92 down to where the first ability / attack starts (HB.layout_full), the card's white ground painted out with
-a smooth membrane (texture=False) and re-cut as the dark vault foil with the etched texture, silver frame, flares.
+a smooth membrane (texture=False) and re-cut as the (signed-off bright-silver) vault foil with the etched texture, silver frame, flares.
 
 Mask: rembg (union of models) over the full art, minus the stage icon / evolves bar / Ultra Beast banner, plus
 HM.outline_halo so the thick coloured outline the real Pokemon is drawn with leaves no ghost.

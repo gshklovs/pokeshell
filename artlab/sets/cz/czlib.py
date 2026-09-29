@@ -63,3 +63,18 @@ def num_label(cid):
     """the printed number: 014/159, GG35/GG70"""
     n = E.num(cid)
     return f"{n}/GG70" if n.startswith("GG") else f"{int(n):03d}/159"
+
+
+PRINTED_SHINY = ("Radiant Rare",)                 # rarities whose real card prints the SHINY Pokemon
+
+
+class ShinySprite(Sprite):
+    """the colorscripts SHINY sprite, verbatim (flip only), as the card's base art: the Radiant Rare cards print the
+    shiny Pokemon (hflib.ShinySprite, the Shiny Vault's). Both palettes are the vendor shiny colours, so the card has
+    no separate shiny form (its tier is "shiny": "printed" in pack.json: the shiny roll never applies to it)."""
+
+    def __init__(self, name, flip=False):
+        super().__init__(name, flip)
+        self.normal = dict(self.pal)              # the regular colours, kept only for reference
+        self.pal = dict(self.shiny)
+        self.printed_shiny = True

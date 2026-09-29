@@ -356,6 +356,9 @@ pub struct Tier {
     /// Real-card packs: the tier's odds weight (pack.json tier "weight") and display family ("non-foil", "holo", ...).
     pub odds_weight: u32,
     pub family: String,
+    /// pack.json tier "shiny": "printed": the cards print the shiny Pokemon (Shiny Vault, Radiant), so the shiny
+    /// roll never applies to this tier (its art has no separate -shiny form)
+    pub printed_shiny: bool,
 }
 
 /// A real card of a real-card pack (pack.json "cards"; docs/PACK_FORMAT.md).
@@ -609,7 +612,8 @@ impl Pack {
                 let id = s("id");
                 let label = if s("label").is_empty() { id.clone() } else { s("label") };
                 let odds_weight = t.get("weight").and_then(|x| x.as_u64()).unwrap_or(0) as u32;
-                Tier { weight: skins.iter().map(|s| s.1).sum(), id, label, art: s("art"), skins, frame, color, odds_weight, family: s("family") }
+                let printed_shiny = s("shiny") == "printed";
+                Tier { weight: skins.iter().map(|s| s.1).sum(), id, label, art: s("art"), skins, frame, color, odds_weight, family: s("family"), printed_shiny }
             })
             .collect();
         let total_weight: u32 = tiers.iter().skip(1).map(|t| t.weight).sum();
@@ -889,7 +893,8 @@ impl Pack {
     pub fn card_p(&self, ti: usize, shiny: bool) -> f64 {
         let n = if self.is_cards { self.tier_n.get(ti).copied().unwrap_or(0) } else { self.chars.len() };
         let p = self.tier_p(ti) / n.max(1) as f64;
-        if shiny { p * self.shiny } else { p }
+        let printed = self.tiers.get(ti).is_some_and(|t| t.printed_shiny);   // never rolls shiny
+        if shiny { if printed { 0.0 } else { p * self.shiny } } else { p }
     }
     /// The set a card belongs to (an index into `sets`).
     pub fn set_of(&self, card: u32) -> Option<usize> {
@@ -1124,6 +1129,32 @@ pub(crate) mod tests {
         assert_eq!(p.live_tiers().len(), 6);
         assert!((p.tier_p(1) - 900.0 / 52800.0).abs() < 1e-9);
         assert!((p.card_p(1, false) - 900.0 / 52800.0 / 3.0).abs() < 1e-9, "three pikachu rares");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn printed_shiny_tiers_never_roll_shiny() {
+        // a tier whose cards print the shiny Pokemon (pack.json "shiny": "printed": Shiny Vault, Radiant): no shiny odds
+        let d = tmp("printed");
+        std::fs::create_dir_all(d.join("packs/p")).unwrap();
+        std::fs::create_dir_all(d.join("dist/p")).unwrap();
+        std::fs::write(
+            d.join("packs/p/pack.json"),
+            r#"{ "id": "p", "name": "Pokemon", "shiny_chance": 0.01,
+                 "tiers": [ { "id": "common", "label": "common", "weight": 900, "skins": {} },
+                            { "id": "rare-shiny", "label": "rare shiny", "weight": 100, "skins": {}, "shiny": "printed" } ],
+                 "cards": { "sm115-7": { "character": "charmander", "tier": "common", "name": "Charmander", "number": "7/68" },
+                            "sma-SV6": { "character": "charmander", "tier": "rare-shiny", "name": "Charmander", "number": "SV6/SV94" } } }"#,
+        )
+        .unwrap();
+        for id in ["sm115-7", "sma-SV6"] {
+            std::fs::write(d.join(format!("dist/p/charmander-{id}.ans")), "x").unwrap();
+        }
+        let p = Pack::load(&d, "p").unwrap();
+        assert!(!p.tiers[0].printed_shiny && p.tiers[1].printed_shiny);
+        assert!((p.card_p(0, true) - 0.9 * 0.01).abs() < 1e-12, "a regular tier keeps its shiny odds");
+        assert_eq!(p.card_p(1, true), 0.0, "a printed-shiny tier is never shiny");
+        assert!((p.card_p(1, false) - 0.1).abs() < 1e-12, "... and its card keeps its own odds");
         let _ = std::fs::remove_dir_all(&d);
     }
 

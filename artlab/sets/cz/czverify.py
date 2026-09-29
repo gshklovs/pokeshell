@@ -6,6 +6,7 @@ Sprite (normal and shiny), against the vendor colorscripts sprite:
     and no other sprite cells anywhere
   - OUTLINE exact: every black vendor pixel is black
   - COLOURS exact, except the gold remap at Rare Secret (a pure palette remap: one vendor colour -> one colour)
+  - Radiant Rare prints the shiny Pokemon: BOTH rolls = the vendor SHINY colours, no shiny overrides
 Card data: a real swsh12pt5 / swsh12pt5gg printing (cached API record), fields verbatim, tier == API rarity.
 Commons: no background at all, flipped exactly when set.json flip_commons lists them.
 Size: <= 140 x 110 grid px. Animation (foil tiers): 16 frames, final frame == the static art.
@@ -38,13 +39,18 @@ def check(cid):
     A, B = c.off
     name = c.spr.name
     mode = c.meta.get("sprite_recolour")
+    printed = c.meta["rarity"] in P.PRINTED_SHINY
+    report(printed == bool(getattr(c.spr, "printed_shiny", False)),
+           f"{cid:17s} printed-shiny rarity: {printed}, sprite is the shiny sprite: {getattr(c.spr, 'printed_shiny', False)}")
+    if printed:                      # no separate shiny form: no shiny palette overrides at all
+        report(not art.get("shiny") and not v.get("shiny"), f"{cid:17s} printed shiny: no shiny palette overrides")
     if mode:
         report(c.meta["rarity"] in RECOLOUR_OK.get(mode, ()), f"{cid:17s} {mode} recolour allowed at '{c.meta['rarity']}'")
     for sh in (False, True):
         pal = {**art["palette"], **v.get("palette", {})}
         if sh:
             pal = {**pal, **art.get("shiny", {}), **v.get("shiny", {})}
-        src = sprites.load(name, sh)
+        src = sprites.load(name, sh or printed)          # Radiant: the shiny sprite on both (the card prints it)
         w, h = len(src[0]), len(src)
         flip = v["flip"]
         tot = split = outline_bad = bad = 0

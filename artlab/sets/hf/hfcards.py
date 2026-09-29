@@ -11,8 +11,8 @@
                                             lines light up along it
   sma-SV6   Charmander      Rare Shiny      NEW (Shiny Vault): the SHINY sprite, pixel-exact, in the card's art
                                             window. The window's own sparkle-star pattern (painted-out scene)
-                                            re-cut as black-and-silver vault foil: brushed gunmetal, the stars
-                                            embossed in silver, glitter, 4-point stars; anim `vault`: a silver
+                                            re-cut as bright-silver vault foil: brushed silver, the stars a
+                                            raised silver-white relief, glitter, 4-point stars; anim `vault`: a silver
                                             specular sweep with thin prismatic fringes, the stars catch it, glitter
   sma-SV49  Charizard-GX    Rare Shiny GX   NEW: the step above -- full-art crop, the same vault foil with an
                                             etched (fingerprint) texture, bigger star flares, a silver bevel frame;
@@ -20,8 +20,9 @@
                                             lines flash along it, the flares bloom
   sma-SV93  Tapu Koko-GX    Rare Secret     SM gold GX: evs Rare Secret (Froslass 226) gold remap + faceted gold
 
-The Shiny Vault look has two versions for the user's sign-off (VAULT_TONE): "dark" (black-and-silver vault foil,
-as briefed, the default) and "silver" (the scan's white window read as bright silver foil).
+The Shiny Vault look had two versions for the user's sign-off (VAULT_TONE): "dark" (black-and-silver vault foil, as
+first briefed) and "silver" (the scan's white window read as bright silver foil). The user signed off SILVER
+(2026-09-29): it is the build for every Rare Shiny / Rare Shiny GX card; "dark" stays only as tone="dark".
 
 BUILDERS[id]() -> evlib Card with card.meta = {card, label, rarity, finish, variant, anim, frame, ...}.
 """
@@ -38,7 +39,7 @@ EDGES = ((0, 0, 28, 1024), (706, 0, 734, 1024))
 TOP = (0, 0, 734, 92)                        # name bar, HP, type, the BASIC / STAGE tag
 
 FRAMES = {"Common": "#9aa0aa", "Uncommon": "#8fc4a8", "Rare": "#6ea5ff", "Rare Holo": "#56d0e0",
-          "Rare Holo GX": "#6fa8dc", "Rare Shiny": "#b4c0ce", "Rare Shiny GX": "#e6ecf5", "Rare Secret": "#f0c850",
+          "Rare Holo GX": "#c9d1da", "Rare Shiny": "#b4c0ce", "Rare Shiny GX": "#e6ecf5", "Rare Secret": "#f0c850",
           "Rare Ultra": "#e178e6", "Rare Rainbow": "rainbow"}
 
 
@@ -184,7 +185,7 @@ def charizard_gx():
 
 # ============================================================ Shiny Vault: the vault foil (NEW)
 VAULT = ["#07080b", "#121419", "#20242b", "#343942", "#4f5661", "#737b87", "#9aa3ae", "#c3cad3", "#e4e9ef", "#ffffff"]
-VAULT_TONE = "dark"                          # "dark": black-and-silver (default); "silver": the white window as silver
+VAULT_TONE = "silver"                        # signed off: the white window as bright silver ("dark": black-and-silver)
 VAULT_STAR = {"L": "#ffffff", "l": "#eef3fa", "j": "#b9c6d6"}
 
 

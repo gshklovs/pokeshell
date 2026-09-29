@@ -277,7 +277,10 @@ if (-not (Test-Path $gl) -or -not (Test-Path ($gl -replace '\.ans$', '.anim'))) 
   $rs = New-TestState 'anim-real'
   [void](New-PokeshellCore $rs); [void](New-PokeshellAnimCore $rs); Update-PokeshellRollCache -Root $RepoRoot -StateDir $rs   # as `pokeshell install` leaves it
   $pull = $null
-  foreach ($seed in 1..3000) {
+  # scrambled seeds (as test-cards.ps1): System.Random's first draws are nearly linear in consecutive seeds, so 1..3000
+  # stopped reaching Glaceon V once the pack grew to 669 cards
+  foreach ($i in 1..6000) {
+    $seed = [int](((1000L + $i) * 48271L) % 2147483647L)
     [IO.File]::Delete("$rs\spawn-gate.txt")   # layer 4 allows one spawn per 3 s: each dry run starts with a fresh gate
     $x = Invoke-Fresh { Invoke-PokeshellRoll -Root $RepoRoot -StateDir $rs -ProfileId $PlainGuid -Argv @('powershell.exe') -Seed $seed -FoilChance 1 -DryRun -Quiet }
     if ($x.Art -eq 'swsh7-174' -and $x.Action -eq 'foil' -and -not $x.Shiny) { $pull = $x; break }
@@ -305,7 +308,10 @@ if (-not (Test-Path $gl) -or -not (Test-Path ($gl -replace '\.ans$', '.anim'))) 
     Remove-Item $ns -Recurse -Force -ErrorAction SilentlyContinue; [void][IO.Directory]::CreateDirectory($ns)
     [void](New-PokeshellCore $ns); [void](New-PokeshellAnimCore $ns); Update-PokeshellRollCache -Root $RepoRoot -StateDir $ns
     $hs = $null
-    foreach ($seed in 1..3000) {
+    # scrambled seeds (as test-cards.ps1): System.Random's first draws are nearly linear in consecutive seeds, so 1..3000
+  # stopped reaching Glaceon V once the pack grew to 669 cards
+  foreach ($i in 1..6000) {
+    $seed = [int](((1000L + $i) * 48271L) % 2147483647L)
       $x = Invoke-Fresh { [Pokeshell.Core]::Roll($RepoRoot, $ns, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, $seed, -1, $null, $null, "$RepoRoot\scripts\lib") }
       if ($x.Art -eq 'swsh7-174' -and $x.Action -eq 'common' -and -not $x.Shiny) { $hs = $seed; break }
     }

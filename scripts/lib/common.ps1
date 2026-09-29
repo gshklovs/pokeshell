@@ -196,6 +196,7 @@ function Update-PokeshellRollCache([string]$Root, [string]$StateDir, [hashtable]
     for ($i = 0; $i -lt $tiers.Count; $i++) {
       $t = $tiers[$i]
       $body.Add("tier`t$($t.id)`t$($t.label)`t$($t.art)$(if ($pack.frames[$i]) { "`t$($pack.frames[$i])" })")
+      if ($t.shiny -eq 'printed') { $body.Add("printed`t$i") }
       if ($i -eq 0) { continue }
       foreach ($prop in $t.skins.PSObject.Properties) {
         $g = $installed["$id/$($prop.Name)"]
@@ -212,6 +213,8 @@ function Update-PokeshellRollCache([string]$Root, [string]$StateDir, [hashtable]
 <#
 roll.tsv rows of a real-card pack (the core's card mode, Pokeshell.cs):
   tier  id label art [frame]                  every tier, by index (art is unused: each card is its own art)
+  printed <tier index>                        a tier whose cards print the shiny Pokemon (pack.json tier "shiny":
+                                              "printed": Shiny Vault, Radiant): the shiny roll never applies to it
   odds  <tier index> <weight>                 only tiers with at least one built card: a tier is rolled by weight
                                               among these, so an empty tier never rolls (its odds go to the others)
   card  <tier index> <character> <name> <card id> [tag]    every built card; one is picked uniformly in the tier
@@ -223,6 +226,7 @@ function Add-PokeshellCardRows([string]$Root, [string]$Id, $Pack, $Body, [hashta
   for ($i = 0; $i -lt $tiers.Count; $i++) {
     $t = $tiers[$i]
     $Body.Add("tier`t$($t.id)`t$($t.label)`t$($t.art)$(if ($Pack.frames[$i]) { "`t$($Pack.frames[$i])" })")
+    if ($t.shiny -eq 'printed') { $Body.Add("printed`t$i") }
     $w = [int]$t.weight
     if ($w -gt 0 -and @($built | Where-Object { $_.tier -eq $i }).Count -gt 0) { $Body.Add("odds`t$i`t$w") }
     foreach ($prop in $t.skins.PSObject.Properties) {

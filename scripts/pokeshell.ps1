@@ -413,10 +413,12 @@ function Show-Card {
         @($mine | Where-Object { $_.id -eq $want -or $_.tierId -eq $want.ToLower() -or ($p.tiers[$_.tier].label -replace ' ', '-') -eq $want.ToLower() })[0] }
       if (-not $card) { throw "no $name card '$want' in $id (has: $(($mine | ForEach-Object { "$($_.id) ($($_.tierId))" }) -join ', '))" }
     }
-    $shiny = Has @('shiny')
-    $file = Join-Path $Root "dist\$id\$($card.character)-$($card.id)$(if ($shiny) { '-shiny' }).ans"
-    if (-not (Test-Path $file)) { throw "$id/$($card.id) has no art built$(if ($shiny) { ' (shiny)' }) (tools\build_realcards.py; see tools\README.md)" }
     $t = $p.tiers[$card.tier]
+    # a tier whose cards print the shiny Pokemon (pack.json "shiny": "printed") has no separate shiny form
+    $shiny = (Has @('shiny')) -and $t.shiny -ne 'printed'
+    # no -shiny.ans: the regular art is shown (Core.PullText falls back the same way)
+    $file = Join-Path $Root "dist\$id\$($card.character)-$($card.id).ans"
+    if (-not (Test-Path $file)) { throw "$id/$($card.id) has no art built (tools\build_realcards.py; see tools\README.md)" }
     $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
     Show-PokeshellPull -Root $Root -Pack $id -Character $card.character -Name $card.name -Art $card.id -Label $t.label -Tier $card.tier -Shiny:$shiny -Frame $p.frames[$card.tier] -Tag $card.tag -Picture:$picture
     return $true
@@ -475,10 +477,11 @@ function Invoke-Show {
     if ($tiers[$i].id -eq $variant -or ($tiers[$i].label -replace ' ', '-') -eq $variant -or ($p.frames[$i] -and $p.frames[$i] -eq $variant)) { $ti = $i }
   }
   $art = if ($ti -ge 0) { $tiers[$ti].art } else { $variant }
-  $file = Join-Path $Root "dist\$packId\$char-$art$(if ($shiny) { '-shiny' }).ans"
+  if ($ti -ge 0 -and $tiers[$ti].shiny -eq 'printed') { $shiny = $false }   # printed shiny: no separate shiny form
+  $file = Join-Path $Root "dist\$packId\$char-$art.ans"   # no -shiny.ans: the regular art (as Core.PullText)
   if (-not (Test-Path $file)) {
     $have = @(Get-ChildItem (Join-Path $Root "dist\$packId") -Filter "$char-*.ans" -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName.Substring($char.Length + 1) })
-    throw "no art $packId/$char-$art$(if ($shiny) { '-shiny' }) in dist (have: $(if ($have) { $have -join ' ' } else { 'none' }))"
+    throw "no art $packId/$char-$art in dist (have: $(if ($have) { $have -join ' ' } else { 'none' }))"
   }
   if ($ti -lt 0) { $ti = 0; for ($i = $tiers.Count - 1; $i -ge 0; $i--) { if ($tiers[$i].art -eq $variant) { $ti = $i } } }
   $label = if (@($tiers | Where-Object art -eq $art)) { $tiers[$ti].label } else { $variant }

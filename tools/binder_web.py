@@ -402,6 +402,7 @@ def card_pack_info(pid, p, n_active_packs):
             fr = {"style": "card", "preset": name, "colors": FRAME_PRESETS[name]}
         out_tiers.append({"id": t["id"], "label": t.get("label", t["id"]), "art": t["id"], "frame": fr,
                           "family": t.get("family") or "", "rarity": t.get("rarity") or "",
+                          "shiny": t.get("shiny") or "",   # "printed": the cards print the shiny Pokemon, never rolled shiny
                           "odds": pr, "card_odds": pr / n if n else 0, "cards": n,
                           "skins": [{"id": s, "weight": int(w), "odds": pr * int(w) / sw} for s, w in skins.items()]})
     live_ids = {t["id"] for t in live}

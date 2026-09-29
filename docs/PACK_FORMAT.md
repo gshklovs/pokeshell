@@ -114,6 +114,10 @@ and the tiers' `art` are not used (characters come from the cards).
   - `skins`: the tier's shaders, with relative weights. A pull of a tier with skins opens the skinned tab (one skin,
     by weight); a tier with `{}` (common, uncommon, rare) prints in the plain tab. A skin may serve several tiers.
   - `family` (optional): a grouping for display (`non-foil`, `holo`, `special`, `ultra`, `full-art`, `secret`).
+  - `shiny` (optional): `"printed"` on a tier whose real cards print the shiny Pokémon (Rare Shiny, Rare Shiny GX,
+    Radiant Rare). Its art is the shiny sprite and has no `-shiny` form, so the shiny roll never applies to it: the
+    pull, `pokeshell show ... -shiny` and both binders show it unmarked. Anything that asks for a `-shiny.ans` falls
+    back to the regular art when there is none.
   - `frame`, `label`: as above.
   - Switching ladders (5 tiers, 6, or every rarity) is a `pack.json` edit; `pokeshell odds` prints what it means.
 - **Cards** (`cards`, written by `tools/build_realcards.py`): `character` is the sprite name, `tier` a tier id,

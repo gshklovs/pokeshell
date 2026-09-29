@@ -20,6 +20,8 @@ FINISH = {"Common": "plain sprite", "Uncommon": "non-foil: sprite-scale", "Rare"
           "Rare Shiny GX": "Shiny Vault GX:", "Rare Secret": "gold secret"}
 FOIL = {"Rare Holo", "Rare Holo GX", "Rare Shiny", "Rare Shiny GX", "Rare Secret"}
 MAX_W, MAX_H = 140, 110
+PACK = json.loads((Path(__file__).resolve().parents[4] / "packs" / "pokemon" / "pack.json").read_text(encoding="utf-8"))
+PACK_TIERS = {t["rarity"]: t for t in PACK["tiers"] if t.get("rarity")}
 
 
 def anim_ok(cid, sfx):
@@ -69,6 +71,18 @@ def main():
         vault = P.is_vault(cid)
         if vault:                       # the shiny roll shows the same shiny sprite: no shiny overrides at all
             ck["vault_shiny"] = not art.get("shiny") and not v.get("shiny")
+            # the signed-off BRIGHT-SILVER vault foil (not the black vault): the finish says so, and the art is light
+            pal = {**art["palette"], **v.get("palette", {})}
+            lum = [sum(c * w for c, w in zip(L.hexrgb(pal[ch]), (0.299, 0.587, 0.114))) / 255
+                   for rw in rows for ch in rw if ch != "."]
+            r["mean_lum"] = round(sum(lum) / len(lum), 3)
+            ck["silver_vault"] = "silver vault foil" in v["finish"] and r["mean_lum"] > 0.4   # the black vault was ~0.2-0.3
+        if tier in PACK_TIERS:          # the pack's tier: GX frames silver, printed-shiny tiers never roll shiny
+            t = PACK_TIERS[tier]
+            if tier in ("Rare Holo GX", "Rare Shiny GX"):
+                ck["gx_frame_silver"] = t.get("frame") == "silver" and C.FRAMES[tier] != "rainbow"
+            if vault:
+                ck["printed_shiny_tier"] = t.get("shiny") == "printed"
         frame = C.FRAMES[tier]
         cans = (E.OUT / f"{cid}-card.ans")
         if cans.exists():

@@ -1,11 +1,12 @@
 // ============================================================================
 // Skin: VAULT FOIL
 // Imitates: the Hidden Fates Shiny Vault Rare Shiny (Charmander SV6) - the
-//   black-and-silver vault foil: brushed gunmetal with the vault's printed
-//   sparkle stars embossed in silver on a lattice, fine glitter that flashes
-//   one grain at a time, and a narrow silver specular band with thin cyan /
-//   pink prismatic fringes that crosses the card and makes the stars catch
-//   the light. Chrome silver frame. The pokeshell Rare Shiny card animation.
+//   bright-silver vault foil (the signed-off look): brushed bright silver
+//   with the vault's printed sparkle stars as a raised silver relief on a
+//   lattice, fine glitter that flashes one grain at a time, and a narrow
+//   white specular band with thin cyan / pink prismatic fringes that crosses
+//   the card and makes the stars catch the light. Chrome silver frame. The
+//   pokeshell Rare Shiny card animation.
 //
 // Tuning:
 //   STRENGTH   how strongly the foil shows through the background (0.15-0.35)
@@ -15,7 +16,7 @@
 //   STAR_PX    spacing of the printed star lattice in pixels at 100% scaling
 // ============================================================================
 
-#define STRENGTH  0.26
+#define STRENGTH  0.22
 #define SPEED     1.0
 #define BORDER_PX 12.0
 #define CORNER_PX 0.0   // frame corner radius in px: 0 = square corners
@@ -101,9 +102,9 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
 
   float textMask = smoothstep(0.05, 0.12, distance(c.rgb, Background.rgb));
 
-  // --- brushed gunmetal: horizontal streaks
+  // --- brushed bright silver: horizontal streaks
   float brush = vnoise(float2(p.x * 0.02, p.y * 0.9)) * 0.6 + vnoise(float2(p.x * 0.05, p.y * 2.3)) * 0.4;
-  float3 metal = float3(0.13, 0.14, 0.17) * (0.8 + 0.4 * brush);
+  float3 metal = float3(0.70, 0.73, 0.78) * (0.86 + 0.24 * brush);
 
   // --- the specular band with its prismatic fringes (cyan ahead, pink behind)
   float band = 0.05 * span;
@@ -113,9 +114,9 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
   float fc = exp(-((dd + 1.6 * band) / (0.6 * band)) * ((dd + 1.6 * band) / (0.6 * band)));
   float fp = exp(-((dd - 1.6 * band) / (0.6 * band)) * ((dd - 1.6 * band) / (0.6 * band)));
 
-  // --- the printed stars, embossed silver, catching the band
+  // --- the printed stars, a raised relief in the silver (a shade darker, lit top-left), catching the band
   float2 st = vaultStar(p, STAR_PX);
-  float3 starCol = float3(0.72, 0.76, 0.82) * st.x * (0.55 + 0.9 * k) + st.y * 0.35;
+  float3 starCol = float3(-0.20, -0.19, -0.16) * st.x * (1.0 - 0.8 * k) + st.y * 0.5 + 0.25 * k * st.x;
 
   // --- glitter: sparse grains, each flashing once per ~5 s on its own phase
   float2 gc = floor(p / 3.0);
@@ -124,7 +125,7 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
   float2 gf = frac(p / 3.0) - 0.5;
   float grain = gl * step(gh, GLITTER) * exp(-dot(gf, gf) * 6.0);
 
-  float3 foil = metal + starCol + float3(0.85, 0.88, 0.93) * k * 0.55
+  float3 foil = metal + starCol + float3(1.0, 1.0, 1.0) * k * 0.3
               + float3(0.35, 0.85, 1.0) * fc * 0.2 + float3(1.0, 0.5, 0.85) * fp * 0.16;
   float2 tx = float2(6.0 * s / Resolution.x, 0.0);
   float near = max(distance(TermSample(tex + tx).rgb, Background.rgb),

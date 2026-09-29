@@ -823,6 +823,7 @@ namespace Pokeshell
         {
             public string Id; public double Foil, Shiny; public List<string[]> Chars = new List<string[]>(), Tiers = new List<string[]>(), Skins = new List<string[]>(); public int Weight;
             public List<string[]> Cards = new List<string[]>(), Odds = new List<string[]>();   // real-card packs (card mode, below)
+            public HashSet<string> Printed = new HashSet<string>();   // tier indexes whose cards print the shiny Pokemon
         }
 
         // roll.tsv rows, or null when it's missing/stale (line 1 stamps its inputs' mtimes; line 2 the pack selection)
@@ -853,6 +854,7 @@ namespace Pokeshell
                 else if (f[0] == "skin" && f.Length >= 5) { p.Skins.Add(f); p.Weight += int.Parse(f[2]); }  // skin name weight tier guid
                 else if (f[0] == "card" && f.Length >= 5) p.Cards.Add(f);                                   // card tier character name cardid [tag]
                 else if (f[0] == "odds" && f.Length >= 3) p.Odds.Add(f);                                    // odds tier weight
+                else if (f[0] == "printed" && f.Length >= 2) p.Printed.Add(f[1]);                           // printed tier (shiny printed)
             }
             return packs;
         }
@@ -965,7 +967,9 @@ namespace Pokeshell
                 if (tier < 0 || tier >= p.Tiers.Count) { skin = null; tier = 0; }
             }
             string[] ch = card != null ? CardChar(card) : p.Chars[rng.Next(p.Chars.Count)];
-            bool shiny = rng.NextDouble() < p.Shiny;
+            // the shiny roll (always drawn, so the dice stay in step); a tier whose cards print the shiny Pokemon
+            // (pack.json tier "shiny": "printed": Shiny Vault, Radiant) has no other form: never shiny
+            bool shiny = rng.NextDouble() < p.Shiny && !p.Printed.Contains(tier.ToString(CultureInfo.InvariantCulture));
             string note = "";
             if (skin != null)
             {

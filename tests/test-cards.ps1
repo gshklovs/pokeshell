@@ -85,6 +85,50 @@ $r2 = Invoke-Fresh { [Pokeshell.Core]::Roll($fx, $st, $PlainGuid, @('powershell.
 Assert ($r2.Action -eq 'foil-denied' -and $r2.TierId -eq 'common' -and $r2.Art -eq $low.id -and $r2.LogLine -match 'denied:rate' -and -not $r2.WtArgs) "a denied foil shows (and logs) the character's lowest card instead, no spawn"
 Remove-Item (Join-Path $st 'pulls.log') -ErrorAction SilentlyContinue
 
+Write-Host "3b. printed-shiny tiers (Shiny Vault, Radiant: tier `"shiny`": `"printed`") never roll shiny" -ForegroundColor Cyan
+foreach ($d in 'packs\vaulty', 'dist\vaulty', 'vstate') { [void][IO.Directory]::CreateDirectory((Join-Path $fx $d)) }
+[IO.File]::WriteAllText((Join-Path $fx 'packs\vaulty\pack.json'), @'
+{ "id": "vaulty", "name": "Vaulty", "shiny_chance": 1,
+  "tiers": [
+    { "id": "common", "label": "common", "rarity": "Common", "weight": 50, "skins": {}, "frame": "plain" },
+    { "id": "rare-shiny", "label": "rare shiny", "rarity": "Rare Shiny", "weight": 50, "skins": {}, "frame": "silver", "shiny": "printed" }
+  ],
+  "cards": {
+    "sm115-7": { "character": "bob", "tier": "common",     "name": "Bob", "number": "7/68" },
+    "sma-SV6": { "character": "bob", "tier": "rare-shiny", "name": "Bob", "number": "SV6/SV94" }
+  }
+}
+'@, $utf8)
+$shinyArt = "$e[0;38;2;200;10;10m" + [char]0x2580 + "$e[0m`n"
+[IO.File]::WriteAllText((Join-Path $fx 'dist\vaulty\bob-sm115-7.ans'), $art, $utf8)
+[IO.File]::WriteAllText((Join-Path $fx 'dist\vaulty\bob-sm115-7-shiny.ans'), $shinyArt, $utf8)
+[IO.File]::WriteAllText((Join-Path $fx 'dist\vaulty\bob-sma-SV6.ans'), $art, $utf8)   # printed shiny: no -shiny.ans
+$vs = Join-Path $fx 'vstate'
+[IO.File]::WriteAllLines((Join-Path $vs 'config.txt'), [string[]]@('pack=vaulty'))
+Update-PokeshellRollCache -Root $fx -StateDir $vs
+$vt = @(Get-Content (Join-Path $vs 'roll.tsv') -Encoding UTF8)
+Assert ((@($vt | Where-Object { $_ -like 'printed*' }) -join '|') -eq "printed`t1") "roll.tsv marks the printed-shiny tier (printed 1) and only it"
+$byT = @{}; $shinyBy = @{}
+for ($i = 0; $i -lt 400; $i++) {
+  Clear-Markers
+  $r = [Pokeshell.Core]::Roll($fx, $vs, $PlainGuid, @('powershell.exe'), $t0 + $i * 50000000L, [int](((7L + $i) * 48271L) % 2147483647L), -1, 'x', 'C:\', 'C:\')
+  $byT[$r.TierId]++; if ($r.Shiny) { $shinyBy[$r.TierId]++ }
+  if ($r.TierId -eq 'rare-shiny' -and ((Strip $r.Text).Contains([string][char]0x2726) -or $r.LogLine.Split("`t")[6] -ne '0')) { $shinyBy['rare-shiny-text']++ }
+}
+Clear-Markers
+Assert ($byT['common'] -gt 100 -and $byT['rare-shiny'] -gt 100) "both tiers roll ($($byT['common']) / $($byT['rare-shiny']))"
+Assert ([int]$shinyBy['common'] -eq [int]$byT['common']) "shiny_chance 1: every regular-tier pull is shiny ($([int]$shinyBy['common']) of $($byT['common']))"
+Assert (-not $shinyBy['rare-shiny'] -and -not $shinyBy['rare-shiny-text']) "a printed-shiny tier is never shiny: not in the pull, the banner or the log"
+$txt = [Pokeshell.Core]::PullText($fx, 'vaulty', 'bob', 'Bob', 'sma-SV6', 'rare shiny', 1, $true)
+Assert ($txt.Contains('10;20;30') -and -not $txt.Contains('200;10;10')) "a shiny request with no -shiny.ans falls back to the regular art (PullText)"
+. (Join-Path $RepoRoot 'scripts\lib\anim.ps1'); Import-PokeshellAnimCore $st
+$f = [Pokeshell.Anim]::Find($fx, 'vaulty', 'bob', 'sma-SV6', $true)
+Assert ($f[0] -eq '' -and $f[1] -eq '') "the anim player looks for the regular art's loop (none here: no animation, no error)"
+[IO.File]::WriteAllText((Join-Path $fx 'dist\vaulty\bob-sma-SV6.anim'), "{`"lines`":1,`"fps`":12,`"frames`":1,`"final`":0}`n`f$art", $utf8)
+$f = [Pokeshell.Anim]::Find($fx, 'vaulty', 'bob', 'sma-SV6', $true)
+Assert ($f[0] -like '*bob-sma-SV6.anim' -and $f[1] -like '*bob-sma-SV6.ans') "shiny with no -shiny.ans: the anim player plays the regular loop"
+Remove-Item (Join-Path $fx 'dist\vaulty'), (Join-Path $fx 'packs\vaulty'), $vs -Recurse -Force
+
 Write-Host "4. the binders' rule: what an old or new pulls.log line shows" -ForegroundColor Cyan
 $c = Resolve-PokeshellPull $p 'nido' 'rare-ultra' 'set2-70'
 Assert ($c -and $c.id -eq 'set2-70') "a new pull (art column = card id) is that card"

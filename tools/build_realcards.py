@@ -99,7 +99,7 @@ def name_matches(character, name):
     fold = lambda s: "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))  # Flabébé -> Flabebe  # noqa: E731
     squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
     # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
-    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet)$", "", character)
+    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|complete|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet)$", "", character)
     return squash(character) in squash(name) or squash(base) in squash(name)
 
 

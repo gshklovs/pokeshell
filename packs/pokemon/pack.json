@@ -165,7 +165,7 @@
         "water-web": 4,
         "sunpillar": 2
       },
-      "frame": "rainbow"
+      "frame": "silver"
     },
     {
       "id": "rare-prism-star",
@@ -282,7 +282,8 @@
         "shiny-vault": 4,
         "starlight": 2
       },
-      "frame": "silver"
+      "frame": "silver",
+      "shiny": "printed"
     },
     {
       "id": "shiny-rare",
@@ -306,7 +307,8 @@
         "shiny-vault": 4,
         "sunpillar": 2
       },
-      "frame": "rainbow"
+      "frame": "silver",
+      "shiny": "printed"
     },
     {
       "id": "amazing-rare",
@@ -328,7 +330,8 @@
       "skins": {
         "radiant": 10
       },
-      "frame": "silver"
+      "frame": "silver",
+      "shiny": "printed"
     },
     {
       "id": "rare-ultra",
@@ -477,7 +480,7 @@
       "number": "SV6/SV94",
       "rarity": "Rare Shiny",
       "set": "Hidden Fates Shiny Vault",
-      "source": "suite3:charmander-suite3.json#holo"
+      "source": "hf:sma-SV6.json#rare-shiny"
     },
     "sv3pt5-168": {
       "character": "charmander",
@@ -5185,6 +5188,1284 @@
       "rarity": "Rare Secret",
       "set": "Hidden Fates Shiny Vault",
       "source": "hf:sma-SV94.json#rare-secret"
+    },
+    "swsh12pt5-105": {
+      "character": "eternatus",
+      "tier": "radiant-rare",
+      "name": "Radiant Eternatus",
+      "number": "105/159",
+      "rarity": "Radiant Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-105.json#radiant-rare"
+    },
+    "swsh12pt5-114": {
+      "character": "regigigas",
+      "tier": "rare-holo-vstar",
+      "name": "Regigigas VSTAR",
+      "number": "114/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-114.json#rare-holo-vstar"
+    },
+    "swsh12pt5-14": {
+      "character": "leafeon",
+      "tier": "rare-holo-vstar",
+      "name": "Leafeon VSTAR",
+      "number": "14/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-14.json#rare-holo-vstar"
+    },
+    "swsh12pt5-19": {
+      "character": "charizard",
+      "tier": "rare-holo-vstar",
+      "name": "Charizard VSTAR",
+      "number": "19/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-19.json#rare-holo-vstar"
+    },
+    "swsh12pt5-20": {
+      "character": "charizard",
+      "tier": "radiant-rare",
+      "name": "Radiant Charizard",
+      "number": "20/159",
+      "rarity": "Radiant Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-20.json#radiant-rare"
+    },
+    "swsh12pt5-23": {
+      "character": "simisear",
+      "tier": "rare-holo-vstar",
+      "name": "Simisear VSTAR",
+      "number": "23/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-23.json#rare-holo-vstar"
+    },
+    "swsh12pt5-46": {
+      "character": "rotom",
+      "tier": "rare-holo-vstar",
+      "name": "Rotom VSTAR",
+      "number": "46/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-46.json#rare-holo-vstar"
+    },
+    "swsh12pt5-51": {
+      "character": "charjabug",
+      "tier": "radiant-rare",
+      "name": "Radiant Charjabug",
+      "number": "51/159",
+      "rarity": "Radiant Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-51.json#radiant-rare"
+    },
+    "swsh12pt5-55": {
+      "character": "zeraora",
+      "tier": "rare-holo-vstar",
+      "name": "Zeraora VSTAR",
+      "number": "55/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-55.json#rare-holo-vstar"
+    },
+    "swsh12pt5-96": {
+      "character": "zacian-crowned",
+      "tier": "rare-holo-vstar",
+      "name": "Zacian VSTAR",
+      "number": "96/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-96.json#rare-holo-vstar"
+    },
+    "swsh12pt5-99": {
+      "character": "zamazenta-crowned",
+      "tier": "rare-holo-vstar",
+      "name": "Zamazenta VSTAR",
+      "number": "99/159",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-99.json#rare-holo-vstar"
+    },
+    "swsh12pt5gg-GG01": {
+      "character": "voltorb-hisui",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Hisuian Voltorb",
+      "number": "GG01/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG01.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG02": {
+      "character": "kricketune",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Kricketune",
+      "number": "GG02/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG02.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG03": {
+      "character": "magmortar",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Magmortar",
+      "number": "GG03/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG03.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG04": {
+      "character": "oricorio",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Oricorio",
+      "number": "GG04/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG04.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG05": {
+      "character": "lapras",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Lapras",
+      "number": "GG05/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG05.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG06": {
+      "character": "manaphy",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Manaphy",
+      "number": "GG06/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG06.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG07": {
+      "character": "keldeo-resolute",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Keldeo",
+      "number": "GG07/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG07.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG08": {
+      "character": "electivire",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Electivire",
+      "number": "GG08/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG08.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG09": {
+      "character": "toxtricity-low-key",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Toxtricity",
+      "number": "GG09/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG09.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG10": {
+      "character": "mew",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Mew",
+      "number": "GG10/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG10.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG11": {
+      "character": "lunatone",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Lunatone",
+      "number": "GG11/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG11.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG12": {
+      "character": "deoxys",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Deoxys",
+      "number": "GG12/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG12.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG13": {
+      "character": "diancie",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Diancie",
+      "number": "GG13/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG13.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG14": {
+      "character": "comfey",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Comfey",
+      "number": "GG14/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG14.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG15": {
+      "character": "solrock",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Solrock",
+      "number": "GG15/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG15.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG16": {
+      "character": "absol",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Absol",
+      "number": "GG16/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG16.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG17": {
+      "character": "thievul",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Thievul",
+      "number": "GG17/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG17.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG18": {
+      "character": "magnezone",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Magnezone",
+      "number": "GG18/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG18.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG19": {
+      "character": "altaria",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Altaria",
+      "number": "GG19/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG19.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG20": {
+      "character": "latias",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Latias",
+      "number": "GG20/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG20.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG21": {
+      "character": "goodra-hisui",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Hisuian Goodra",
+      "number": "GG21/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG21.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG22": {
+      "character": "ditto",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Ditto",
+      "number": "GG22/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG22.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG23": {
+      "character": "dunsparce",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Dunsparce",
+      "number": "GG23/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG23.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG24": {
+      "character": "miltank",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Miltank",
+      "number": "GG24/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG24.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG25": {
+      "character": "bibarel",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Bibarel",
+      "number": "GG25/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG25.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG26": {
+      "character": "riolu",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Riolu",
+      "number": "GG26/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG26.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG27": {
+      "character": "swablu",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Swablu",
+      "number": "GG27/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG27.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG28": {
+      "character": "duskull",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Duskull",
+      "number": "GG28/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG28.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG29": {
+      "character": "bidoof",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Bidoof",
+      "number": "GG29/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG29.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG30": {
+      "character": "pikachu",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Pikachu",
+      "number": "GG30/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG30.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG31": {
+      "character": "turtwig",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Turtwig",
+      "number": "GG31/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG31.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG32": {
+      "character": "paras",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Paras",
+      "number": "GG32/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG32.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG33": {
+      "character": "poochyena",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Poochyena",
+      "number": "GG33/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG33.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG34": {
+      "character": "mareep",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Mareep",
+      "number": "GG34/GG70",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG34.json#trainer-gallery-rare-holo"
+    },
+    "swsh12pt5gg-GG35": {
+      "character": "leafeon",
+      "tier": "rare-holo-vstar",
+      "name": "Leafeon VSTAR",
+      "number": "GG35/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG35.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG37": {
+      "character": "simisear",
+      "tier": "rare-holo-vstar",
+      "name": "Simisear VSTAR",
+      "number": "GG37/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG37.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG40": {
+      "character": "glaceon",
+      "tier": "rare-holo-vstar",
+      "name": "Glaceon VSTAR",
+      "number": "GG40/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG40.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG43": {
+      "character": "zeraora",
+      "tier": "rare-holo-vstar",
+      "name": "Zeraora VSTAR",
+      "number": "GG43/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG43.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG44": {
+      "character": "mewtwo",
+      "tier": "rare-holo-vstar",
+      "name": "Mewtwo VSTAR",
+      "number": "GG44/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG44.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG46": {
+      "character": "deoxys",
+      "tier": "rare-holo-vstar",
+      "name": "Deoxys VSTAR",
+      "number": "GG46/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG46.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG50": {
+      "character": "darkrai",
+      "tier": "rare-holo-vstar",
+      "name": "Darkrai VSTAR",
+      "number": "GG50/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG50.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG52": {
+      "character": "samurott-hisui",
+      "tier": "rare-holo-vstar",
+      "name": "Hisuian Samurott VSTAR",
+      "number": "GG52/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG52.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG55": {
+      "character": "regigigas",
+      "tier": "rare-holo-vstar",
+      "name": "Regigigas VSTAR",
+      "number": "GG55/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG55.json#rare-holo-vstar-alt"
+    },
+    "swsh12pt5gg-GG56": {
+      "character": "zoroark-hisui",
+      "tier": "rare-holo-vstar",
+      "name": "Hisuian Zoroark VSTAR",
+      "number": "GG56/GG70",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG56.json#rare-holo-vstar-alt"
+    },
+    "sm115-14": {
+      "character": "starmie",
+      "tier": "rare-holo-gx",
+      "name": "Starmie-GX",
+      "number": "14/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-14.json#rare-holo-gx"
+    },
+    "sm115-16": {
+      "character": "gyarados",
+      "tier": "rare-holo-gx",
+      "name": "Gyarados-GX",
+      "number": "16/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-16.json#rare-holo-gx"
+    },
+    "sm115-20": {
+      "character": "raichu",
+      "tier": "rare-holo-gx",
+      "name": "Raichu-GX",
+      "number": "20/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-20.json#rare-holo-gx"
+    },
+    "sm115-31": {
+      "character": "mewtwo",
+      "tier": "rare-holo-gx",
+      "name": "Mewtwo-GX",
+      "number": "31/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-31.json#rare-holo-gx"
+    },
+    "sm115-36": {
+      "character": "onix",
+      "tier": "rare-holo-gx",
+      "name": "Onix-GX",
+      "number": "36/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-36.json#rare-holo-gx"
+    },
+    "sm115-42": {
+      "character": "wigglytuff",
+      "tier": "rare-holo-gx",
+      "name": "Wigglytuff-GX",
+      "number": "42/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-42.json#rare-holo-gx"
+    },
+    "sm115-6": {
+      "character": "pinsir",
+      "tier": "rare-holo-gx",
+      "name": "Pinsir-GX",
+      "number": "6/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-6.json#rare-holo-gx"
+    },
+    "sm115-9": {
+      "character": "charizard",
+      "tier": "rare-holo-gx",
+      "name": "Charizard-GX",
+      "number": "9/68",
+      "rarity": "Rare Holo GX",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-9.json#rare-holo-gx"
+    },
+    "sma-SV1": {
+      "character": "scyther",
+      "tier": "rare-shiny",
+      "name": "Scyther",
+      "number": "SV1/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV1.json#rare-shiny"
+    },
+    "sma-SV10": {
+      "character": "quagsire",
+      "tier": "rare-shiny",
+      "name": "Quagsire",
+      "number": "SV10/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV10.json#rare-shiny"
+    },
+    "sma-SV11": {
+      "character": "froakie",
+      "tier": "rare-shiny",
+      "name": "Froakie",
+      "number": "SV11/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV11.json#rare-shiny"
+    },
+    "sma-SV12": {
+      "character": "frogadier",
+      "tier": "rare-shiny",
+      "name": "Frogadier",
+      "number": "SV12/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV12.json#rare-shiny"
+    },
+    "sma-SV13": {
+      "character": "voltorb",
+      "tier": "rare-shiny",
+      "name": "Voltorb",
+      "number": "SV13/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV13.json#rare-shiny"
+    },
+    "sma-SV14": {
+      "character": "xurkitree",
+      "tier": "rare-shiny",
+      "name": "Xurkitree",
+      "number": "SV14/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV14.json#rare-shiny"
+    },
+    "sma-SV15": {
+      "character": "seviper",
+      "tier": "rare-shiny",
+      "name": "Seviper",
+      "number": "SV15/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV15.json#rare-shiny"
+    },
+    "sma-SV16": {
+      "character": "shuppet",
+      "tier": "rare-shiny",
+      "name": "Shuppet",
+      "number": "SV16/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV16.json#rare-shiny"
+    },
+    "sma-SV17": {
+      "character": "inkay",
+      "tier": "rare-shiny",
+      "name": "Inkay",
+      "number": "SV17/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV17.json#rare-shiny"
+    },
+    "sma-SV18": {
+      "character": "malamar",
+      "tier": "rare-shiny",
+      "name": "Malamar",
+      "number": "SV18/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV18.json#rare-shiny"
+    },
+    "sma-SV19": {
+      "character": "poipole",
+      "tier": "rare-shiny",
+      "name": "Poipole",
+      "number": "SV19/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV19.json#rare-shiny"
+    },
+    "sma-SV2": {
+      "character": "rowlet",
+      "tier": "rare-shiny",
+      "name": "Rowlet",
+      "number": "SV2/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV2.json#rare-shiny"
+    },
+    "sma-SV20": {
+      "character": "sudowoodo",
+      "tier": "rare-shiny",
+      "name": "Sudowoodo",
+      "number": "SV20/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV20.json#rare-shiny"
+    },
+    "sma-SV21": {
+      "character": "riolu",
+      "tier": "rare-shiny",
+      "name": "Riolu",
+      "number": "SV21/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV21.json#rare-shiny"
+    },
+    "sma-SV22": {
+      "character": "lucario",
+      "tier": "rare-shiny",
+      "name": "Lucario",
+      "number": "SV22/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV22.json#rare-shiny"
+    },
+    "sma-SV23": {
+      "character": "rockruff",
+      "tier": "rare-shiny",
+      "name": "Rockruff",
+      "number": "SV23/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV23.json#rare-shiny"
+    },
+    "sma-SV24": {
+      "character": "buzzwole",
+      "tier": "rare-shiny",
+      "name": "Buzzwole",
+      "number": "SV24/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV24.json#rare-shiny"
+    },
+    "sma-SV25": {
+      "character": "zorua",
+      "tier": "rare-shiny",
+      "name": "Zorua",
+      "number": "SV25/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV25.json#rare-shiny"
+    },
+    "sma-SV26": {
+      "character": "guzzlord",
+      "tier": "rare-shiny",
+      "name": "Guzzlord",
+      "number": "SV26/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV26.json#rare-shiny"
+    },
+    "sma-SV27": {
+      "character": "magnemite",
+      "tier": "rare-shiny",
+      "name": "Magnemite",
+      "number": "SV27/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV27.json#rare-shiny"
+    },
+    "sma-SV28": {
+      "character": "magneton",
+      "tier": "rare-shiny",
+      "name": "Magneton",
+      "number": "SV28/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV28.json#rare-shiny"
+    },
+    "sma-SV29": {
+      "character": "magnezone",
+      "tier": "rare-shiny",
+      "name": "Magnezone",
+      "number": "SV29/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV29.json#rare-shiny"
+    },
+    "sma-SV3": {
+      "character": "dartrix",
+      "tier": "rare-shiny",
+      "name": "Dartrix",
+      "number": "SV3/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV3.json#rare-shiny"
+    },
+    "sma-SV30": {
+      "character": "beldum",
+      "tier": "rare-shiny",
+      "name": "Beldum",
+      "number": "SV30/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV30.json#rare-shiny"
+    },
+    "sma-SV31": {
+      "character": "metang",
+      "tier": "rare-shiny",
+      "name": "Metang",
+      "number": "SV31/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV31.json#rare-shiny"
+    },
+    "sma-SV32": {
+      "character": "celesteela",
+      "tier": "rare-shiny",
+      "name": "Celesteela",
+      "number": "SV32/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV32.json#rare-shiny"
+    },
+    "sma-SV33": {
+      "character": "kartana",
+      "tier": "rare-shiny",
+      "name": "Kartana",
+      "number": "SV33/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV33.json#rare-shiny"
+    },
+    "sma-SV34": {
+      "character": "ralts",
+      "tier": "rare-shiny",
+      "name": "Ralts",
+      "number": "SV34/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV34.json#rare-shiny"
+    },
+    "sma-SV35": {
+      "character": "kirlia",
+      "tier": "rare-shiny",
+      "name": "Kirlia",
+      "number": "SV35/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV35.json#rare-shiny"
+    },
+    "sma-SV36": {
+      "character": "diancie",
+      "tier": "rare-shiny",
+      "name": "Diancie",
+      "number": "SV36/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV36.json#rare-shiny"
+    },
+    "sma-SV37": {
+      "character": "altaria",
+      "tier": "rare-shiny",
+      "name": "Altaria",
+      "number": "SV37/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV37.json#rare-shiny"
+    },
+    "sma-SV38": {
+      "character": "gible",
+      "tier": "rare-shiny",
+      "name": "Gible",
+      "number": "SV38/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV38.json#rare-shiny"
+    },
+    "sma-SV39": {
+      "character": "gabite",
+      "tier": "rare-shiny",
+      "name": "Gabite",
+      "number": "SV39/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV39.json#rare-shiny"
+    },
+    "sma-SV4": {
+      "character": "wimpod",
+      "tier": "rare-shiny",
+      "name": "Wimpod",
+      "number": "SV4/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV4.json#rare-shiny"
+    },
+    "sma-SV40": {
+      "character": "garchomp",
+      "tier": "rare-shiny",
+      "name": "Garchomp",
+      "number": "SV40/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV40.json#rare-shiny"
+    },
+    "sma-SV41": {
+      "character": "eevee",
+      "tier": "rare-shiny",
+      "name": "Eevee",
+      "number": "SV41/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV41.json#rare-shiny"
+    },
+    "sma-SV42": {
+      "character": "swablu",
+      "tier": "rare-shiny",
+      "name": "Swablu",
+      "number": "SV42/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV42.json#rare-shiny"
+    },
+    "sma-SV43": {
+      "character": "noibat",
+      "tier": "rare-shiny",
+      "name": "Noibat",
+      "number": "SV43/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV43.json#rare-shiny"
+    },
+    "sma-SV44": {
+      "character": "oranguru",
+      "tier": "rare-shiny",
+      "name": "Oranguru",
+      "number": "SV44/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV44.json#rare-shiny"
+    },
+    "sma-SV45": {
+      "character": "type-null",
+      "tier": "rare-shiny",
+      "name": "Type: Null",
+      "number": "SV45/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV45.json#rare-shiny"
+    },
+    "sma-SV46": {
+      "character": "leafeon",
+      "tier": "rare-shiny-gx",
+      "name": "Leafeon-GX",
+      "number": "SV46/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV46.json#rare-shiny-gx"
+    },
+    "sma-SV47": {
+      "character": "decidueye",
+      "tier": "rare-shiny-gx",
+      "name": "Decidueye-GX",
+      "number": "SV47/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV47.json#rare-shiny-gx"
+    },
+    "sma-SV48": {
+      "character": "golisopod",
+      "tier": "rare-shiny-gx",
+      "name": "Golisopod-GX",
+      "number": "SV48/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV48.json#rare-shiny-gx"
+    },
+    "sma-SV49": {
+      "character": "charizard",
+      "tier": "rare-shiny-gx",
+      "name": "Charizard-GX",
+      "number": "SV49/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV49.json#rare-shiny-gx"
+    },
+    "sma-SV5": {
+      "character": "pheromosa",
+      "tier": "rare-shiny",
+      "name": "Pheromosa",
+      "number": "SV5/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV5.json#rare-shiny"
+    },
+    "sma-SV50": {
+      "character": "ho-oh",
+      "tier": "rare-shiny-gx",
+      "name": "Ho-Oh-GX",
+      "number": "SV50/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV50.json#rare-shiny-gx"
+    },
+    "sma-SV51": {
+      "character": "reshiram",
+      "tier": "rare-shiny-gx",
+      "name": "Reshiram-GX",
+      "number": "SV51/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV51.json#rare-shiny-gx"
+    },
+    "sma-SV52": {
+      "character": "turtonator",
+      "tier": "rare-shiny-gx",
+      "name": "Turtonator-GX",
+      "number": "SV52/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV52.json#rare-shiny-gx"
+    },
+    "sma-SV53": {
+      "character": "ninetales-alola",
+      "tier": "rare-shiny-gx",
+      "name": "Alolan Ninetales-GX",
+      "number": "SV53/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV53.json#rare-shiny-gx"
+    },
+    "sma-SV54": {
+      "character": "articuno",
+      "tier": "rare-shiny-gx",
+      "name": "Articuno-GX",
+      "number": "SV54/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV54.json#rare-shiny-gx"
+    },
+    "sma-SV55": {
+      "character": "glaceon",
+      "tier": "rare-shiny-gx",
+      "name": "Glaceon-GX",
+      "number": "SV55/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV55.json#rare-shiny-gx"
+    },
+    "sma-SV56": {
+      "character": "greninja",
+      "tier": "rare-shiny-gx",
+      "name": "Greninja-GX",
+      "number": "SV56/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV56.json#rare-shiny-gx"
+    },
+    "sma-SV57": {
+      "character": "electrode",
+      "tier": "rare-shiny-gx",
+      "name": "Electrode-GX",
+      "number": "SV57/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV57.json#rare-shiny-gx"
+    },
+    "sma-SV58": {
+      "character": "xurkitree",
+      "tier": "rare-shiny-gx",
+      "name": "Xurkitree-GX",
+      "number": "SV58/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV58.json#rare-shiny-gx"
+    },
+    "sma-SV59": {
+      "character": "mewtwo",
+      "tier": "rare-shiny-gx",
+      "name": "Mewtwo-GX",
+      "number": "SV59/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV59.json#rare-shiny-gx"
+    },
+    "sma-SV60": {
+      "character": "espeon",
+      "tier": "rare-shiny-gx",
+      "name": "Espeon-GX",
+      "number": "SV60/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV60.json#rare-shiny-gx"
+    },
+    "sma-SV61": {
+      "character": "banette",
+      "tier": "rare-shiny-gx",
+      "name": "Banette-GX",
+      "number": "SV61/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV61.json#rare-shiny-gx"
+    },
+    "sma-SV62": {
+      "character": "nihilego",
+      "tier": "rare-shiny-gx",
+      "name": "Nihilego-GX",
+      "number": "SV62/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV62.json#rare-shiny-gx"
+    },
+    "sma-SV63": {
+      "character": "naganadel",
+      "tier": "rare-shiny-gx",
+      "name": "Naganadel-GX",
+      "number": "SV63/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV63.json#rare-shiny-gx"
+    },
+    "sma-SV64": {
+      "character": "lucario",
+      "tier": "rare-shiny-gx",
+      "name": "Lucario-GX",
+      "number": "SV64/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV64.json#rare-shiny-gx"
+    },
+    "sma-SV65": {
+      "character": "zygarde-complete",
+      "tier": "rare-shiny-gx",
+      "name": "Zygarde-GX",
+      "number": "SV65/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV65.json#rare-shiny-gx"
+    },
+    "sma-SV66": {
+      "character": "lycanroc-midnight",
+      "tier": "rare-shiny-gx",
+      "name": "Lycanroc-GX",
+      "number": "SV66/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV66.json#rare-shiny-gx"
+    },
+    "sma-SV67": {
+      "character": "lycanroc-dusk",
+      "tier": "rare-shiny-gx",
+      "name": "Lycanroc-GX",
+      "number": "SV67/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV67.json#rare-shiny-gx"
+    },
+    "sma-SV68": {
+      "character": "buzzwole",
+      "tier": "rare-shiny-gx",
+      "name": "Buzzwole-GX",
+      "number": "SV68/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV68.json#rare-shiny-gx"
+    },
+    "sma-SV69": {
+      "character": "umbreon",
+      "tier": "rare-shiny-gx",
+      "name": "Umbreon-GX",
+      "number": "SV69/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV69.json#rare-shiny-gx"
+    },
+    "sma-SV7": {
+      "character": "charmeleon",
+      "tier": "rare-shiny",
+      "name": "Charmeleon",
+      "number": "SV7/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV7.json#rare-shiny"
+    },
+    "sma-SV70": {
+      "character": "darkrai",
+      "tier": "rare-shiny-gx",
+      "name": "Darkrai-GX",
+      "number": "SV70/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV70.json#rare-shiny-gx"
+    },
+    "sma-SV71": {
+      "character": "guzzlord",
+      "tier": "rare-shiny-gx",
+      "name": "Guzzlord-GX",
+      "number": "SV71/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV71.json#rare-shiny-gx"
+    },
+    "sma-SV72": {
+      "character": "scizor",
+      "tier": "rare-shiny-gx",
+      "name": "Scizor-GX",
+      "number": "SV72/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV72.json#rare-shiny-gx"
+    },
+    "sma-SV73": {
+      "character": "kartana",
+      "tier": "rare-shiny-gx",
+      "name": "Kartana-GX",
+      "number": "SV73/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV73.json#rare-shiny-gx"
+    },
+    "sma-SV74": {
+      "character": "stakataka",
+      "tier": "rare-shiny-gx",
+      "name": "Stakataka-GX",
+      "number": "SV74/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV74.json#rare-shiny-gx"
+    },
+    "sma-SV75": {
+      "character": "gardevoir",
+      "tier": "rare-shiny-gx",
+      "name": "Gardevoir-GX",
+      "number": "SV75/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV75.json#rare-shiny-gx"
+    },
+    "sma-SV76": {
+      "character": "sylveon",
+      "tier": "rare-shiny-gx",
+      "name": "Sylveon-GX",
+      "number": "SV76/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV76.json#rare-shiny-gx"
+    },
+    "sma-SV77": {
+      "character": "altaria",
+      "tier": "rare-shiny-gx",
+      "name": "Altaria-GX",
+      "number": "SV77/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV77.json#rare-shiny-gx"
+    },
+    "sma-SV78": {
+      "character": "noivern",
+      "tier": "rare-shiny-gx",
+      "name": "Noivern-GX",
+      "number": "SV78/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV78.json#rare-shiny-gx"
+    },
+    "sma-SV79": {
+      "character": "silvally",
+      "tier": "rare-shiny-gx",
+      "name": "Silvally-GX",
+      "number": "SV79/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV79.json#rare-shiny-gx"
+    },
+    "sma-SV8": {
+      "character": "vulpix-alola",
+      "tier": "rare-shiny",
+      "name": "Alolan Vulpix",
+      "number": "SV8/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV8.json#rare-shiny"
+    },
+    "sma-SV80": {
+      "character": "drampa",
+      "tier": "rare-shiny-gx",
+      "name": "Drampa-GX",
+      "number": "SV80/SV94",
+      "rarity": "Rare Shiny GX",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV80.json#rare-shiny-gx"
+    },
+    "sma-SV9": {
+      "character": "wooper",
+      "tier": "rare-shiny",
+      "name": "Wooper",
+      "number": "SV9/SV94",
+      "rarity": "Rare Shiny",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV9.json#rare-shiny"
     }
   },
   "retired": {

@@ -396,7 +396,7 @@ def radiant_lattice(c, K=6.5, M=20, w=0.13):
 
 def build_radiant(cid):
     k = cfg(cid)
-    spr = Sprite(k["sprite"], flip=k["flip"])
+    spr = P.ShinySprite(k["sprite"], flip=k["flip"])     # the real Radiant cards print the shiny Pokemon
     x0, y0, S, W, H = geo_override(k, window_geo(spr, RAD_WIN[0], RAD_WIN[1], RAD_WIN[2] - RAD_WIN[0],
                                                  RAD_WIN[3] - RAD_WIN[1], 30))
     rgb = window_rgb(cid, boxes=tuple(k["boxes"]), grow=k["grow"], texture=k["texture"], tex_src=k["tex_src"],
@@ -434,7 +434,7 @@ def build_radiant(cid):
         L.sparkle(c, x, y, st, {"L": "#ffffff", "l": "#eef2ff", "j": "#c8b8ff"})
     return meta(c, card=cid, label=label(cid, "Radiant Rare", "radial silver crosshatch burst, glints"),
                 rarity="Radiant Rare",
-                finish="Radiant: silver log-spiral crosshatch bursting from the Pokemon, glints at the crossings, thin light frame",
+                finish="Radiant: the SHINY sprite; silver log-spiral crosshatch bursting from the Pokemon, glints at the crossings, thin light frame",
                 variant="radiant-rare", anim="radiant", ref=(cid, x0, y0, x0 + W * S, y0 + H * S), S=S, stars=stars,
                 lattice=line & ~ring, rad_r=r, rad_th=th, centre=centre, glints=glints, q_pre=q_pre,
                 frame=FRAMES["Radiant Rare"])
