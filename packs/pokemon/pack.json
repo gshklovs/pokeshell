@@ -63,13 +63,9 @@
       "family": "holo",
       "weight": 5000,
       "skins": {
-        "starlight": 10,
-        "cosmos": 10,
-        "cracked-ice": 7,
-        "sheen": 7,
-        "tinsel": 7,
-        "water-web": 7,
-        "crosshatch": 7
+        "classic-holo": 10,
+        "starlight": 4,
+        "cosmos": 3
       },
       "frame": "holo"
     },
@@ -188,7 +184,8 @@
       "family": "ultra",
       "weight": 1500,
       "skins": {
-        "sunpillar": 10
+        "v-beam": 10,
+        "sunpillar": 4
       },
       "frame": "silver"
     },
@@ -199,7 +196,9 @@
       "family": "ultra",
       "weight": 800,
       "skins": {
-        "sunpillar": 10
+        "vmax-lattice": 10,
+        "sunpillar": 4,
+        "v-beam": 2
       },
       "frame": "rainbow"
     },
@@ -237,8 +236,9 @@
       "family": "ultra",
       "weight": 1400,
       "skins": {
-        "sunpillar": 10,
-        "cosmos": 5
+        "ex-grain": 10,
+        "sunpillar": 4,
+        "cosmos": 2
       },
       "frame": "silver"
     },
@@ -329,8 +329,9 @@
       "family": "full-art",
       "weight": 650,
       "skins": {
-        "sunpillar": 10,
-        "illustration-rare": 4
+        "fingerprint": 10,
+        "sunpillar": 4,
+        "illustration-rare": 2
       },
       "frame": "rainbow"
     },
@@ -353,7 +354,8 @@
       "family": "full-art",
       "weight": 750,
       "skins": {
-        "illustration-rare": 10
+        "ir-glow": 10,
+        "illustration-rare": 4
       },
       "frame": "rainbow"
     },
@@ -376,7 +378,8 @@
       "family": "secret",
       "weight": 250,
       "skins": {
-        "rainbow-rare": 10
+        "rainbow-flow": 10,
+        "rainbow-rare": 4
       },
       "frame": "rainbow"
     },
@@ -387,8 +390,9 @@
       "family": "secret",
       "weight": 250,
       "skins": {
-        "gold": 5,
-        "rainbow-rare": 5
+        "gold-facet": 10,
+        "gold": 4,
+        "rainbow-rare": 2
       },
       "frame": "gold"
     },
@@ -399,8 +403,9 @@
       "family": "secret",
       "weight": 300,
       "skins": {
-        "illustration-rare": 10,
-        "rainbow-rare": 5
+        "pearl": 10,
+        "illustration-rare": 4,
+        "rainbow-rare": 2
       },
       "frame": "gold"
     },

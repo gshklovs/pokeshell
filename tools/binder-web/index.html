@@ -523,6 +523,96 @@ header.top {
     linear-gradient(115deg, #7a4c0a, #ffe9a0 20%, #b47b1a 40%, #fff3c4 55%, #9a6412 75%, #ffe08a) var(--pos) / 300% 300%;
   mix-blend-mode: overlay; opacity: .9; filter: none;
 }
+/* per-tier skins: each echoes its tier's card animation */
+.skin-classic-holo .card__shine {
+  background:
+    radial-gradient(circle at 40% 40%, #fff 0 .3cqi, transparent .7cqi) 0 0 / 3.4cqi 3.8cqi,
+    linear-gradient(135deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%) var(--pos) / 300% 300%,
+    repeating-linear-gradient(135deg, var(--rb)) var(--pos) / 300% 300%;
+  filter: brightness(.75) contrast(1.5) saturate(1.3);
+}
+.skin-v-beam .card__shine {
+  background:
+    repeating-linear-gradient(133deg, rgba(255,255,255,.28) 0 .3cqi, transparent .3cqi 1.6cqi),
+    linear-gradient(135deg, transparent 38%, hsl(0 100% 78%) 42%, hsl(55 100% 75%) 45%, hsl(140 90% 72%) 48%, hsl(195 100% 74%) 51%, hsl(260 100% 80%) 55%, transparent 60%) calc(var(--px) * 100%) calc(var(--py) * 100%) / 250% 250%,
+    linear-gradient(45deg, transparent 44%, rgba(220,235,255,.5) 50%, transparent 56%) calc(100% - var(--px) * 100%) 0 / 250% 250%,
+    linear-gradient(115deg, #b9c2cc, #eef2f5 40%, #9aa4ae 70%, #d9dee4);
+  opacity: .6;
+}
+.skin-vmax-lattice .card__shine {
+  background:
+    repeating-radial-gradient(circle at 25% 30%, rgba(255,255,255,.5) 0 .35cqi, transparent .45cqi 5cqi),
+    repeating-radial-gradient(circle at 80% 75%, rgba(255,255,255,.4) 0 .35cqi, transparent .45cqi 6cqi),
+    linear-gradient(135deg, transparent 35%, hsl(0 100% 72%) 40%, hsl(55 100% 70%) 44%, hsl(150 90% 68%) 48%, hsl(200 100% 70%) 52%, hsl(275 100% 76%) 57%, transparent 64%) var(--pos) / 250% 250%,
+    linear-gradient(115deg, #3a4048, #76818c 40%, #566069 70%, #9ea8b2);
+  opacity: .6;
+}
+.skin-fingerprint .card__shine {
+  background:
+    repeating-radial-gradient(ellipse 100% 115% at 28% 32%, transparent 0 .9cqi, rgba(255,255,255,.55) 1cqi 1.25cqi, transparent 1.35cqi 2.2cqi),
+    repeating-radial-gradient(ellipse 100% 115% at 76% 62%, transparent 0 1cqi, rgba(255,255,255,.3) 1.1cqi 1.3cqi, transparent 1.4cqi 2.4cqi),
+    repeating-radial-gradient(circle at 28% 32%, var(--rb)) var(--pos) / 200% 200%;
+  mix-blend-mode: color-dodge; opacity: .55;
+}
+.skin-rainbow-flow .card__shine {
+  --rb: hsl(350 100% 84%) 0%, hsl(40 100% 82%) 6%, hsl(120 80% 82%) 12%, hsl(190 100% 82%) 18%, hsl(260 100% 86%) 24%, hsl(350 100% 84%) 30%;
+  background:
+    radial-gradient(circle, #fff 0 .25cqi, transparent .6cqi) 0 0 / 4.4cqi 3.6cqi,
+    linear-gradient(135deg, transparent 42%, rgba(255,255,255,.85) 50%, transparent 58%) var(--pos) / 300% 300%,
+    repeating-linear-gradient(141deg, rgba(255,255,255,.3) 0 .2cqi, transparent .2cqi .7cqi),
+    repeating-linear-gradient(135deg, var(--rb)) var(--pos) / 300% 300%;
+  mix-blend-mode: hard-light; opacity: .55; filter: none;
+}
+.skin-gold-facet .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .35cqi, transparent .9cqi) 1cqi 2cqi / 13cqi 11cqi,
+    linear-gradient(135deg, transparent 44%, #fffbea 49% 51%, transparent 56%) var(--pos) / 300% 300%,
+    var(--svg-ice) calc(var(--px) * 10%) 0 / 45cqi 45cqi,
+    linear-gradient(115deg, #7a4c0a, #ffe9a0 20%, #b47b1a 40%, #fff3c4 55%, #9a6412 75%, #ffe08a) var(--pos) / 300% 300%;
+  mix-blend-mode: overlay; opacity: .9; filter: none;
+}
+.skin-fireworks .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .8cqi, transparent 1.6cqi) 0 0 / 24cqi 20cqi,
+    radial-gradient(circle, transparent 0 6cqi, #f6d02c 8.5cqi) 0 0 / 24cqi 20cqi,
+    repeating-conic-gradient(from 0deg, hsl(330 100% 72%) 0 4deg, transparent 4deg 22.5deg, hsl(190 100% 65%) 22.5deg 26.5deg, transparent 26.5deg 45deg) 0 0 / 24cqi 20cqi,
+    linear-gradient(90deg, transparent 40%, rgba(255,255,255,.5) 50%, transparent 60%) calc(var(--px) * 100%) 0 / 300% 100%,
+    linear-gradient(115deg, #b88c14, #fff3b0 35%, #f6d02c 60%, #b88c14);
+  opacity: .5;
+}
+.skin-ex-grain .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .15cqi, transparent .35cqi) 0 0 / 1.3cqi 1.7cqi,
+    radial-gradient(circle, #fff 0 .12cqi, transparent .3cqi) .6cqi .9cqi / 2.1cqi 1.5cqi,
+    linear-gradient(135deg, transparent 38%, hsl(0 100% 78%) 42%, hsl(55 100% 75%) 45%, hsl(140 90% 72%) 48%, hsl(195 100% 74%) 51%, hsl(260 100% 80%) 55%, transparent 60%) var(--pos) / 250% 250%,
+    linear-gradient(115deg, #c9d1da, #f2f5f8 40%, #aab4be 70%, #e2e7ec);
+  opacity: .55;
+}
+.skin-ir-glow .card__shine {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 .15cqi, transparent .15cqi 1.4cqi),
+    radial-gradient(45% 35% at calc(20% + var(--px) * 50%) calc(20% + var(--py) * 50%), rgba(255,236,200,.8), transparent 70%),
+    radial-gradient(60% 45% at 25% 30%, hsl(190 70% 65%), transparent 70%),
+    radial-gradient(55% 45% at 75% 70%, hsl(265 60% 72%), transparent 70%),
+    linear-gradient(115deg, #7fd6e6, #b8a8e6, #7fd6e6) var(--pos) / 300% 300%;
+  opacity: .45;
+}
+.skin-pearl .card__shine {
+  background:
+    repeating-linear-gradient(62deg, rgba(255,255,255,.22) 0 .25cqi, transparent .3cqi .9cqi, rgba(0,0,0,.18) 1cqi 1.2cqi, transparent 1.3cqi 2.1cqi),
+    linear-gradient(125deg, transparent 30%, hsl(320 100% 85%) 42%, hsl(250 90% 86%) 50%, hsl(185 100% 82%) 58%, transparent 70%) var(--pos) / 300% 300%,
+    linear-gradient(115deg, #4a2e74, #28407f 50%, #4a2e74);
+  opacity: .55;
+}
+.skin-liquid-chrome .card__shine {
+  background:
+    linear-gradient(135deg, transparent 49.2%, #fff 50%, transparent 50.8%) var(--pos) / 250% 250%,
+    repeating-linear-gradient(176deg, rgba(26,22,36,.5) 0, rgba(226,226,238,.3) 9cqi, rgba(26,22,36,.5) 18cqi),
+    repeating-linear-gradient(170deg, #1a1624 0, #8a86a0 4cqi, #e2e2ee 7cqi, #5ef0ff 8cqi, #3a3448 11cqi, #ff5ae6 13cqi, #1a1624 15cqi) 0 calc(var(--py) * 30cqi),
+    linear-gradient(115deg, #5e5872, #e2e2ee 45%, #3a3448 70%, #b8b6ca);
+  background-blend-mode: normal, overlay, normal, overlay;
+  mix-blend-mode: hard-light; opacity: .5; filter: none;
+}
 
 /* ---- one piece skins */
 .skin-grand-line-silver .card__shine {

@@ -38,11 +38,11 @@ then one of that tier's cards; nothing invented is ever shown. With the cards bu
 | tier | odds | about 1 tab in | cards | skins |
 |---|---:|---:|---|---|
 | common | 87.20% | 1.1 | base1-44 Bulbasaur, base1-46 Charmander, base1-58 Pikachu, base1-63 Squirtle | none (plain tab) |
-| rare holo | 8.72% | 11 | cel25-5 Pikachu | starlight, cosmos, cracked-ice, sheen, tinsel, water-web, crosshatch |
+| rare holo | 8.72% | 11 | cel25-5 Pikachu | classic-holo, starlight, cosmos |
 | rare shiny | 0.87% | 115 | sma-SV6 Charmander | shiny-vault |
-| rare ultra | 1.13% | 88 | swsh4-170 Pikachu V | sunpillar, illustration-rare |
-| illustration rare | 1.31% | 76 | sv3pt5-166 Bulbasaur, sv3pt5-168 Charmander, sv3pt5-170 Squirtle | illustration-rare |
-| rare secret | 0.44% | 229 | ex3-98 Charmander | gold, rainbow-rare |
+| rare ultra | 1.13% | 88 | swsh4-170 Pikachu V | fingerprint, sunpillar, illustration-rare |
+| illustration rare | 1.31% | 76 | sv3pt5-166 Bulbasaur, sv3pt5-168 Charmander, sv3pt5-170 Squirtle | ir-glow, illustration-rare |
+| rare secret | 0.44% | 229 | ex3-98 Charmander | gold-facet, gold, rainbow-rare |
 | hyper rare | 0.33% | 302 | sv8-247 Pikachu ex | gold |
 
 Any pull, of any tier, is **shiny** (alternate palette) 1 time in 64. The odds and skins are data in
