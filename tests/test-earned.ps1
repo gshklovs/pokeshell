@@ -147,30 +147,33 @@ Assert ($logged -and $out -match "PULL=$logged" -and $out -match 'EARN=True' -an
 Assert ($out -match 'BINDER=True') "the hook defines the binder command"
 Assert (-not (Test-Path (Join-Path $hs 'errors.log'))) "no hook errors"
 
-Write-Host "4. reading the log: earned / pending / expired, legacy lines, viewed.txt" -ForegroundColor Cyan
+Write-Host "4. reading the log: earned / pending / expired, legacy lines, viewed.txt, retired art" -ForegroundColor Cyan
+# the pokemon pack is a real-card pack (pack.json "cards"): the art column holds the card id; older lines resolve
+# through pack.json "retired" (an old common -> its base-set card; an old holo -> hidden)
 $rs = New-TestState 'earn-read'
 $now = [DateTime]::UtcNow; $boot = [Pokeshell.Core]::BootId()
-function L($ago, $ch, $tier, $flags, $idTicks, $b = $boot) {
+function L($ago, $ch, $tier, $card, $flags, $idTicks, $b = $boot) {
   $id = [Pokeshell.Core]::NewPullId($idTicks)
-  @{ id = $id; line = "$($now.AddMinutes(-$ago).ToLocalTime().ToString('s'))`tpokemon`t$ch`t$tier`tcommon`t`t0`t$flags`tid=$id`tboot=$b" }
+  @{ id = $id; line = "$($now.AddMinutes(-$ago).ToLocalTime().ToString('s'))`tpokemon`t$ch`t$tier`t$card`t`t0`t$flags`tid=$id`tboot=$b" }
 }
-$a = L 50 'pikachu' 'common' 'pending' $now.AddMinutes(-50).Ticks
-$b = L 40 'squirtle' 'holo' 'pending' $now.AddMinutes(-40).Ticks
-$c = L 1600 'charmander' 'holo' 'pending' $now.AddHours(-26).Ticks
-$d = L 30 'bulbasaur' 'common' 'denied:rate,pending' $now.AddMinutes(-30).Ticks ($boot - 7200)
-$v = L 20 'bulbasaur' 'holo' 'pending' $now.AddMinutes(-20).Ticks
+$a = L 50 'pikachu' 'common' 'base1-58' 'pending' $now.AddMinutes(-50).Ticks
+$b = L 40 'squirtle' 'illustration-rare' 'sv3pt5-170' 'pending' $now.AddMinutes(-40).Ticks
+$c = L 1600 'charmander' 'rare-shiny' 'sma-SV6' 'pending' $now.AddHours(-26).Ticks
+$d = L 30 'bulbasaur' 'common' 'base1-44' 'denied:rate,pending' $now.AddMinutes(-30).Ticks ($boot - 7200)
+$v = L 20 'bulbasaur' 'illustration-rare' 'sv3pt5-166' 'pending' $now.AddMinutes(-20).Ticks
 $lines = @(
-  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tsquirtle`tcommon`tcommon`t`t0`t",   # before the earned rule
+  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tsquirtle`tcommon`tcommon`t`t0`t",   # before the earned rule (and real cards): -> base1-63
   $a.line, "x`tearned:$($a.id)", $b.line, $c.line, $d.line, $v.line, "x`tearned:$($v.id)",
-  "$($now.ToLocalTime().ToString('s'))`tpokemon`tpikachu`tholo`tholo`tsheen`t0`tdryrun,pending`tid=X`tboot=$boot")
+  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tpikachu`tholo`tholo`tsheen`t0`t",     # retired art: hidden
+  "$($now.ToLocalTime().ToString('s'))`tpokemon`tpikachu`tcommon`tbase1-58`t`t0`tdryrun,pending`tid=X`tboot=$boot")
 [IO.File]::WriteAllLines((Join-Path $rs 'pulls.log'), [string[]]$lines)
 [IO.File]::WriteAllLines((Join-Path $rs 'viewed.txt'), [string[]]@($v.id))
 $recs = @([Pokeshell.Core]::ReadPulls($rs, $now.Ticks, $boot))
 $got = ($recs | ForEach-Object { "$($_.Character)/$($_.Status)$(if ($_.New) { '+new' })" }) -join ' '
-Assert ($got -eq 'squirtle/earned pikachu/earned+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/earned') "statuses: $got"
+Assert ($got -eq 'squirtle/earned pikachu/earned+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/earned pikachu/earned') "statuses: $got"
 Assert (($recs | Where-Object Status -eq 'expired' | ForEach-Object Derived) -notcontains $false) "expired by age / boot: derived, no event yet"
 $out = Strip (Invoke-Cli $rs 'collection')
-Assert ($out -match 'BINDER\s+3 pulls' -and $out -match '1 pending' -and $out -match '1 new') "pokeshell collection counts earned pulls only, shows pending and new: '$((($out -split "`n") | Where-Object { $_ -match 'BINDER' }).Trim())'"
+Assert ($out -match 'BINDER\s+3 pulls' -and $out -match '1 pending' -and $out -match '1 new' -and $out -match '1 pulls of retired art not shown') "pokeshell collection counts earned pulls only, shows pending, new and retired: '$((($out -split "`n") | Where-Object { $_ -match 'BINDER' }).Trim())'"
 $exp = @(Get-Content (Join-Path $rs 'pulls.log') | Where-Object { $_ -match "`texpired:" })
 Assert ($exp.Count -eq 2 -and ($exp -join ' ') -match $c.id -and ($exp -join ' ') -match $d.id) "reading writes the expired:<id> lines (append-only)"
 $null = Invoke-Cli $rs 'collection'
@@ -192,16 +195,18 @@ Assert ([Pokeshell.Core]::EarnMode('MINUTES:1.5') -eq 'minutes:1.5' -and [Pokesh
 
 Write-Host "6. binder: the app, the text fallback, --pull / --card" -ForegroundColor Cyan
 $out = Strip (Invoke-Cli $rs 'binder' @{ POKESHELL_BINDER = (Join-Path $rs 'no-such-binder.exe') })
-Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+3 pulls') "no exe: today's text table"
+Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+3 pulls') "no exe: the text table"
 $exe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
 if (Test-Path $exe) {
   $viewedBefore = (Get-FileHash (Join-Path $rs 'viewed.txt')).Hash
   $frame = Strip (& $exe --root $RepoRoot --state $rs --first-frame | Out-String)
-  Assert ($frame -match 'last Bulbasaur holo' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur holo); header counts pending and new"
+  Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur illustration rare); header counts pending and new"
   $frame = Strip (& $exe --root $RepoRoot --state $rs --pull $a.id --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'collected') "--pull <id> opens that pull, with its NEW sticker"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/charmander/rare holo' --first-frame | Out-String)
-  Assert ($frame -match 'Charmander' -and $frame -match 'not pulled yet') "--card pack/character/tier (tier by label) opens that card"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/charmander/rare shiny' --first-frame | Out-String)
+  Assert ($frame -match 'Charmander' -and $frame -match 'SV6/SV94' -and $frame -match 'not pulled yet') "--card pack/character/tier (tier by label) opens that card"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/sv3pt5-170' --first-frame | Out-String)
+  Assert ($frame -match 'Squirtle' -and $frame -match 'pending') "--card pack/<card id> opens that real card"
   $frame = Strip (& $exe --root $RepoRoot --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
@@ -215,7 +220,7 @@ if ($py) {
   $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_PYTHON = $py; POKESHELL_NO_OPEN = '1' })
   $data = Get-Content (Join-Path $rs 'web\data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   $st2 = ($data.pulls | ForEach-Object { "$($_.char)/$($_.status)$(if ($_.new) { '+new' })" }) -join ' '
-  Assert ($st2 -eq 'squirtle/collected pikachu/collected+new squirtle/pending bulbasaur/collected') "data.json marks earned vs pending (expired left out): $st2"
+  Assert ($st2 -eq 'squirtle/collected pikachu/collected+new squirtle/pending bulbasaur/collected' -and $data.hidden -eq 1) "data.json marks earned vs pending (expired left out, retired art hidden): $st2"
   Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'earned' } | Select-Object -First 1).Trim()))"
   Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
 } else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
