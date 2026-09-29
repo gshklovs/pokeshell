@@ -66,6 +66,8 @@ BATCHES = {
     # Hidden Fates (sm115) + its Shiny Vault (sma): one ART_FORMAT file per card in hf/art/ (artlab/sets/hf), card data
     # in hf/cards/, effect loops in hf/anim/<id>[_shiny]/. Shiny Vault art is the shiny sprite on both rolls.
     "hf": {"dir": "hf", "globs": ["art/*.json"], "skip_variants": []},
+    # Brilliant Stars (swsh9 + its Trainer Gallery swsh9tg, one data folder, artlab/sets/brs): as cz
+    "brs": {"dir": "brs", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
@@ -99,7 +101,11 @@ def name_matches(character, name):
     fold = lambda s: "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))  # Flabébé -> Flabebe  # noqa: E731
     squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
     # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
-    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet)$", "", character)
+    # stripped repeatedly: urshifu-rapid-strike-gmax -> urshifu-rapid-strike -> urshifu
+    suffix = re.compile(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet|sandy|trash|hangry|rapid-strike|noice)$")
+    base, prev = character, None
+    while base != prev:
+        prev, base = base, suffix.sub("", base)
     return squash(character) in squash(name) or squash(base) in squash(name)
 
 
