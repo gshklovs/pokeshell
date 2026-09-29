@@ -18,7 +18,8 @@ function Invoke-Cli {
   if ($rest.Count -and $rest[-1] -is [hashtable]) { $Env = $rest[-1]; $rest = @($rest | Select-Object -SkipLast 1) }
   $saved = @{}; $Env['POKESHELL_HOME'] = $State
   foreach ($k in $Env.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $Env[$k]) }
-  try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cli @rest 2>&1 | Out-String -Width 300 }
+  $ErrorActionPreference = 'Continue'   # warnings on stderr (e.g. the web export's) are output, not failures
+  try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cli @rest 2>&1 | ForEach-Object { "$_" } | Out-String -Width 300 }
   finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
 }
 function Roll-Common([string]$State, [long]$Now = [DateTime]::UtcNow.Ticks, [double]$Foil = 0) {
@@ -280,6 +281,50 @@ if ($py) {
   Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and -not @($pk.cards | Where-Object id -eq 'swsh4-170') -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every built card with its set (the checklists) in data.json; unbuilt ones left out"
   $html = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
   Assert ($html.Contains('id="setTabs"') -and $html.Contains('id="search"') -and $html.Contains('tagchip')) "the page has set tabs, the search box and tag chips"
+  Assert ($data.counts.kept -eq 7 -and $data.counts.pending -eq 1) "data.json counts kept pulls only; pending apart ($($data.counts.kept) kept, $($data.counts.pending) pending)"
+
+  # tools\binder_web.py on its own: the text half, pending not counted, unreadable lines, checklist order, the art cache
+  $cardsDir = Join-Path $fx 'packs\pokemon\cards'; [void][IO.Directory]::CreateDirectory($cardsDir)
+  $cardJson = '{"id":"swsh7-40","name":"Glaceon V","supertype":"Pokémon","subtypes":["Basic","V"],"hp":"210","types":["Water"],"evolvesFrom":"",' +
+    '"abilities":[{"name":"Test Ability","text":"Does a thing.","type":"Ability"}],' +
+    '"attacks":[{"name":"Frozen Awakening","cost":["Water"],"text":"Search your deck."},{"name":"Heavy Snow","cost":["Water","Colorless","Colorless"],"damage":"120","text":""}],' +
+    '"weaknesses":[{"type":"Metal","value":"×2"}],"resistances":[],"retreatCost":["Colorless","Colorless"],"rules":["V rule: two Prize cards."],"flavorText":"",' +
+    '"set":{"id":"swsh7","name":"Evolving Skies","printedTotal":203},"number":"40","rarity":"Rare Holo V","artist":"5ban Graphics","tier":"rare-holo-v"}'
+  [IO.File]::WriteAllText((Join-Path $cardsDir 'swsh7-40.json'), $cardJson, [Text.UTF8Encoding]::new($false))
+  $ws = New-TestState 'earn-web'
+  $wout = Join-Path $ws 'web'
+  $pid1 = [Pokeshell.Core]::NewPullId($now.AddMinutes(-5).Ticks)
+  $wl = @((RealLine 0 'glaceon' 'rare-holo-v' 'swsh7-40'),
+    ((RealLine 1 'glaceon' 'rare-ultra' 'swsh7-174') -replace "`t0`t$", "`t1`t"),                                # a kept shiny
+    "$($now.AddMinutes(-5).ToLocalTime().ToString('s'))`tpokemon`tglaceon`trare-ultra`tswsh7-175`t`t1`tpending`tid=$pid1`tboot=$boot",   # a pending shiny
+    "not-a-time`tpokemon`tglaceon`trare-holo-v`tswsh7-40`t`t0`t")                                                  # a corrupt time
+  $bytes = [Text.Encoding]::UTF8.GetBytes(($wl -join "`r`n") + "`r`n") +
+    [Text.Encoding]::GetEncoding(28591).GetBytes("$($realT.ToString('s'))`tpokemon`tfl$([char]0xe9)b$([char]0xe9)b$([char]0xe9)`tcommon`tcommon`t`t0`t`r`n")   # PowerShell 5 ANSI bytes
+  [IO.File]::WriteAllBytes((Join-Path $ws 'pulls.log'), $bytes)
+  $webPy = Join-Path $fx 'tools\binder_web.py'
+  function Invoke-WebPy { $ErrorActionPreference = 'Continue'; & $py $webPy @args 2>&1 | ForEach-Object { "$_" } | Out-String -Width 300 }
+  $o1 = Invoke-WebPy --root $fx --state $ws --out $wout
+  Assert ($LASTEXITCODE -eq 0 -and $o1 -match '2 lines of pulls.log couldn''t be read') "invalid UTF-8 and a corrupt time: skipped with a warning, no crash ($(($o1 -split "`n" | Where-Object { $_ -match 'read' } | Select-Object -First 1).Trim()))"
+  $wd = Get-Content (Join-Path $wout 'data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  Assert ($wd.counts.kept -eq 2 -and $wd.counts.pending -eq 1 -and $wd.counts.shiny -eq 1 -and $wd.bad_lines -eq 2) "a pending shiny is shown but not counted: kept $($wd.counts.kept), pending $($wd.counts.pending), shiny $($wd.counts.shiny)"
+  $wpk = $wd.packs | Where-Object id -eq 'pokemon'
+  $c40 = $wpk.cards | Where-Object id -eq 'swsh7-40'
+  $atk = @($c40.text.attacks)
+  Assert ($c40.text.hp -eq '210' -and $atk.Count -eq 2 -and (@($atk[1].cost) -join ',') -eq 'Water,Colorless,Colorless' -and $atk[1].damage -eq '120' -and @($c40.text.abilities)[0].name -eq 'Test Ability' -and @($c40.text.weak)[0].type -eq 'Metal' -and $c40.text.retreat -eq 2 -and @($c40.text.rules).Count -eq 1 -and $c40.artist -eq '5ban Graphics') "the text half is exported: HP, ability, attacks with energy costs and damage, weakness, retreat, rules, artist"
+  Assert (-not ($wpk.cards | Where-Object id -eq 'swsh7-41').text -and $o1 -match 'have no card text') "a card without cards\<id>.json exports no text half (the page shows a placeholder) and is warned about"
+  Assert ($o1 -match 'no built art' -and $wpk.unbuilt -gt 0) "cards without built art are warned about ($($wpk.unbuilt) unbuilt)"
+  $wh = Get-Content (Join-Path $wout 'binder.html') -Raw -Encoding UTF8
+  Assert ($wh.Contains('card__text') -and $wh.Contains('tx-cost') -and $wh.Contains('card__wrr') -and -not $wh.Contains('ODDS FROM PACK.JSON')) "the page renders the text half (costs, weakness / resistance / retreat); odds are 'Pull odds'"
+  $order = (& $py -c "import sys; sys.path.insert(0, r'$(Join-Path $fx 'tools')'); import binder_web as b; print(','.join(sorted(['TG10', 'B/128', '2', 'SV6a', '100', '', 'GG01', '25a', '215/203', 'SV10', '1/203', 'TG01', 'SV6', '25', 'GG10', '9', '10'], key=b.number_key)))" 2>&1 | Out-String).Trim()
+  Assert ($order -eq '1/203,2,9,10,25,25a,100,215/203,GG01,GG10,SV6,SV6a,SV10,TG01,TG10,B/128,') "checklist order: numbers, then each prefix group in numeric order, then letters alone ($order)"
+  $stale = Join-Path $wout 'img\pokemon\gone\old-card.png'; [void][IO.Directory]::CreateDirectory((Split-Path $stale)); [IO.File]::WriteAllBytes($stale, [byte[]](1, 2, 3))
+  $sw = [Diagnostics.Stopwatch]::StartNew(); $o2 = Invoke-WebPy --root $fx --state $ws --out $wout; $sw.Stop()
+  Assert ($o2 -match '[(]0 decoded' -and $o2 -match 'cached' -and $o2 -match 'stale removed' -and -not (Test-Path $stale)) "a rerun reuses the decoded art (img\.cache.json) and prunes stale PNGs ($([int]$sw.Elapsed.TotalMilliseconds) ms)"
+  $nPng = @(Get-ChildItem (Join-Path $wout 'img') -Recurse -Filter *.png).Count
+  Remove-Item -Recurse -Force (Join-Path $ws 'noart') -ErrorAction SilentlyContinue
+  $o3 = Invoke-WebPy --root $fx --state $ws --out (Join-Path $ws 'noart') --no-art
+  Assert ($o3 -match 'art skipped' -and -not (Test-Path (Join-Path $ws 'noart\img')) -and (Test-Path (Join-Path $ws 'noart\binder.html'))) "--no-art decodes and writes no art (still data.json + binder.html; $nPng PNGs in the full export)"
+  Assert (-not @(Get-ChildItem $wout -Recurse -Filter '*.tmp')) "writes are atomic (no temp files left)"
 } else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
 
 $cli = Join-Path $RepoRoot 'scripts\pokeshell.ps1'   # sections 8-9: the repo's CLI again

@@ -1,24 +1,29 @@
 """Export the pokeshell web binder: pulls.log + pack.json -> data.json, art PNGs, and a baked single-file page.
 `pokeshell binder --web` runs this (then opens the page); nothing stays running.
 
-  python tools/binder_web.py                          # everything, into <state>/web
-  python tools/binder_web.py --no-art                 # data.json + binder.html only (fast)
+  python tools/binder_web.py                          # everything, into <state>/web (about 1 s once the art is cached)
+  python tools/binder_web.py --no-art                 # data.json + binder.html only: no art is decoded or written
   python tools/binder_web.py --state <dir> --out <dir> --root <checkout>
 
 Reads
   <state>/pulls.log                       TSV: time, pack, character, tier, art, skin, shiny(0/1), flags, [key=value...]
+                                          (read lossily: a line with bytes that aren't UTF-8 or a bad time is skipped)
   <state>/viewed.txt                      pull ids the binder has shown (no NEW sticker)
   packs/<pack>/pack.json                  characters, names, tags, tiers, skins + weights, odds (+ cards, retired)
-  packs/<pack>/art/<id>.json              pixel grids (pokemon, onepiece; onepiece falls back to ../opshell)
+  packs/<pack>/cards/<id>.json            a real card's text half (docs/CARD_FORMAT.md): HP, attacks, weakness...
+  packs/<pack>/art/<id>.json              pixel grids (onepiece; falls back to ../opshell)
+  dist/<pack>/<character>-<card id>[-shiny].ans   a real card's art (half-block ANSI -> pixels)
   dist/pokedex/<id>-common[-shiny].ans    pokedex sprites (half-block ANSI -> pixels)
   packs/<pack>/shaders/<skin>.hlsl        the header comment becomes the skin's description
 <state> is $POKESHELL_HOME, else %LOCALAPPDATA%/pokeshell.
 
-Writes (into --out, default <state>/web)
+Writes (into --out, default <state>/web; every file is written to a temp name and swapped in)
   data.json                               everything the page needs
-  img/<pack>/<character>/<tier>[-shiny].png   one PNG per character / tier / shiny, 1 px per art pixel
+  img/<pack>/<character>/<tier or card id>[-shiny].png   1 px per art pixel: every built card, shiny forms that were pulled
   img/pokedex/_silhouettes.png            atlas of all 905 pokedex silhouettes (alpha only), for empty slots
+  img/.cache.json                         decoded-art cache (source mtime + size -> PNG size, tint): reruns skip decoding
   binder.html                             tools/binder-web/index.html with data.json inlined (with the img/ folder)
+PNGs that no current card needs are pruned from img/ (not with --no-art, which leaves img/ alone).
 
 Swapping art: drop a PNG into tools/binder-web/art-override/<pack>/<character>/<tier>[-shiny].png and it is copied
 instead of rendered.
@@ -35,7 +40,6 @@ import datetime as dt
 import json
 import os
 import re
-import shutil
 import sys
 from pathlib import Path
 
@@ -103,17 +107,38 @@ def hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
+def read_text(path):
+    """a text file, read lossily (a stray ANSI byte from PowerShell 5 becomes U+FFFD instead of a crash)"""
+    return path.read_bytes().decode("utf-8-sig", errors="replace")
+
+
+def write_atomic(path, data):
+    """write text or bytes to a temp file next to path, then swap it in (a browser never reads half a file)"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    if isinstance(data, str):
+        tmp.write_text(data, encoding="utf-8")
+    else:
+        tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
+TIME_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?([+-]\d{2}:?\d{2}|Z)?")
+
+
 # ---------------------------------------------------------------- pulls
-def read_pulls(log, viewed=frozenset(), now=None, boot=None):
-    """pulls.log with the earned rule applied (see the module doc)"""
+def read_pulls(log, viewed=frozenset(), now=None, boot=None, bad=None):
+    """pulls.log with the earned rule applied (see the module doc). Lines that can't be read (bytes that aren't
+    UTF-8, a time that isn't ISO) are skipped and counted in bad[0]"""
     import time
     now = time.time() if now is None else now
     boot = boot_id() if boot is None else boot
+    bad = [0] if bad is None else bad
     pulls = []
     if not log.exists():
         print(f"warning: no pulls log at {log}", file=sys.stderr)
         return pulls
-    lines = log.read_text(encoding="utf-8-sig").splitlines()
+    lines = read_text(log).splitlines()
     earned, expired = set(), set()
     for line in lines:
         f = line.split("\t")
@@ -129,6 +154,9 @@ def read_pulls(log, viewed=frozenset(), now=None, boot=None):
             continue
         flags = f[7].strip() if len(f) >= 8 else ""
         if "dryrun" in flags:                       # same rule as Read-Pulls in scripts/pokeshell.ps1
+            continue
+        if "�" in line or not TIME_RE.fullmatch(f[0].strip()):
+            bad[0] += 1                             # mangled bytes or a corrupt time: not a pull we can show
             continue
         kv = dict(x.split("=", 1) for x in f[8:] if "=" in x)
         pid, card = kv.get("id", "").strip(), kv.get("card", "").strip()
@@ -148,7 +176,7 @@ def read_pulls(log, viewed=frozenset(), now=None, boot=None):
             status = "pending"
         pulls.append({
             "id": n + 1, "pull": pid or None, "card": card or None,
-            "time": f[0], "pack": f[1], "char": f[2], "tier": f[3], "art": f[4],
+            "time": f[0].strip().replace(" ", "T"), "pack": f[1], "char": f[2], "tier": f[3], "art": f[4],
             "skin": f[5] or None, "shiny": f[6].strip() == "1",
             "flags": [x for x in re.split(r"[,; ]+", flags) if x],
             "status": status,
@@ -167,13 +195,23 @@ def mute_unbuilt(pid, pk):
     """a real-card pack keeps only its built cards: an unbuilt card is muted, so it is no binder slot and pulls that
     resolve to it are hidden (like retired ones) until its art is built; pulls.log is never rewritten"""
     if pk and isinstance(pk.get("cards"), dict):
-        pk["cards"] = {cid: c for cid, c in pk["cards"].items() if card_built(pid, c.get("character") or "", cid)}
+        built = {cid: c for cid, c in pk["cards"].items() if card_built(pid, c.get("character") or "", cid)}
+        pk["_unbuilt"] = [cid for cid in pk["cards"] if cid not in built]
+        pk["cards"] = built
     return pk
 
 
-def load_pack_json(pid):
+def load_pack_json(pid, quiet=True):
+    """pack.json with unbuilt cards muted, or None (missing, or not valid JSON: warned about unless quiet)"""
     f = ROOT / "packs" / pid / "pack.json"
-    return mute_unbuilt(pid, json.loads(f.read_text(encoding="utf-8-sig"))) if f.exists() else None
+    if not f.exists():
+        return None
+    try:
+        return mute_unbuilt(pid, json.loads(read_text(f)))
+    except ValueError as e:
+        if not quiet:
+            print(f"warning: {f} is not valid JSON ({e}); pack left out", file=sys.stderr)
+        return None
 
 
 def logged_card(pk, char, art, card=None):
@@ -308,6 +346,8 @@ def skin_blurb(path):
         m = re.match(r"([A-Z0-9' .-]+?)\s+-\s+Windows Terminal", text)
         if m:
             title = m.group(1).strip()
+    if title:
+        title = re.sub(r"\s*\([^)]*\)", "", title).replace("-", " ").strip() or title   # "Shiny-Vault", "X (etched texture)"
     m = re.search(r"Imitates:\s*(.+)", text)
     desc = m.group(1) if m else text
     desc = re.sub(r"\s+", " ", desc).strip()
@@ -321,11 +361,25 @@ def skin_blurb(path):
     return title, out[:320]
 
 
+SUFFIX_WORDS = {"V", "VMAX", "VSTAR", "GX", "EX", "ex", "BREAK", "LV.X", "Prime", "δ", "◇", "☆", "Star", "Radiant"}
+
+
+def base_name(name):
+    """a card name without its mechanic words: "Rayquaza VMAX" -> "Rayquaza", "Radiant Charizard" -> "Charizard" """
+    words = [w for w in (name or "").split() if w not in SUFFIX_WORDS]
+    return " ".join(words) or (name or "")
+
+
 def card_pack_info(pid, p, n_active_packs):
-    """a real-card pack (pack.json "cards", docs/PACK_FORMAT.md): characters come from the cards, the tiers shown are
-    the rarities that have cards, a tier's odds are its weight among those"""
+    """a real-card pack (pack.json "cards", docs/PACK_FORMAT.md). The odds are the game's (Show-CardOdds /
+    Add-PokeshellCardRows): a tier rolls by its weight among the tiers that have a weight and at least one built card
+    (p comes muted: unbuilt cards are gone), then one of its built cards uniformly. Tiers that can't drop are left out."""
     cards = p["cards"]
-    live = [t for t in p["tiers"] if any(c.get("tier") == t["id"] for c in cards.values())]
+    unbuilt = p.get("_unbuilt") or []
+    if unbuilt:
+        print(f"warning: {pid}: {len(unbuilt)} cards in pack.json have no built art (they never drop and get no slot): "
+              f"{', '.join(unbuilt[:12])}{' ...' if len(unbuilt) > 12 else ''}", file=sys.stderr)
+    live = [t for t in p["tiers"] if int(t.get("weight", 0)) > 0 and any(c.get("tier") == t["id"] for c in cards.values())]
     total = sum(int(t.get("weight", 0)) for t in live) or 1
     out_tiers = []
     for t in live:
@@ -341,21 +395,34 @@ def card_pack_info(pid, p, n_active_packs):
             fr = {"style": "card", "preset": name, "colors": FRAME_PRESETS[name]}
         out_tiers.append({"id": t["id"], "label": t.get("label", t["id"]), "art": t["id"], "frame": fr,
                           "family": t.get("family") or "", "rarity": t.get("rarity") or "",
-                          "odds": pr, "card_odds": pr / n if n else 0,
+                          "odds": pr, "card_odds": pr / n if n else 0, "cards": n,
                           "skins": [{"id": s, "weight": int(w), "odds": pr * int(w) / sw} for s, w in skins.items()]})
-    order = []
-    for c in cards.values():
-        if c.get("character") and c["character"] not in order:
-            order.append(c["character"])
-    chars = [{"id": ch, "no": i + 1, "name": (p.get("names") or {}).get(ch) or ch.replace("-", " ").title(),
-              "tag": "", "poster": None, "bounty": None} for i, ch in enumerate(order)]
-    # every card with its tags (docs/BINDER_SPEC.md "Tags and search"), set by set in checklist (printed number) order
-    tier_ix = {t["id"]: i for i, t in enumerate(p["tiers"])}
-    card_list = []
+    live_ids = {t["id"] for t in live}
+    # every droppable card with its tags and text half (docs/BINDER_SPEC.md "Tags and search", CARD_FORMAT.md),
+    # set by set in checklist (printed number) order
+    card_list, no_text = [], []
     for cid, c in cards.items():
-        if c.get("tier") not in tier_ix or not c.get("character"):
+        if c.get("tier") not in live_ids or not c.get("character"):
             continue
-        card_list.append(card_meta(pid, cid, c))
+        m = card_meta(pid, cid, c)
+        if not m.get("text"):
+            no_text.append(cid)
+        card_list.append(m)
+    if no_text:
+        print(f"warning: {pid}: {len(no_text)} cards have no card text (packs/{pid}/cards/<id>.json; tools/fetch_cards.py): "
+              f"{', '.join(no_text[:12])}{' ...' if len(no_text) > 12 else ''}", file=sys.stderr)
+    # characters, named after their cards ("moltres-galar" -> "Galarian Moltres", "rayquaza" -> "Rayquaza")
+    order, names = [], {}
+    for c in card_list:
+        ch = c["character"]
+        if ch not in order:
+            order.append(ch)
+        b = base_name(c["name"])
+        if b and (ch not in names or len(b) < len(names[ch])):
+            names[ch] = b
+    given = p.get("names") or {}
+    chars = [{"id": ch, "no": i + 1, "name": given.get(ch) or names.get(ch) or ch.replace("-", " ").title(),
+              "tag": "", "poster": None, "bounty": None} for i, ch in enumerate(order)]
     sets = []
     for c in card_list:
         if c["set_id"] and c["set_id"] not in [s["id"] for s in sets]:
@@ -364,43 +431,81 @@ def card_pack_info(pid, p, n_active_packs):
     card_list.sort(key=lambda c: (set_ix.get(c["set_id"], 1 << 30), number_key(c["number"]), c["id"]))
     for s in sets:
         s["total"] = sum(1 for c in card_list if c["set_id"] == s["id"])
+        s["printed"] = max([c.get("printed") or 0 for c in card_list if c["set_id"] == s["id"]] + [0])
+    for c in card_list:
+        c.pop("printed", None)
     return {"id": pid, "name": p.get("name", pid), "about": p.get("about"), "foil_chance": 0,
             "shiny_chance": float(p.get("shiny_chance", 0)), "layout": "cards", "tiers": out_tiers,
-            "characters": chars, "active_packs": n_active_packs, "cards": card_list, "sets": sets}
+            "characters": chars, "active_packs": n_active_packs, "cards": card_list, "sets": sets,
+            "unbuilt": len(unbuilt)}
 
 
 def number_key(n):
-    """checklist order: "215/203" -> 215, "SV6/SV94" -> 6"""
-    head = (n or "").split("/")[0]
-    digits = "".join(ch for ch in head if ch.isdigit())
-    return (int(digits) if digits else 1 << 30, head)
+    """checklist order (as the app's): the numbered main run first (1, 2, ... 215; "215/203" -> 215, "25a" after "25"),
+    then each prefixed group in numeric order inside it (GG01..GG70, SV1..SV94, TG01..TG30), then letters alone (B, G,
+    R), then cards without a number"""
+    head = (n or "").split("/")[0].strip()
+    if not head:
+        return (3, "", 0, "", "")
+    m = re.fullmatch(r"([A-Za-z]*)(\d*)(.*)", head)
+    prefix, digits, rest = m.groups() if m else ("", "", head)
+    num = int(digits) if digits else -1
+    return (0 if not prefix else 1 if digits else 2, prefix.upper(), num, rest.lower(), head)
+
+
+def energy(xs):
+    return [x for x in (xs or []) if isinstance(x, str)]
 
 
 def card_meta(pid, cid, c):
     """a real card's display fields and tags: pack.json's card entry, completed from packs/<pack>/cards/<id>.json
-    (docs/CARD_FORMAT.md) when it exists: set id and name, printed rarity, subtypes, types, artist"""
-    m = {"id": cid, "character": c["character"], "tier": c["tier"], "name": c.get("name") or "", "number": c.get("number") or "",
+    (docs/CARD_FORMAT.md) when it exists: set, printed rarity, subtypes, types, artist, and the text half ("text":
+    HP, stage, abilities, attacks with their energy cost, weakness / resistance / retreat, rules, flavor)"""
+    number = c.get("number") or ""
+    m = {"id": cid, "character": c["character"], "tier": c["tier"], "name": c.get("name") or "", "number": number,
          "rarity": c.get("rarity") or "", "set_id": cid.rsplit("-", 1)[0] if "-" in cid else "", "set_name": c.get("set") or "",
          "subtypes": [], "types": [], "artist": ""}
     f = ROOT / "packs" / pid / "cards" / f"{cid}.json"
-    if f.exists():
-        try:
-            d = json.loads(f.read_text(encoding="utf-8-sig"))
-        except ValueError:
-            d = {}
-        s = d.get("set") or {}
-        m["set_id"] = s.get("id") or m["set_id"]
-        m["set_name"] = s.get("name") or m["set_name"]
-        m["rarity"] = d.get("rarity") or m["rarity"]
-        m["name"] = m["name"] or d.get("name") or ""
-        m["subtypes"] = [x for x in d.get("subtypes") or [] if isinstance(x, str)]
-        m["types"] = [x for x in d.get("types") or [] if isinstance(x, str)]
-        m["artist"] = d.get("artist") or ""
+    if not f.exists():
+        return m
+    try:
+        d = json.loads(read_text(f))
+    except ValueError:
+        print(f"warning: {f} is not valid JSON; card text left out", file=sys.stderr)
+        return m
+    s = d.get("set") or {}
+    m["set_id"] = s.get("id") or m["set_id"]
+    m["set_name"] = s.get("name") or m["set_name"]
+    m["printed"] = int(s.get("printedTotal") or 0)
+    m["rarity"] = d.get("rarity") or m["rarity"]
+    m["name"] = m["name"] or d.get("name") or ""
+    m["subtypes"] = [x for x in d.get("subtypes") or [] if isinstance(x, str)]
+    m["types"] = energy(d.get("types"))
+    m["artist"] = d.get("artist") or ""
+    if not m["number"] and d.get("number"):
+        m["number"] = f"{d['number']}/{m['printed']}" if m["printed"] else str(d["number"])
+    txt = {
+        "supertype": d.get("supertype") or "",
+        "hp": str(d.get("hp") or ""),
+        "evolves": d.get("evolvesFrom") or "",
+        "abilities": [{"name": a.get("name") or "", "type": a.get("type") or "Ability", "text": a.get("text") or ""}
+                      for a in d.get("abilities") or [] if isinstance(a, dict)],
+        "attacks": [{"name": a.get("name") or "", "cost": energy(a.get("cost")), "damage": a.get("damage") or "",
+                     "text": a.get("text") or ""} for a in d.get("attacks") or [] if isinstance(a, dict)],
+        "weak": [{"type": w.get("type") or "", "value": w.get("value") or ""} for w in d.get("weaknesses") or [] if isinstance(w, dict)],
+        "resist": [{"type": w.get("type") or "", "value": w.get("value") or ""} for w in d.get("resistances") or [] if isinstance(w, dict)],
+        "retreat": len(energy(d.get("retreatCost"))),
+        "rules": [r for r in d.get("rules") or [] if isinstance(r, str) and r.strip()],
+        "flavor": d.get("flavorText") or "",
+    }
+    m["text"] = {k: v for k, v in txt.items() if v or k in ("retreat", "supertype")}
     return m
 
 
 def pack_info(pid, n_active_packs):
-    p = mute_unbuilt(pid, json.loads((ROOT / "packs" / pid / "pack.json").read_text(encoding="utf-8-sig")))
+    p = load_pack_json(pid, quiet=False)
+    if p is None:
+        return None
     if isinstance(p.get("cards"), dict):
         return card_pack_info(pid, p, n_active_packs)
     tiers = p["tiers"]
@@ -468,7 +573,9 @@ def save_grid(grid, path):
             if c is not None:
                 px[x, y] = (*c, 255)
     path.parent.mkdir(parents=True, exist_ok=True)
-    im.save(path, optimize=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    im.save(tmp, format="PNG", optimize=True)
+    os.replace(tmp, path)
     return w, h
 
 
@@ -492,23 +599,6 @@ def tint_of(grid):
     return "#%02x%02x%02x" % (int(r), int(g), int(b))
 
 
-def out_path(pack, char, tier, shiny):
-    return IMG / pack / char / f"{tier}{'-shiny' if shiny else ''}.png"
-
-
-def place(pack, char, tier, shiny, grid):
-    """write one card image (or copy the override); returns [w, h] of the file"""
-    rel = Path(pack) / char / f"{tier}{'-shiny' if shiny else ''}.png"
-    ov = OVERRIDE / rel
-    dst = IMG / rel
-    if ov.exists():
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ov, dst)
-        with Image.open(dst) as im:
-            return list(im.size)
-    return list(save_grid(grid, dst))
-
-
 def art_json_path(pack, char):
     for base in (ROOT / "packs" / pack / "art", OPSHELL / "packs" / pack / "art"):
         f = base / f"{char}.json"
@@ -517,42 +607,115 @@ def art_json_path(pack, char):
     return None
 
 
-def export_art(packs, pulls, do_art):
-    """returns {pack: {char: {"tint": .., "img": {"tier[-shiny]": [w,h]}}}} and the pokedex atlas info"""
-    art = {}
+class ArtCache:
+    """decoded art, cached by source file: img/.cache.json maps each PNG (relative to img/) to the source it was
+    made from (path, mtime, size) plus its pixel size and tint. A PNG whose source is unchanged isn't decoded again.
+    kept collects every PNG this export uses; prune() removes the rest (retired / renamed cards, old shiny forms)."""
+    VERSION = 2
+
+    def __init__(self, img, do_art):
+        self.img, self.do_art, self.kept = img, do_art, set()
+        self.decoded = self.reused = 0
+        self.file = img / ".cache.json"
+        try:
+            d = json.loads(read_text(self.file))
+            ok = d.get("v") == self.VERSION
+        except (OSError, ValueError, AttributeError):
+            d, ok = {}, False
+        self.entries = d.get("entries", {}) if ok else {}
+        self.extra = d.get("extra", {}) if ok else {}
+
+    @staticmethod
+    def stamp(src):
+        st = src.stat()
+        return [str(src), st.st_mtime_ns, st.st_size]
+
+    def get(self, rel, src, decode):
+        """(size [w, h] or None, tint or None) of the PNG img/<rel> made from src by decode() -> pixel grid.
+        --no-art: nothing is decoded or written; a cached entry still gives the size and tint."""
+        ov = OVERRIDE / rel
+        stamp = self.stamp(src)
+        if ov.exists():
+            stamp[0] += "|" + str(ov)
+            stamp[1] = max(stamp[1], ov.stat().st_mtime_ns)
+        e = self.entries.get(rel)
+        dst = self.img / rel
+        if e and e.get("src") == stamp and (not self.do_art or dst.exists()):
+            self.kept.add(rel)
+            self.reused += 1
+            return e["size"], e["tint"]
+        if not self.do_art:
+            return (e or {}).get("size"), (e or {}).get("tint")
+        grid = decode()
+        self.decoded += 1
+        tint = tint_of(grid)
+        if ov.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            write_atomic(dst, ov.read_bytes())
+            with Image.open(dst) as im:
+                size = list(im.size)
+        else:
+            size = list(save_grid(grid, dst))
+        self.entries[rel] = {"src": stamp, "size": size, "tint": tint}
+        self.kept.add(rel)
+        return size, tint
+
+    def save(self):
+        if not self.do_art:
+            return
+        live = {k: v for k, v in self.entries.items() if k in self.kept}
+        write_atomic(self.file, json.dumps({"v": self.VERSION, "entries": live, "extra": self.extra}, separators=(",", ":")))
+
+    def prune(self, keep_also=()):
+        """remove PNGs no card uses any more (and folders left empty); only after a full art export"""
+        if not self.do_art or not self.img.exists():
+            return 0
+        keep = self.kept | set(keep_also)
+        n = 0
+        for f in list(self.img.rglob("*.png")):
+            rel = f.relative_to(self.img).as_posix()
+            if rel not in keep:
+                f.unlink()
+                n += 1
+        for d in sorted((p for p in self.img.rglob("*") if p.is_dir()), key=lambda p: -len(p.parts)):
+            try:
+                d.rmdir()                                  # only succeeds when empty
+            except OSError:
+                pass
+        return n
+
+
+def export_art(packs, pulls, cache):
+    """returns {pack: {char: {"tint": .., "img": {"tier[-shiny]" or "card id[-shiny]": [w,h] or None}}}}, per-card
+    tints {pack: {card id: tint}} and the pokedex atlas info"""
+    art, card_tints = {}, {}
     atlas = None
+    shiny_pulled = {(p["pack"], p["card"] or p["char"], p["tier"]) for p in pulls if p["shiny"]}
     for pk in packs:
         pid = pk["id"]
         art[pid] = {}
         if pk["layout"] == "dex":
             sys.path.insert(0, str(ROOT / "packs" / "pokedex"))
             import build as dexbuild                              # parse() / trim() of the colorscripts
+            dex = ROOT / "dist" / "pokedex"
+            parse = lambda f: dexbuild.trim(dexbuild.parse(f.read_text(encoding="utf-8", errors="replace")))
             pulled = {}
             for p in pulls:
                 if p["pack"] == pid:
                     pulled.setdefault(p["char"], set()).add((p["tier"], p["shiny"]))
-            sils = []
-            for ch in pk["characters"]:
-                c = ch["id"]
-                src = ROOT / "dist" / "pokedex" / f"{c}-common.ans"
-                grid = dexbuild.trim(dexbuild.parse(src.read_text(encoding="utf-8"))) if src.exists() else [[None]]
-                sils.append(grid)
-                entry = {"tint": tint_of(grid), "img": {}}
-                for tier, shiny in sorted(pulled.get(c, ())):
-                    g = grid
-                    if shiny:
-                        s2 = ROOT / "dist" / "pokedex" / f"{c}-common-shiny.ans"
-                        if s2.exists():
-                            g = dexbuild.trim(dexbuild.parse(s2.read_text(encoding="utf-8")))
-                    key = f"{tier}{'-shiny' if shiny else ''}"
-                    entry["img"][key] = place(pid, c, tier, shiny, g) if do_art else [len(g[0]), len(g)]
-                art[pid][c] = entry
-            # silhouette atlas: uniform cells, sprites centered on the bottom edge, alpha only
-            cw = max(len(g[0]) for g in sils)
-            chh = max(len(g) for g in sils)
-            cols = 32
-            rows = (len(sils) + cols - 1) // cols
-            if do_art:
+            # the silhouette atlas (every sprite) is rebuilt only when a sprite changed; tints come from the cache
+            srcs = [dex / f"{ch['id']}-common.ans" for ch in pk["characters"]]
+            sig = [[s.name, *ArtCache.stamp(s)[1:]] if s.exists() else [s.name] for s in srcs]
+            meta = cache.extra.get("dex") or {}
+            atlas_file = cache.img / pid / "_silhouettes.png"
+            if meta.get("sig") == sig and (atlas_file.exists() or not cache.do_art):
+                tints, cell, cols, rows = meta["tints"], meta["cell"], meta["cols"], meta["rows"]
+            elif cache.do_art:
+                sils = [parse(s) if s.exists() else [[None]] for s in srcs]
+                tints = [tint_of(g) for g in sils]
+                cw, chh = max(len(g[0]) for g in sils), max(len(g) for g in sils)
+                cols = 32
+                rows = (len(sils) + cols - 1) // cols
                 im = Image.new("LA", (cols * cw, rows * chh), (0, 0))
                 px = im.load()
                 for i, g in enumerate(sils):
@@ -562,29 +725,56 @@ def export_art(packs, pulls, do_art):
                         for x, c in enumerate(row):
                             if c is not None:
                                 px[ox + x, oy + y] = (0, 255)
-                (IMG / pid).mkdir(parents=True, exist_ok=True)
-                im.save(IMG / pid / "_silhouettes.png", optimize=True)
-            atlas = {"file": f"img/{pid}/_silhouettes.png", "cell": [cw, chh], "cols": cols, "rows": rows}
+                atlas_file.parent.mkdir(parents=True, exist_ok=True)
+                tmp = atlas_file.with_name(f".{atlas_file.name}.{os.getpid()}.tmp")
+                im.save(tmp, format="PNG", optimize=True)
+                os.replace(tmp, atlas_file)
+                cell = [cw, chh]
+                cache.extra["dex"] = {"sig": sig, "tints": tints, "cell": cell, "cols": cols, "rows": rows}
+            else:
+                tints, cell = None, None                  # --no-art on a first run: no atlas, default tints
+            if cell:
+                atlas = {"file": f"img/{pid}/_silhouettes.png", "cell": cell, "cols": cols, "rows": rows}
+                cache.kept.add(f"{pid}/_silhouettes.png")
+            for i, ch in enumerate(pk["characters"]):
+                c = ch["id"]
+                entry = {"tint": tints[i] if tints else "#9aa4b0", "img": {}}
+                for tier, shiny in sorted(pulled.get(c, ())):
+                    src = dex / f"{c}-common{'-shiny' if shiny else ''}.ans"
+                    if not src.exists():
+                        src = dex / f"{c}-common.ans"
+                    if not src.exists():
+                        continue
+                    key = f"{tier}{'-shiny' if shiny else ''}"
+                    entry["img"][key], _ = cache.get(f"{pid}/{c}/{key}.png", src, lambda s=src: parse(s))
+                art[pid][c] = entry
             continue
         if pk.get("layout") == "cards":
             # real cards: one image per card, from its prebuilt art dist/<pack>/<character>-<card id>.ans converted
-            # back to pixels; keyed by card id (img/<pack>/<character>/<card id>[-shiny].png)
+            # back to pixels; keyed by card id (img/<pack>/<character>/<card id>[-shiny].png). Every card's normal
+            # form (a deep link or search can open any card), shiny forms only once pulled.
+            card_tints[pid] = {}
             for ch in pk["characters"]:
                 c = ch["id"]
-                entry = {"tint": "#9aa4b0", "img": {}}
+                entry = {"tint": None, "img": {}}
                 for card in pk["cards"]:
                     if card["character"] != c:
                         continue
                     cid = card["id"]
-                    for shiny in ([False, True] if pk["shiny_chance"] > 0 else [False]):
+                    for shiny in (False, True):
+                        if shiny and (pid, cid, card["tier"]) not in shiny_pulled:
+                            continue
                         src = ROOT / "dist" / pid / f"{c}-{cid}{'-shiny' if shiny else ''}.ans"
                         if not src.exists():
                             continue
-                        g = ansi_grid(src.read_text(encoding="utf-8"))
-                        if entry["tint"] == "#9aa4b0":
-                            entry["tint"] = tint_of(g)
                         key = f"{cid}{'-shiny' if shiny else ''}"
-                        entry["img"][key] = place(pid, c, cid, shiny, g) if do_art else [len(g[0]), len(g)]
+                        size, tint = cache.get(f"{pid}/{c}/{key}.png", src,
+                                               lambda s=src: ansi_grid(s.read_text(encoding="utf-8", errors="replace")))
+                        entry["img"][key] = size
+                        if not shiny and tint:
+                            card_tints[pid][cid] = tint
+                            entry["tint"] = entry["tint"] or tint
+                entry["tint"] = entry["tint"] or "#9aa4b0"
                 art[pid][c] = entry
             continue
         for ch in pk["characters"]:
@@ -595,30 +785,33 @@ def export_art(packs, pulls, do_art):
                 print(f"warning: no art for {pid}/{c}", file=sys.stderr)
                 art[pid][c] = entry
                 continue
-            d = json.loads(f.read_text(encoding="utf-8"))
-            entry["tint"] = tint_of(grid_from_json(d, "common", False)) if "common" in d["variants"] else "#9aa4b0"
-            for t in pk["tiers"]:
+            d = json.loads(read_text(f))
+            for i, t in enumerate(pk["tiers"]):
                 v = t["art"]
                 if v not in d["variants"]:
                     continue
                 for shiny in ([False, True] if has_shiny(d, v) and pk["shiny_chance"] > 0 else [False]):
-                    g = grid_from_json(d, v, shiny)
                     key = f"{t['id']}{'-shiny' if shiny else ''}"
-                    entry["img"][key] = place(pid, c, t["id"], shiny, g) if do_art else [len(g[0]), len(g)]
+                    size, tint = cache.get(f"{pid}/{c}/{key}.png", f, lambda v=v, s=shiny: grid_from_json(d, v, s))
+                    entry["img"][key] = size
+                    if i == 0 and not shiny and tint:
+                        entry["tint"] = tint
             art[pid][c] = entry
-    return art, atlas
+    return art, card_tints, atlas
 
 
 # ---------------------------------------------------------------- main
 def main():
     global ROOT, OPSHELL, IMG
+    import time
+    t0 = time.perf_counter()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--state", default=None, help="the state folder (default: $POKESHELL_HOME, else %%LOCALAPPDATA%%/pokeshell)")
     ap.add_argument("--log", default=None, help="pulls.log (default: <state>/pulls.log)")
     ap.add_argument("--root", default=None, help="the pokeshell checkout (default: this file's)")
     ap.add_argument("--out", default=None, help="where the page goes (default: <state>/web)")
     ap.add_argument("--owner", default=os.environ.get("POKESHELL_OWNER") or os.environ.get("USERNAME", "you"), help="name on the cover label")
-    ap.add_argument("--no-art", action="store_true", help="skip writing PNGs (sizes still computed)")
+    ap.add_argument("--no-art", action="store_true", help="don't decode or write any art (sizes and tints come from the cache when there is one)")
     a = ap.parse_args()
 
     state = Path(a.state) if a.state else state_dir()
@@ -630,12 +823,15 @@ def main():
     IMG = out / "img"
     log = Path(a.log) if a.log else state / "pulls.log"
     vf = log.parent / "viewed.txt"
-    viewed = frozenset(l.strip() for l in vf.read_text(encoding="utf-8-sig").splitlines() if l.strip()) if vf.exists() else frozenset()
-    pulls, hidden, real_since = resolve_pulls(read_pulls(log, viewed))
+    viewed = frozenset(l.strip() for l in read_text(vf).splitlines() if l.strip()) if vf.exists() else frozenset()
+    bad = [0]
+    pulls, hidden, real_since = resolve_pulls(read_pulls(log, viewed, bad=bad))
+    if bad[0]:
+        print(f"warning: {bad[0]} lines of {log.name} couldn't be read (not UTF-8, or a bad time) and were skipped", file=sys.stderr)
     cfg = {}
     cfg_file = log.parent / "config.txt"
     if cfg_file.exists():
-        for line in cfg_file.read_text(encoding="utf-8").splitlines():
+        for line in read_text(cfg_file).splitlines():
             if "=" in line and not line.lstrip().startswith("#"):
                 k, v = line.split("=", 1)
                 cfg[k.strip()] = v.strip()
@@ -643,7 +839,7 @@ def main():
     pack_ids += sorted(p.name for p in (ROOT / "packs").iterdir()
                        if p.is_dir() and (p / "pack.json").exists() and p.name not in pack_ids)
     n_active = len(pack_ids) if cfg.get("pack", "all") == "all" else 1
-    packs = [pack_info(p, n_active) for p in pack_ids]
+    packs = [pk for pk in (pack_info(p, n_active) for p in pack_ids) if pk]
 
     skins = {}
     for pk in packs:
@@ -654,14 +850,19 @@ def main():
                 title, desc = skin_blurb(ROOT / "packs" / pk["id"] / "shaders" / f"{s['id']}.hlsl")
                 skins[s["id"]] = {"title": title or s["id"].replace("-", " ").title(), "desc": desc}
 
-    art, atlas = export_art(packs, pulls, not a.no_art)
+    cache = ArtCache(IMG, not a.no_art)
+    art, card_tints, atlas = export_art(packs, pulls, cache)
     for pk in packs:
         for ch in pk["characters"]:
             e = art.get(pk["id"], {}).get(ch["id"], {})
             ch["tint"] = e.get("tint")
             ch["img"] = e.get("img", {})
+        for c in pk.get("cards") or []:
+            c["tint"] = card_tints.get(pk["id"], {}).get(c["id"])
         if pk["layout"] == "dex":
             pk["atlas"] = atlas
+    cache.save()
+    pruned = cache.prune()
 
     data = {
         "owner": a.owner,
@@ -670,25 +871,33 @@ def main():
         "earned": {"enforced": True,
                    "note": "A card only counts once you use the tab it was pulled in: its first command earns it "
                            "(docs/BINDER_SPEC.md). Pending cards show greyed until then."},
+        # what the header counts: pending pulls are shown but never counted (kept = earned)
+        "counts": {"kept": sum(1 for p in pulls if p["status"] == "collected"),
+                   "pending": sum(1 for p in pulls if p["status"] == "pending"),
+                   "shiny": sum(1 for p in pulls if p["status"] == "collected" and p["shiny"]),
+                   "new": sum(1 for p in pulls if p["new"])},
         "hidden": hidden,   # pulls that no longer resolve to a current built card (retired art, unbuilt; still in pulls.log)
+        "bad_lines": bad[0],   # pulls.log lines that couldn't be read (skipped)
         "best_since": best_since(cfg.get("best_since"), real_since),   # best pulls start here (local ISO time); None: all
         "packs": packs, "skins": skins, "pulls": pulls,
     }
-    (out / "data.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    blob = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    write_atomic(out / "data.json", blob)
 
     # bake: index.html with the data inlined
     page = PAGE.read_text(encoding="utf-8")
     marker = "/*__INLINE_DATA__*/null"
     if marker not in page:
         raise SystemExit("index.html has no inline-data marker")
-    blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    (out / "binder.html").write_text(page.replace(marker, blob, 1), encoding="utf-8")
+    write_atomic(out / "binder.html", page.replace(marker, blob.replace("</", "<\\/"), 1))
 
-    n_img = sum(1 for _ in IMG.rglob("*.png")) if IMG.exists() else 0
+    n_img = len(cache.kept)
     n_pend = sum(1 for p in pulls if p["status"] == "pending")
     n_new = sum(1 for p in pulls if p["new"])
+    art_note = (f"{n_img} images ({cache.decoded} decoded, {cache.reused} cached{f', {pruned} stale removed' if pruned else ''})"
+                if not a.no_art else "art skipped (--no-art)")
     print(f"{len(pulls) - n_pend} earned, {n_pend} pending, {n_new} new{f', {hidden} retired (not shown)' if hidden else ''}; "
-          f"{len(packs)} packs, {len(skins)} skins, {n_img} images -> {out}")
+          f"{len(packs)} packs, {len(skins)} skins, {art_note} -> {out} ({time.perf_counter() - t0:.1f} s)")
 
 
 if __name__ == "__main__":

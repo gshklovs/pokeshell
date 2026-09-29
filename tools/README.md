@@ -97,3 +97,8 @@ It stages only the files the module ships (see the header of the script); `tests
 ```powershell
 .venv\Scripts\python tools\binder_web.py [--state <dir>] [--out <dir>] [--root <checkout>] [--no-art]
 ```
+
+Decoded art is cached in `img\.cache.json` (source mtime and size -> PNG size and tint): a rerun decodes nothing that
+hasn't changed and prunes PNGs no card needs any more. `--no-art` decodes and writes no art at all. Lines of
+`pulls.log` that aren't UTF-8 (an ANSI append from PowerShell 5) or have a bad time are skipped with a warning; cards
+without built art or without card text are warned about. Every file is written to a temp name and swapped in.

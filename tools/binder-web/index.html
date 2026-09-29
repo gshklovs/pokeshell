@@ -12,11 +12,15 @@
 /* ================================================================ tokens */
 :root {
   color-scheme: light;
+  --ff-round: Fredoka, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ff-pix: Silkscreen, "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --ff-hand: Caveat, "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+  --ff-slab: "Alfa Slab One", Rockwell, "Roboto Slab", Georgia, serif;
   --desk: #eadcc3;
   --desk-2: #e2d0b0;
   --desk-dot: rgba(120, 84, 40, .10);
   --ink: #2b2231;
-  --ink-soft: #6c5d58;
+  --ink-soft: #5f5049;
   --paper: #fbf8f1;
   --paper-2: #f1ebdd;
   --paper-edge: #d9cfbb;
@@ -25,7 +29,7 @@
   --pocket-gloss: rgba(255, 255, 255, .55);
   --sil: rgba(70, 55, 45, .16);
   --ghost-line: rgba(90, 72, 60, .28);
-  --ghost-ink: rgba(90, 72, 60, .55);
+  --ghost-ink: #74655c;
   --cover: #d23a3f;
   --cover-2: #9c2027;
   --cover-stitch: rgba(255, 230, 200, .55);
@@ -34,6 +38,7 @@
   --chip-line: rgba(80, 60, 40, .16);
   --shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 18px 40px -18px rgba(60, 36, 12, .55), 0 4px 10px -4px rgba(60, 36, 12, .35);
   --accent: #e3350d;
+  --accent-ink: #b3290a;  /* the accent as text: 4.5:1 on desk and panel */
   --focus: #2f7cf6;
   --modal-bg: rgba(40, 26, 18, .45);
   --panel: #fffdf8;
@@ -46,7 +51,7 @@
     --ink: #efe9f7; --ink-soft: #a79fb8;
     --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
     --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
-    --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .18); --ghost-ink: rgba(215, 205, 255, .42);
+    --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .2); --ghost-ink: #aaa0c4; --accent-ink: #ff8a66;
     --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
     --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
     --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
@@ -60,7 +65,7 @@
   --ink: #efe9f7; --ink-soft: #a79fb8;
   --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
   --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
-  --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .18); --ghost-ink: rgba(215, 205, 255, .42);
+  --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .2); --ghost-ink: #aaa0c4; --accent-ink: #ff8a66;
   --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
   --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
   --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
@@ -76,7 +81,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; min-height: 100svh; color: var(--ink);
-  font: 500 15px/1.4 Fredoka, system-ui, sans-serif;
+  font: 500 15px/1.4 var(--ff-round);
   background:
     radial-gradient(circle at 1px 1px, var(--desk-dot) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
     radial-gradient(120% 60% at 50% 0%, var(--desk) 0%, var(--desk-2) 100%);
@@ -92,7 +97,7 @@ header.top {
 }
 .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
 .brand__ball { width: 34px; height: 34px; flex: none; }
-.brand h1 { margin: 0; font: 700 22px/1 Silkscreen, monospace; letter-spacing: .5px; }
+.brand h1 { margin: 0; font: 700 22px/1 var(--ff-pix); letter-spacing: .5px; }
 .brand p { margin: 2px 0 0; font-size: 13px; color: var(--ink-soft); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
@@ -102,15 +107,15 @@ header.top {
 .chip b { font-size: 15px; font-weight: 700; }
 .iconbtn {
   border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; height: 32px; min-width: 32px;
-  padding: 0 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
+  padding: 0 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; min-height: 36px;
 }
 .iconbtn:hover { background: color-mix(in oklab, var(--chip) 60%, var(--accent) 12%); }
 
 /* ---------------------------------------------------------------- recent strip */
 .recent { margin: 6px 0 10px; }
 .recent__head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 2px; }
-.recent__head h2 { margin: 0; font: 700 16px/1.2 Fredoka; }
-.recent__head span { font: 600 17px/1 Caveat, cursive; color: var(--ink-soft); }
+.recent__head h2 { margin: 0; font: 700 16px/1.2 var(--ff-round); }
+.recent__head span { font: 600 17px/1 var(--ff-hand); color: var(--ink-soft); }
 .recent__rail {
   display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; padding: 16px 6px 10px; scroll-snap-type: x proximity;
   -webkit-mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 28px), transparent);
@@ -120,8 +125,8 @@ header.top {
 .recent__item { flex: none; width: 70px; scroll-snap-align: start; text-align: center; }
 .recent__item .card { transform: rotate(var(--r, 0deg)); transition: transform .25s cubic-bezier(.3,1.6,.5,1); }
 .recent__item:hover .card { transform: rotate(0deg) translateY(-6px) scale(1.06); }
-.recent__when { display: block; margin-top: 6px; font: 600 15px/1 Caveat, cursive; color: var(--ink-soft); white-space: nowrap; }
-.recent__item.is-new .recent__when { color: var(--accent); }
+.recent__when { display: block; margin-top: 6px; font: 600 15px/1 var(--ff-hand); color: var(--ink-soft); white-space: nowrap; }
+.recent__item.is-new .recent__when { color: var(--accent-ink); }
 
 /* ================================================================ binder stage */
 .stage { position: relative; display: flex; flex-direction: column; align-items: center; padding: 34px 0 18px; overflow: clip; }
@@ -166,11 +171,11 @@ header.top {
   --tc: #ffcb05; --tk: #3b2b00;
   position: relative; border: 0; cursor: pointer; padding: 7px 12px 14px; margin-bottom: -8px;
   border-radius: 10px 10px 0 0; background: linear-gradient(180deg, color-mix(in oklab, var(--tc) 85%, #fff), var(--tc));
-  color: var(--tk); font: 700 13.5px/1 Fredoka; white-space: nowrap; transition: transform .2s, margin .2s;
+  color: var(--tk); font: 700 13.5px/1 var(--ff-round); white-space: nowrap; transition: transform .2s, margin .2s;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 -2px 6px -2px rgba(0,0,0,.25);
   display: inline-flex; align-items: center; gap: 6px; min-width: 0;
 }
-.tab small { font: 700 11px/1 Silkscreen, monospace; opacity: .75; }
+.tab small { font: 700 11px/1 var(--ff-pix); opacity: .75; }
 .tab:hover { transform: translateY(-3px); }
 .tab[aria-selected="true"] { margin-bottom: -2px; padding-bottom: 18px; z-index: 2; }
 .tab--pokemon { --tc: #ffcb05; --tk: #3a2a00; }
@@ -199,10 +204,10 @@ header.top {
 }
 .page__holes i:nth-child(1) { top: 14%; } .page__holes i:nth-child(2) { top: 50%; } .page__holes i:nth-child(3) { top: 86%; }
 .page__folio {
-  position: absolute; bottom: 1.6%; font: 600 16px/1 Caveat, cursive; color: var(--ghost-ink);
+  position: absolute; bottom: 1.6%; font: 600 16px/1 var(--ff-hand); color: var(--ghost-ink);
 }
 .page.left .page__folio { left: 5%; } .page.right .page__folio, .binder.is-single .page__folio { right: 5%; left: auto; }
-.page__label { position: absolute; bottom: 1.6%; left: 50%; transform: translateX(-50%); font: 700 10px/1 Silkscreen, monospace; letter-spacing: 1px; color: var(--ghost-ink); white-space: nowrap; }
+.page__label { position: absolute; bottom: 1.6%; left: 50%; transform: translateX(-50%); font: 700 10px/1 var(--ff-pix); letter-spacing: 1px; color: var(--ghost-ink); white-space: nowrap; }
 
 .pockets { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2.4%; min-height: 0; }
 .page--dex .pockets { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 1.8%; }
@@ -236,15 +241,15 @@ header.top {
   background: var(--sil); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat;
   image-rendering: pixelated;
 }
-.ghost__sil.atlas { -webkit-mask-size: var(--ms); mask-size: var(--ms); -webkit-mask-position: var(--mp); mask-position: var(--mp); left: 3%; right: 3%; top: 8%; height: 68%; background: color-mix(in oklab, var(--sil) 100%, var(--ghost-ink) 25%); }
+.ghost__sil.atlas { -webkit-mask-size: var(--ms); mask-size: var(--ms); -webkit-mask-position: var(--mp); mask-position: var(--mp); left: 3%; right: 3%; top: 8%; height: 68%; background: color-mix(in oklab, var(--ghost-ink) 24%, transparent); }
 .ghost__q {
-  position: absolute; top: 24%; left: 0; right: 0; text-align: center; font: 700 30cqi/1 Fredoka; color: var(--ghost-ink); opacity: .75;
+  position: absolute; top: 24%; left: 0; right: 0; text-align: center; font: 700 30cqi/1 var(--ff-round); color: var(--ghost-ink); opacity: .75;
 }
 .ghost__label {
   position: absolute; left: 0; right: 0; bottom: 7%; text-align: center; color: var(--ghost-ink);
-  font: 700 13cqi/1.05 Caveat, cursive; padding: 0 6%;
+  font: 700 13cqi/1.05 var(--ff-hand); padding: 0 6%;
 }
-.ghost__label small { display: block; font: 700 7.5cqi/1.2 Silkscreen, monospace; opacity: .8; }
+.ghost__label small { display: block; font: 700 7.5cqi/1.2 var(--ff-pix); }
 
 /* ================================================================ cards */
 .card {
@@ -261,60 +266,133 @@ header.top {
 }
 .card.live .card__inner { transition: transform .08s linear, box-shadow .3s; }
 .pocket .card:hover, .pocket .card:focus-visible { --tilt: 14; --lift: 1; z-index: 5; }
+.pocket .card:focus-visible { outline: 2px solid transparent; }
+.pocket .card:focus-visible .card__inner { box-shadow: 0 0 0 3px var(--focus), 0 6cqi 12cqi -4cqi rgba(0,0,0,.45); }
 .pocket .card:hover .card__inner { box-shadow: 0 2px 3px rgba(0,0,0,.3), 0 6cqi 12cqi -4cqi rgba(0,0,0,.45); }
 .card img { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; display: block; }
 .card__face { position: absolute; inset: 0; border-radius: inherit; }
 
-/* ---- pokemon TCG layout */
+/* ---- pokemon TCG layout: the card's own art on top, its real text half below (packs/<pack>/cards/<id>.json).
+   Sizes are in cqi (the card's width), so a card reads the same in a pocket and in the detail view; below 190 px
+   (a pocket) the long texts fold away and the card shows names, costs and damage, like a real card seen from afar. */
 .card--tcg .card__face {
-  padding: 4.2cqi;
+  padding: 3.4cqi;
   background: linear-gradient(135deg, var(--f0), var(--f1) 25%, var(--f2) 50%, var(--f3, var(--f1)) 75%, var(--f4, var(--f0)));
 }
 .card--tcg .card__panel {
-  position: relative; height: 100%; border-radius: 2.4cqi; overflow: hidden; display: flex; flex-direction: column; gap: 2.2cqi;
-  padding: 2.6cqi 3.6cqi 2.6cqi;
+  --ttint: var(--tint);
+  position: relative; height: 100%; border-radius: 2.2cqi; overflow: hidden; display: flex; flex-direction: column; gap: 1.1cqi;
+  padding: 2cqi 3cqi 1.8cqi;
   background:
-    radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.55), transparent 60%),
-    linear-gradient(175deg, color-mix(in oklab, var(--tint) 28%, #fbf3dc), color-mix(in oklab, var(--tint) 52%, #e9dcbc));
-  color: #221a14;
+    radial-gradient(120% 55% at 50% 0%, rgba(255,255,255,.6), transparent 60%),
+    linear-gradient(175deg, color-mix(in oklab, var(--ttint) 22%, #fbf3dc), color-mix(in oklab, var(--ttint) 40%, #eadfc2));
+  color: #221a14; text-align: left;
 }
-.card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 2cqi; min-width: 0; }
-.card__name { font: 700 9.6cqi/1.05 Fredoka; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card__tag { font: 700 5.6cqi/1 Silkscreen, monospace; opacity: .8; white-space: nowrap; }
+.card__top { display: flex; align-items: center; gap: 1.2cqi; min-width: 0; font: 600 3.1cqi/1.05 var(--ff-round); color: rgba(34,26,20,.78); white-space: nowrap; overflow: hidden; }
+.card__stage { flex: none; padding: .45cqi 1.4cqi .35cqi; border-radius: 99cqi; background: rgba(34,26,20,.1); font-weight: 700; letter-spacing: .15cqi; text-transform: uppercase; font-size: 2.7cqi; }
+.card__evo { overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+.card__head { display: flex; align-items: center; gap: 1.6cqi; min-width: 0; }
+.card__name { flex: 1 1 auto; min-width: 0; font: 700 calc(8.4cqi * var(--ns, 1))/1.2 var(--ff-round); margin: -.08em 0; letter-spacing: -.1cqi; white-space: nowrap; overflow: hidden; }
+.card__sh { font-size: .72em; line-height: 1; vertical-align: .08em; }
+.card__name.wrap { white-space: normal; line-height: 1.08; padding-bottom: .06em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; text-wrap: balance; }
+.card__hp { flex: none; display: inline-flex; align-items: center; gap: .8cqi; font: 700 6.2cqi/1 var(--ff-round); color: #8d1f14; white-space: nowrap; }
+.card__hp small { font-size: .52em; letter-spacing: .1cqi; }
+.card__hp .nrg { font-size: 5.4cqi; }
+.card__tag { flex: none; font: 700 4.6cqi/1 var(--ff-pix); opacity: .8; white-space: nowrap; }
 .card__art {
-  position: relative; aspect-ratio: 4 / 3.1; border-radius: 1cqi; overflow: hidden; display: grid; place-items: center;
+  position: relative; flex: none; aspect-ratio: 4 / 2.9; border-radius: .8cqi; overflow: hidden; display: grid; place-items: center;
   background:
     radial-gradient(circle at 50% 60%, color-mix(in oklab, var(--tint) 30%, #fff) 0%, color-mix(in oklab, var(--tint) 65%, #fff) 55%, color-mix(in oklab, var(--tint) 80%, #444) 120%);
-  box-shadow: 0 0 0 1.4cqi #d9d3c3, 0 0 0 1.9cqi #8c8474, inset 0 0 3cqi rgba(0,0,0,.25);
-  margin: 1.8cqi 1.4cqi 1cqi;
+  box-shadow: 0 0 0 1.2cqi #d9d3c3, 0 0 0 1.6cqi #8c8474, inset 0 0 3cqi rgba(0,0,0,.25);
+  margin: 1.4cqi 1.4cqi .8cqi;
 }
 .card__art img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 1.2cqi 0 rgba(0,0,0,.18)); }
-.card__box {
-  flex: 1; min-height: 0; border-radius: 1.6cqi; padding: 2.6cqi 3.4cqi; display: flex; flex-direction: column; justify-content: center; gap: 1.6cqi;
-  background: rgba(255,255,255,.42); box-shadow: inset 0 0 0 .6cqi rgba(0,0,0,.08);
-  font: 600 6.2cqi/1.15 Fredoka;
-}
-.card__move { display: flex; justify-content: space-between; gap: 2cqi; align-items: baseline; }
-.card__move b { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card__move span { font: 700 5cqi/1 Silkscreen, monospace; opacity: .75; white-space: nowrap; }
-.card__rule { height: .5cqi; background: rgba(0,0,0,.14); border-radius: 1cqi; }
-.card__foot { display: flex; justify-content: space-between; align-items: center; font: 700 4.6cqi/1 Silkscreen, monospace; opacity: .78; }
-.card__foot .rar { font: 700 6cqi/1 Fredoka; letter-spacing: -.3cqi; }
+.card__noart { font: 700 4cqi/1.2 var(--ff-pix); color: rgba(0,0,0,.45); text-align: center; padding: 0 6cqi; }
 
-/* full-art (ultra rare / secret rare): the art washes the whole card */
-.card--full .card__panel { color: #fff; background: #222; }
-.card__wash { position: absolute; inset: -20%; background-size: cover; background-position: center; filter: blur(7cqi) saturate(1.5) brightness(.85); transform: scale(1.1); }
+/* the text half */
+.card__text {
+  --cw: 0em;
+  flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: safe center; gap: 1.5cqi;
+  padding: .6cqi .6cqi; font: 500 calc(3.7cqi * var(--ts, 1))/1.22 var(--ff-round);
+}
+.tx { min-width: 0; }
+.tx-line { display: flex; align-items: center; gap: .55em; min-width: 0; }
+.tx-cost { flex: none; display: inline-flex; gap: .18em; min-width: var(--cw); }
+.tx-name { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 1.28em; line-height: 1.1; }
+.tx-dmg { flex: none; font-weight: 700; font-size: 1.42em; line-height: 1; letter-spacing: -.02em; }
+.tx-abl { flex: none; padding: .2em .55em .15em; border-radius: .35em; background: #c7361f; color: #fff; font: 700 .78em/1 var(--ff-round); font-style: italic; letter-spacing: .02em; }
+.tx-abl--poke { background: #3f6fb5; }
+.tx p { margin: .28em 0 0; }
+.tx-rule { margin: 0; padding-top: 1cqi; border-top: .35cqi solid rgba(0,0,0,.14); font-size: .84em; line-height: 1.2; font-style: italic; text-align: center; opacity: .88; }
+.tx-flavor { margin: 0; font-size: .82em; font-style: italic; text-align: right; opacity: .78; }
+.tx-trainer p:first-child { margin-top: 0; }
+.card__text--none { justify-content: center; align-items: center; text-align: center; gap: 1cqi; }
+.card__text--none b { font-size: 1.3em; }
+.card__text--none span { font-size: .9em; opacity: .7; font-style: italic; }
+.card__wrr {
+  flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1cqi; padding: 1cqi .6cqi 0;
+  border-top: .35cqi solid rgba(0,0,0,.14); font: 600 2.7cqi/1 var(--ff-round);
+}
+.card__wrr > span { display: flex; align-items: center; gap: .8cqi; min-width: 0; white-space: nowrap; }
+.card__wrr > span:nth-child(2) { justify-content: center; }
+.card__wrr > span:last-child { justify-content: flex-end; }
+.card__wrr small { font-size: 1em; opacity: .7; text-transform: lowercase; }
+.card__wrr b { font-size: 1.25em; }
+.card__wrr .nrg { font-size: 3.6cqi; }
+.card__foot { flex: none; display: flex; align-items: center; gap: 1.6cqi; font: 700 3cqi/1 var(--ff-pix); min-width: 0; }
+.card__illus { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 2.9cqi/1 var(--ff-round); opacity: .72; }
+.card__code { flex: none; padding: .5cqi 1cqi .4cqi; border-radius: .6cqi; background: #221a14; color: #fbf3dc; font-size: 2.7cqi; }
+.card__no { flex: none; opacity: .85; }
+.card__foot .rar { flex: none; font: 700 4.4cqi/1 var(--ff-round); letter-spacing: -.3cqi; }
+
+/* energy: one coloured dot per type (CARD_FORMAT: "energy glyphs are one cell each: ● in the type's colour") */
+.nrg {
+  --e: #d6d2c6; display: inline-block; flex: none; width: 1.22em; height: 1.22em; border-radius: 50%; vertical-align: -.2em;
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,.8) 0 14%, rgba(255,255,255,0) 40%), radial-gradient(circle at 50% 58%, rgba(0,0,0,0) 52%, rgba(0,0,0,.28) 100%), var(--e);
+  box-shadow: 0 0 0 .07em rgba(0,0,0,.45);
+}
+.nrg--grass { --e: #4e9e3a; } .nrg--fire { --e: #e4502a; } .nrg--water { --e: #2f86d6; } .nrg--lightning { --e: #f3c21a; }
+.nrg--psychic { --e: #9a57b8; } .nrg--fighting { --e: #bd6530; } .nrg--darkness { --e: #353a46; } .nrg--metal { --e: #97a3ae; }
+.nrg--fairy { --e: #e777b6; } .nrg--dragon { --e: #b39434; } .nrg--colorless { --e: #ece9e0; }
+
+/* a pocket-sized card: names, costs and damage only */
+@container (max-width: 190px) {
+  .card__top, .tx p, .tx-rule, .tx-flavor, .card__wrr, .card__illus, .card__hp small { display: none; }
+  .card--tcg .card__panel { gap: 1.6cqi; padding: 2.4cqi 3.4cqi 2.4cqi; }
+  .card__text { font-size: 5.1cqi; gap: 2.2cqi; justify-content: center; }
+  .tx-name { font-size: 1.12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-dmg { font-size: 1.25em; }
+  .card__text--none span { display: none; }
+  .card__foot { font-size: 3.8cqi; justify-content: space-between; }
+  .card__code { font-size: 3.4cqi; }
+}
+
+/* full art (rare ultra, illustration rares) and secret finishes (rainbow, gold, hyper): the art washes the card */
+.card--full .card__panel { color: #fff; background: #1c1b24; }
+.card__wash { position: absolute; inset: -20%; background-size: cover; background-position: center; filter: blur(7cqi) saturate(1.5) brightness(.8); transform: scale(1.1); }
 .card--full .card__panel > :not(.card__wash) { position: relative; }
-.card--full .card__name { text-shadow: 0 .6cqi 0 rgba(0,0,0,.45); }
-.card--full .card__art { background: transparent; box-shadow: none; margin: 0 -3.6cqi; aspect-ratio: 3 / 2.05; border-radius: 0; }
-.card--full .card__art img { width: 100%; height: 100%; filter: drop-shadow(0 1cqi 1.6cqi rgba(0,0,0,.35)); }
-.card--full .card__box { background: rgba(10,10,20,.38); box-shadow: inset 0 0 0 .6cqi rgba(255,255,255,.18); backdrop-filter: blur(2px); }
-.card--full .card__rule { background: rgba(255,255,255,.25); }
-.card--secret .card__panel { color: #3b2508; }
+.card--full .card__name, .card--full .card__hp { text-shadow: 0 .5cqi 0 rgba(0,0,0,.5); color: #fff; }
+.card--full .card__top { color: rgba(255,255,255,.85); }
+.card--full .card__stage { background: rgba(255,255,255,.18); }
+.card--full .card__art { background: transparent; box-shadow: none; margin: 0 -3cqi; aspect-ratio: 3 / 2.1; border-radius: 0; }
+.card--full .card__art img { width: 100%; height: 100%; filter: drop-shadow(0 1cqi 1.6cqi rgba(0,0,0,.4)); }
+.card--full .card__text { background: rgba(8,8,18,.46); border-radius: 1.4cqi; padding: 1.2cqi 1.8cqi; box-shadow: inset 0 0 0 .4cqi rgba(255,255,255,.16); }
+.card--full .tx-rule, .card--full .card__wrr { border-color: rgba(255,255,255,.28); }
+.card--full .card__code { background: rgba(255,255,255,.9); color: #1c1b24; }
+.card--rainbow .card__panel { background: #2a2140; }
+.card--rainbow .card__wash { filter: blur(6cqi) saturate(1.2) brightness(1.05); }
+.card--rainbow .card__wash::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: color; opacity: .75;
+  background: linear-gradient(125deg, #ff9aa8, #ffd28a 20%, #fff59a 35%, #a8f0b0 50%, #9ad8ff 65%, #c3a8ff 80%, #ff9ad8);
+}
+.card--secret .card__panel { color: #3b2508; background: #6b4a12; }
 .card--secret .card__wash { filter: blur(7cqi) sepia(1) saturate(2.4) hue-rotate(-8deg) brightness(1.05); }
-.card--secret .card__box { background: rgba(255,240,190,.45); box-shadow: inset 0 0 0 .6cqi rgba(120,80,10,.25); }
-.card--secret .card__name { text-shadow: 0 .5cqi 0 rgba(255,255,255,.5); }
-.card--secret .card__rule { background: rgba(80,50,0,.25); }
+.card--secret .card__name, .card--secret .card__hp { color: #3b2508; text-shadow: 0 .5cqi 0 rgba(255,255,255,.5); }
+.card--secret .card__top { color: rgba(59,37,8,.85); }
+.card--secret .card__stage { background: rgba(59,37,8,.12); }
+.card--secret .card__text { background: rgba(255,244,205,.5); box-shadow: inset 0 0 0 .4cqi rgba(120,80,10,.25); }
+.card--secret .tx-rule, .card--secret .card__wrr { border-color: rgba(80,50,0,.25); }
+.card--secret .card__code { background: #3b2508; color: #fff3c4; }
 
 /* ---- one piece wanted poster */
 .card--wanted .card__face {
@@ -330,7 +408,7 @@ header.top {
     var(--paper2);
   display: flex; flex-direction: column; align-items: center; text-align: center;
 }
-.card--wanted .w-title { font: 400 17.5cqi/.9 'Alfa Slab One', Georgia, serif; letter-spacing: .6cqi; margin-top: .5cqi; }
+.card--wanted .w-title { font: 400 17.5cqi/.9 var(--ff-slab); letter-spacing: .6cqi; margin-top: .5cqi; }
 .card--wanted .w-art {
   width: 100%; aspect-ratio: 5 / 4; margin: 2.2cqi 0 1.6cqi; border: 1.1cqi solid var(--ink2); display: grid; place-items: center; overflow: hidden;
   background: color-mix(in oklab, var(--paper2) 80%, #fff);
@@ -338,15 +416,14 @@ header.top {
 }
 .card--wanted .w-art img { width: 92%; height: 92%; object-fit: contain; }
 .card--wanted .w-art img.fill { width: 100%; height: 100%; object-fit: cover; }
-.card--wanted .w-doa { font: 400 6.4cqi/1 'Alfa Slab One', Georgia, serif; letter-spacing: .8cqi; display: flex; align-items: center; gap: 2cqi; width: 100%; }
+.card--wanted .w-doa { font: 400 6.4cqi/1 var(--ff-slab); letter-spacing: .8cqi; display: flex; align-items: center; gap: 2cqi; width: 100%; }
 .card--wanted .w-doa::before, .card--wanted .w-doa::after { content: ""; flex: 1; height: .6cqi; background: currentColor; opacity: .6; }
-.card--wanted .w-name { font: 400 8.6cqi/1.02 'Alfa Slab One', Georgia, serif; margin-top: 1.4cqi; letter-spacing: .2cqi; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card--wanted .w-name.long { font-size: 6.6cqi; }
-.card--wanted .w-name.xlong { font-size: 5.3cqi; letter-spacing: 0; }
-.card--wanted .w-bounty { font: 400 9.4cqi/1 'Alfa Slab One', Georgia, serif; margin-top: 1.2cqi; color: var(--accent2); display: flex; align-items: center; gap: 1.4cqi; white-space: nowrap; }
+.card--wanted .w-name { font: 400 calc(8.6cqi * var(--ns, 1))/1.02 var(--ff-slab); margin-top: 1.4cqi; letter-spacing: .2cqi; max-width: 100%; overflow: hidden; white-space: nowrap; }
+.card--wanted .w-name.wrap { white-space: normal; letter-spacing: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.card--wanted .w-bounty { font: 400 9.4cqi/1 var(--ff-slab); margin-top: 1.2cqi; color: var(--accent2); display: flex; align-items: center; gap: 1.4cqi; white-space: nowrap; }
 .card--wanted .w-bounty.long { font-size: 7.4cqi; }
 .card--wanted .w-berry { font: 700 1.05em/1 Georgia, serif; }
-.card--wanted .w-foot { margin-top: auto; width: 100%; display: flex; justify-content: space-between; align-items: center; font: 700 4.6cqi/1 Silkscreen, monospace; }
+.card--wanted .w-foot { margin-top: auto; width: 100%; display: flex; justify-content: space-between; align-items: center; font: 700 4.6cqi/1 var(--ff-pix); }
 .card--wanted .w-foot .rar { color: var(--accent2); font-size: 5.6cqi; }
 .card--gold .card__face {
   background:
@@ -373,8 +450,8 @@ header.top {
 .card--dex .dex-art { flex: 1; display: grid; place-items: center; min-height: 0; padding: 6cqi; }
 .card--dex .dex-art img { max-width: 100%; max-height: 100%; width: var(--iw, 90%); object-fit: contain; filter: drop-shadow(0 1.5cqi 0 rgba(0,0,0,.14)); }
 .card--dex .dex-bar { background: rgba(255,255,255,.55); padding: 3.2cqi 4cqi 3.6cqi; display: flex; flex-direction: column; gap: 1.6cqi; }
-.card--dex .dex-no { font: 700 8.6cqi/1 Silkscreen, monospace; opacity: .7; }
-.card--dex .dex-name { font: 700 11cqi/1 Fredoka; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card--dex .dex-no { font: 700 8.6cqi/1 var(--ff-pix); opacity: .7; }
+.card--dex .dex-name { font: 700 11cqi/1 var(--ff-round); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ================================================================ foil */
 .card__shine, .card__glare, .card__sparkle { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
@@ -384,7 +461,8 @@ header.top {
 }
 .card:hover .card__glare, .card.live .card__glare, .card.foil .card__glare { opacity: .55; }
 .card.foil:not(.live) .card__glare { opacity: .35; }
-.card.foil { animation: idle var(--idle, 7s) ease-in-out infinite alternate; animation-delay: var(--delay, 0s); }
+/* the idle sway runs only on foils on screen (an IntersectionObserver sets .in-view): off-screen and strip cards rest */
+.card.foil.in-view { animation: idle var(--idle, 7s) ease-in-out infinite alternate; animation-delay: var(--delay, 0s); }
 .card.live { animation: none; }
 @keyframes idle {
   0%   { --px: .15; --py: .2; }
@@ -392,7 +470,6 @@ header.top {
   70%  { --px: .4;  --py: .85; }
   100% { --px: .9;  --py: .7; }
 }
-@media (prefers-reduced-motion: reduce) { .card.foil { animation: none; } }
 
 .card__shine {
   --rb: hsl(2 100% 73%) 0%, hsl(45 100% 68%) 5%, hsl(110 85% 68%) 10%, hsl(185 100% 68%) 15%, hsl(235 100% 76%) 20%, hsl(290 100% 75%) 25%, hsl(340 100% 73%) 30%;
@@ -403,6 +480,10 @@ header.top {
 }
 .card:hover .card__shine, .card.live .card__shine { opacity: .7; }
 .card--full .card__shine { opacity: .55; }
+/* on a regular card the holo sits mostly on the art: the text half keeps a faint sheen so it stays readable */
+:where(.card--tcg:not(.card--full)) .card__shine, :where(.card--tcg:not(.card--full)) .card__glare {
+  -webkit-mask: linear-gradient(180deg, #000 0 56%, rgba(0,0,0,.28) 64%, rgba(0,0,0,.28)); mask: linear-gradient(180deg, #000 0 56%, rgba(0,0,0,.28) 64%, rgba(0,0,0,.28));
+}
 
 /* tier defaults (a card whose skin is unknown) */
 .tier-holo .card__shine { opacity: .45; }
@@ -695,54 +776,67 @@ header.top {
   position: absolute; bottom: -3%; right: -5%; z-index: 6; pointer-events: none;
   min-width: 27%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
   background: radial-gradient(circle at 35% 30%, #ffe57a, #ffb400 70%); color: #4a2a00;
-  font: 700 clamp(9px, 11cqi, 18px)/1 Fredoka; transform: rotate(-10deg);
+  font: 700 clamp(9px, 11cqi, 18px)/1 var(--ff-round); transform: rotate(-10deg);
   box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.55);
 }
 .badge-new {
   position: absolute; top: -2.5%; right: -6%; z-index: 7; pointer-events: none; padding: 1.5% 6%;
   background: linear-gradient(135deg, #ff5fa2, #ff8a5c); color: #fff; border-radius: 3px;
-  font: 700 clamp(8px, 9cqi, 14px)/1.2 Silkscreen, monospace; letter-spacing: .06em; transform: rotate(8deg);
+  font: 700 clamp(8px, 9cqi, 14px)/1.2 var(--ff-pix); letter-spacing: .06em; transform: rotate(8deg);
   box-shadow: 0 1px 3px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.4);
 }
 .card.pending .card__inner { filter: grayscale(.85) contrast(.9) brightness(1.05); opacity: .78; }
 .card.pending::after {
   content: "pending"; position: absolute; top: 39%; left: -8%; right: -8%; z-index: 6; text-align: center;
-  font: 700 clamp(9px, 11cqi, 17px)/1.5 Caveat, cursive; color: #5b3f00;
+  font: 700 clamp(9px, 11cqi, 17px)/1.5 var(--ff-hand); color: #5b3f00;
   background: repeating-linear-gradient(90deg, rgba(255, 214, 102, .92) 0 6px, rgba(255, 226, 140, .92) 6px 12px);
   transform: rotate(-9deg); box-shadow: 0 1px 2px rgba(0,0,0,.2); pointer-events: none;
 }
 
 /* ================================================================ title page (the divider sheet) */
 .page--title { padding-top: 5%; }
-.tp { flex: 1; display: flex; flex-direction: column; gap: 3.2%; container-type: inline-size; min-height: 0; }
-.tp__kicker { font: 700 3.1cqi/1 Silkscreen, monospace; letter-spacing: .3cqi; color: var(--ink-soft); }
-.tp__title { font: 700 11cqi/.95 Fredoka; margin: 0; letter-spacing: -.3cqi; }
-.tp__hero { display: flex; align-items: center; gap: 5cqi; }
+/* every size is k * cqi * --tps: the page fits its content by lowering --tps (a fit pass after render; the page keeps
+   its .76 aspect, so one scale fits every width) */
+.tp { --k: var(--tps, 1); flex: 1; display: flex; flex-direction: column; gap: calc(2.6cqi * var(--k)); container-type: inline-size; min-height: 0; overflow: hidden; }
+.tp__kicker { font: 700 calc(3cqi * var(--k))/1 var(--ff-pix); letter-spacing: .3cqi; color: var(--ink-soft); }
+.tp__title { font: 700 calc(10.4cqi * var(--k))/.95 var(--ff-round); margin: 0; letter-spacing: -.3cqi; text-wrap: balance; }
+.tp__hero { display: flex; align-items: center; gap: calc(5cqi * var(--k)); }
 .ring {
-  --p: 0; flex: none; width: 30cqi; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; position: relative;
+  --p: 0; flex: none; width: calc(27cqi * var(--k)); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; position: relative;
   background: conic-gradient(var(--rc, var(--accent)) calc(var(--p) * 1%), color-mix(in oklab, var(--ink) 10%, transparent) 0);
 }
 .ring::before { content: ""; position: absolute; inset: 11%; border-radius: 50%; background: var(--paper); }
-.ring span { position: relative; font: 700 8.4cqi/1 Fredoka; }
+.ring span { position: relative; font: 700 calc(7.6cqi * var(--k))/1 var(--ff-round); }
 .ring span small { font-size: .45em; }
-.tp__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8cqi 4cqi; flex: 1; }
-.fact b { display: block; font: 700 6.6cqi/1 Fredoka; }
-.fact span { font: 500 3.4cqi/1.2 Fredoka; color: var(--ink-soft); }
-.odds { width: 100%; border-collapse: collapse; font: 500 3.5cqi/1.2 Fredoka; }
-.odds th { text-align: left; font: 700 2.8cqi/1 Silkscreen, monospace; color: var(--ink-soft); padding: 0 0 1.4cqi; font-weight: 400; }
-.odds td { padding: 1.3cqi 0; border-top: 1px dashed var(--ghost-line); vertical-align: middle; }
+.tp__facts { display: grid; grid-template-columns: 1fr 1fr; gap: calc(1.8cqi * var(--k)) calc(4cqi * var(--k)); flex: 1; }
+.fact b { display: block; font: 700 calc(6.2cqi * var(--k))/1 var(--ff-round); }
+.fact span { font: 500 calc(3.3cqi * var(--k))/1.2 var(--ff-round); color: var(--ink-soft); }
+.odds { width: 100%; border-collapse: collapse; font: 500 calc(3.3cqi * var(--k))/1.15 var(--ff-round); }
+.odds th { text-align: left; font: 400 calc(2.6cqi * var(--k))/1.1 var(--ff-pix); color: var(--ink-soft); padding: 0 0 calc(1.2cqi * var(--k)); white-space: nowrap; }
+.odds th.num { text-align: right; padding-left: 2.4cqi; }
+.odds td { padding: calc(.95cqi * var(--k)) 0; border-top: 1px dashed var(--ghost-line); vertical-align: middle; }
 .odds td.num { padding-left: 2.4cqi; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.odds .rar { display: inline-block; min-width: 7cqi; font-weight: 700; }
-.bar { height: 2cqi; border-radius: 2cqi; background: color-mix(in oklab, var(--ink) 10%, transparent); overflow: hidden; min-width: 12cqi; }
+.odds td.lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 44%; }
+.odds td.barcell { width: 18%; padding-left: 3.4cqi; }
+.odds td.got { padding-left: 2cqi; }
+.rar { display: inline-block; min-width: 1.6em; font-weight: 700; letter-spacing: -.08em; white-space: nowrap; }
+.odds .rar, .d-odds .rar { min-width: 2.5em; }
+.rar--holo { color: #b8860b; } .rar--silver { color: #6d7a88; } .rar--gold { color: #a8741a; }
+.rar--rainbow { background: linear-gradient(90deg, #e2436b, #e8a02c, #3fae5a, #2f86d6, #8a55d6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rar--special { color: #c2328a; }
+.bar { height: calc(1.8cqi * var(--k)); border-radius: 2cqi; background: color-mix(in oklab, var(--ink) 10%, transparent); overflow: hidden; min-width: 10cqi; }
 .bar i { display: block; height: 100%; border-radius: inherit; background: var(--rc, var(--accent)); }
-.legend { display: flex; flex-wrap: wrap; gap: 1.6cqi 4cqi; font: 500 3.2cqi/1.2 Fredoka; color: var(--ink-soft); margin-top: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: calc(1.4cqi * var(--k)) calc(3.6cqi * var(--k)); font: 500 calc(3cqi * var(--k))/1.2 var(--ff-round); color: var(--ink-soft); margin-top: auto; }
 .legend span { display: inline-flex; align-items: center; gap: 1.4cqi; }
-.legend i { display: inline-block; width: 3.4cqi; height: 4.6cqi; border-radius: .8cqi; }
-.note { font: 600 4.6cqi/1.1 Caveat, cursive; color: var(--ink-soft); }
-.tp__best { display: flex; gap: 3cqi; align-items: flex-end; }
-.tp__best .card { width: 17cqi; flex: none; }
-.tp__best-label { font: 700 2.8cqi/1 Silkscreen, monospace; color: var(--ink-soft); margin-bottom: 1.4cqi; }
-.tp__best-since { opacity: .6; font-weight: 400; }
+.legend i { display: inline-block; width: calc(3.2cqi * var(--k)); height: calc(4.4cqi * var(--k)); border-radius: .8cqi; }
+.note { font: 600 calc(4.4cqi * var(--k))/1.1 var(--ff-hand); color: var(--ink-soft); }
+.tp__best { display: flex; gap: calc(3cqi * var(--k)); align-items: flex-end; }
+.tp__best .card { width: calc(16cqi * var(--k)); flex: none; }
+.tp__best-label { font: 700 calc(2.6cqi * var(--k))/1 var(--ff-pix); color: var(--ink-soft); margin-bottom: calc(1.4cqi * var(--k)); }
+.tp__best-since { font-weight: 400; }
+/* a phone page is small: the per-pull column and the legend step aside so the rest stays readable; past that, it scrolls */
+.binder.is-single .odds .perpull, .binder.is-single .tp .legend { display: none; }
+.tp.scroll { overflow-y: auto; scrollbar-width: thin; }
 
 .page--title.pk-pokemon { background: linear-gradient(90deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05)), linear-gradient(160deg, color-mix(in oklab, #ffcb05 22%, var(--paper)), var(--paper) 60%); --rc: #e3350d; }
 .page--title.pk-onepiece { --rc: #b3261e; }
@@ -750,7 +844,7 @@ header.top {
 
 /* one piece pages: wanted-poster parchment */
 .page.pk-onepiece {
-  --ghost-ink: rgba(90, 55, 25, .6); --ghost-line: rgba(110, 70, 30, .32); --sil: rgba(90, 55, 25, .2); --pocket-line: rgba(110, 70, 30, .3); --ink: #3b2616; --ink-soft: #7a5a3c; --paper: #efe0bb;
+  --ghost-ink: #6b4f2c; --ghost-line: rgba(110, 70, 30, .32); --sil: rgba(90, 55, 25, .2); --pocket-line: rgba(110, 70, 30, .3); --ink: #3b2616; --ink-soft: #7a5a3c; --paper: #efe0bb;
   color: #3b2616;
   background:
     radial-gradient(60% 40% at 0% 0%, rgba(150, 100, 40, .28), transparent 70%),
@@ -761,7 +855,7 @@ header.top {
 }
 :root[data-theme="dark"] .page.pk-onepiece { filter: brightness(.82) saturate(.95); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .page.pk-onepiece { filter: brightness(.82) saturate(.95); } }
-.page.pk-onepiece .tp__title { font: 400 10.5cqi/.95 'Alfa Slab One', Georgia, serif; letter-spacing: 0; }
+.page.pk-onepiece .tp__title { font: 400 10.5cqi/.95 var(--ff-slab); letter-spacing: 0; }
 
 /* pokedex pages: compact, on the red device */
 .page.pk-pokedex:not(.page--title) {
@@ -798,22 +892,22 @@ header.top {
 }
 .cover__back .page { inset: 12px 12px 14px 0; }
 .cover__emblem { width: 44cqi; aspect-ratio: 1; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
-.cover__title { padding: 0 16cqi 0 8cqi; text-align: center; font: 700 8.2cqi/1 Fredoka; letter-spacing: .6cqi; text-shadow: 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.25); text-transform: uppercase; }
+.cover__title { padding: 0 16cqi 0 8cqi; text-align: center; font: 700 8.2cqi/1 var(--ff-round); letter-spacing: .6cqi; text-shadow: 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.25); text-transform: uppercase; }
 .cover__label {
   background: #fbf7ee; color: #3a3140; padding: 2.4cqi 6cqi 2cqi; border-radius: 1.4cqi; transform: rotate(-2deg);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.3);
-  font: 700 8cqi/1 Caveat, cursive; text-align: center;
+  font: 700 8cqi/1 var(--ff-hand); text-align: center;
 }
-.cover__label small { display: block; font: 700 2.8cqi/1.4 Silkscreen, monospace; color: #8a7f86; }
+.cover__label small { display: block; font: 700 2.8cqi/1.4 var(--ff-pix); color: #665c66; }
 .cover__sticker {
   position: absolute; top: 7%; right: 9%; padding: 2cqi 3cqi; border-radius: 2cqi; transform: rotate(8deg);
-  font: 700 4cqi/1 Silkscreen, monospace; color: #1b1330;
+  font: 700 4cqi/1 var(--ff-pix); color: #1b1330;
   background: linear-gradient(115deg, #ffd1f0, #c8f7ff, #fff3b0, #d7c8ff, #ffd1f0) 0 0 / 300% 300%;
   animation: stickerShine 5s linear infinite; box-shadow: 0 2px 3px rgba(0,0,0,.3);
 }
 @keyframes stickerShine { to { background-position: 300% 0; } }
 .cover__strap { position: absolute; top: -12px; bottom: -14px; right: 9%; width: 7%; background: linear-gradient(90deg, #2d2630, #4a4150 50%, #2d2630); box-shadow: 0 0 6px rgba(0,0,0,.4); }
-.cover__hint { font: 600 5.4cqi/1 Caveat, cursive; color: rgba(255,240,230,.85); animation: bob 1.8s ease-in-out infinite; }
+.cover__hint { font: 600 5.4cqi/1 var(--ff-hand); color: #fff6ee; animation: bob 1.8s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-4px); } }
 
 /* ---------------------------------------------------------------- rings */
@@ -837,22 +931,34 @@ header.top {
 .leaf > .page.back { transform: rotateY(180deg); }
 .leaf__shade { position: absolute; inset: 0; pointer-events: none; border-radius: 6px; background: linear-gradient(90deg, rgba(0,0,0,.0), rgba(0,0,0,.25)); opacity: 0; }
 
-/* set dividers (real-card packs): a second row of tabs on the left, one per set */
-.dividers--sets { right: auto; left: 8px; max-width: calc(100% - 360px); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-top: 8px; top: -42px; }
-.binder.is-single .dividers--sets { position: static; margin: 0 0 6px; flex-wrap: wrap; }
+/* set dividers (real-card packs): a second row of tabs on the left, one per set; the row scrolls, tabs keep their size */
+.dividers--sets {
+  right: auto; left: 8px; max-width: calc(100% - var(--packs-w, 340px) - 28px); overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  padding: 8px 18px 0 2px; top: -42px; scroll-padding-inline: 16px;
+  -webkit-mask: linear-gradient(90deg, #000 calc(100% - 18px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 18px), transparent);
+}
+.dividers--sets::-webkit-scrollbar { display: none; }
+.binder.is-single .dividers--sets { left: 12px; right: 0; max-width: none; top: -72px; }
+.binder.is-single.has-sets:not(.is-closed) { margin-top: 38px; }
 .dividers--sets[hidden] { display: none; }
-.tab--set { --tc: #d9d2c3; --tk: #2b2620; font-size: 12.5px; padding: 6px 10px 12px; }
+.tab--set { --tc: #d9d2c3; --tk: #2b2620; font-size: 12.5px; padding: 6px 10px 12px; flex: none; }
 .tab--set[aria-selected="true"] { --tc: #fff4d6; }
+.binder.is-single .tab--set small { display: inline; }
 
 /* search + tag chips */
-.searchbar { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; margin-top: 4px; }
-.searchbar input { width: min(520px, 86vw); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); font: 500 14px/1.2 Fredoka; }
-.searchbar small { color: var(--ink-soft); font: 600 13px/1 Fredoka; min-width: 5em; }
+.searchbar { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
+.searchbar input { width: min(520px, 86vw); min-height: 40px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); font: 500 14px/1.2 var(--ff-round); }
+.searchbar input::placeholder { color: color-mix(in oklab, var(--ink-soft) 85%, transparent); }
+.searchbar small { color: var(--ink-soft); font: 600 13px/1.2 var(--ff-round); min-width: 5em; }
+.searchbar small em { font-style: normal; color: var(--accent-ink); }
 .d-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.tagchip { border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: 600 12.5px/1.2 Fredoka; cursor: pointer; }
-.tagchip small { color: var(--ink-soft); font-weight: 500; margin-right: 2px; }
-.tagchip:hover { transform: translateY(-1px); border-color: var(--ink-soft); }
+.tagchip { display: inline-flex; align-items: baseline; gap: 5px; min-height: 30px; border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); border-radius: 999px; padding: 5px 11px; font: 600 13px/1.2 var(--ff-round); cursor: pointer; }
+.tagchip small { color: var(--ink-soft); font-weight: 500; font-size: 11.5px; }
+.tagchip:hover { border-color: var(--ink-soft); }
 .ghost__label b { display: block; font-weight: 700; }
+.pocket--empty { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; place-items: center; text-align: center; padding: 8%; }
+.pocket--empty p { margin: 0; font: 600 clamp(18px, 3.4vw, 26px)/1.15 var(--ff-hand); color: var(--ink-soft); }
+.pocket--empty small { display: block; margin-top: 8px; font: 500 13px/1.4 var(--ff-round); }
 
 /* ---------------------------------------------------------------- pager */
 .pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; max-width: 100%; }
@@ -862,53 +968,61 @@ header.top {
 }
 .pager__btn:hover:not(:disabled) { transform: scale(1.08); }
 .pager__btn:disabled { opacity: .35; cursor: default; }
-.pager__label { min-width: 170px; text-align: center; font: 600 20px/1.1 Caveat, cursive; color: var(--ink-soft); }
-.pager__label b { font: 700 14px/1 Fredoka; color: var(--ink); display: block; }
+.pager__label { min-width: 170px; text-align: center; font: 600 20px/1.1 var(--ff-hand); color: var(--ink-soft); }
+.pager__label b { font: 700 14px/1 var(--ff-round); color: var(--ink); display: block; }
 .scrub[hidden] { display: none; }
 .scrub { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; font-size: 13px; color: var(--ink-soft); }
 .scrub input[type=range] { width: min(360px, 60vw); accent-color: #2a6fd0; }
-.scrub label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
-.kbd { font: 600 12px/1 Fredoka, system-ui, sans-serif; border: 1px solid var(--chip-line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; }
+.scrub label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; min-height: 32px; }
+.kbd { font: 600 12px/1 var(--ff-round); border: 1px solid var(--chip-line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; }
 .hint .phone-only { display: none; }
-.hint { text-align: center; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 26px; }
+.hint { text-align: center; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 8px; }
+.snapshot { text-align: center; color: var(--ink-soft); font-size: 12px; margin: 0 0 26px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: 12px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 10px; background: var(--panel); color: var(--ink); box-shadow: 0 6px 20px rgba(0,0,0,.25); font-weight: 700; text-decoration: none; }
+.skip:focus { top: 10px; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 40; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 12px; background: var(--ink); color: var(--panel); font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.toast[hidden] { display: none; }
 
 /* ================================================================ detail modal */
 dialog.detail {
-  border: 0; padding: 0; background: transparent; color: var(--ink); max-width: min(920px, calc(100vw - 24px)); width: 100%;
+  border: 0; padding: 0; background: transparent; color: var(--ink); max-width: min(960px, calc(100vw - 24px)); width: 100%;
   max-height: calc(100svh - 24px); overflow: visible;
 }
 dialog.detail::backdrop { background: var(--modal-bg); backdrop-filter: blur(5px); }
 dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 @keyframes pop { from { transform: scale(.92) translateY(10px); opacity: 0; } }
 .detail__box {
-  position: relative; display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 28px; align-items: start;
+  position: relative; display: grid; grid-template-columns: minmax(0, 390px) minmax(0, 1fr); gap: 28px; align-items: start;
   background: var(--panel); border-radius: 22px; padding: 26px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.6); border: 1px solid var(--panel-line);
-  max-height: calc(100svh - 24px); overflow: auto;
+  max-height: calc(100svh - 24px); overflow: auto; overscroll-behavior: contain;
 }
-.detail__stage { position: sticky; top: 0; display: grid; place-items: center; padding: 10px 6px 16px; }
-.detail__stage .card { width: min(100%, 330px); --tilt: 0; }
-.detail__stage .card.live { --tilt: 22; }
+.detail__stage { position: sticky; top: 0; display: grid; place-items: center; padding: 10px 14px 16px; }
+.detail__stage .card { width: min(100%, 360px); --tilt: 0; cursor: default; }
+.detail__stage .card.live { --tilt: 18; }
 .detail__stage .card .card__inner { box-shadow: 0 2px 3px rgba(0,0,0,.25), 0 30px 50px -18px rgba(0,0,0,.55); }
+.detail__stage .badge-count { min-width: 17%; font-size: 16px; right: -3%; bottom: -2%; }
+.detail__stage .badge-shiny { width: 15%; top: -3%; right: -4%; }
 .detail__swap { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
-.detail__swap button { border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.detail__swap button { min-height: 34px; border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-size: 13.5px; }
 .detail__swap button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
 .detail__box:focus { outline: none; }
-.detail__close { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--chip-line); background: var(--chip); cursor: pointer; font-size: 18px; z-index: 3; }
+.detail__close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--chip-line); background: var(--panel); cursor: pointer; font-size: 18px; z-index: 10; }
 .detail__info { min-width: 0; }
-.d-kicker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 700 11px/1 Silkscreen, monospace; color: var(--ink-soft); letter-spacing: .5px; }
-.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font: 700 12px/1 Fredoka; letter-spacing: 0; }
-.pill--ok { background: color-mix(in oklab, #1fa35a 18%, transparent); color: color-mix(in oklab, #1fa35a 80%, var(--ink)); }
-.pill--pending { background: color-mix(in oklab, #e0a100 22%, transparent); color: color-mix(in oklab, #b07b00 85%, var(--ink)); }
+.d-kicker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 700 11px/1.3 var(--ff-pix); color: var(--ink-soft); letter-spacing: .5px; padding-right: 44px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font: 700 12px/1 var(--ff-round); letter-spacing: 0; }
+.pill--ok { background: color-mix(in oklab, #1fa35a 18%, transparent); color: color-mix(in oklab, #137a40 90%, var(--ink)); }
+.pill--pending { background: color-mix(in oklab, #e0a100 22%, transparent); color: color-mix(in oklab, #7a5500 90%, var(--ink)); }
 .pill--none { background: color-mix(in oklab, var(--ink) 8%, transparent); color: var(--ink-soft); }
-.d-name { font: 700 34px/1.05 Fredoka; margin: 10px 0 2px; letter-spacing: -.5px; }
+.d-name { font: 700 34px/1.05 var(--ff-round); margin: 10px 0 2px; letter-spacing: -.5px; text-wrap: balance; }
 .d-sub { color: var(--ink-soft); font-size: 15px; }
-.d-sub .rar { color: var(--ink); font-weight: 700; }
+.d-sub .rar { font-weight: 700; }
 .d-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
-.d-stat { background: color-mix(in oklab, var(--ink) 4%, transparent); border: 1px solid var(--panel-line); border-radius: 14px; padding: 10px 12px; }
-.d-stat b { display: block; font: 700 24px/1.1 Fredoka; }
-.d-stat span { font-size: 12px; color: var(--ink-soft); }
+.d-stat { min-width: 0; background: color-mix(in oklab, var(--ink) 4%, transparent); border: 1px solid var(--panel-line); border-radius: 14px; padding: 10px 12px; }
+.d-stat b { display: block; font: 700 clamp(17px, 2.3vw, 24px)/1.1 var(--ff-round); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-stat span { display: block; font-size: 12px; line-height: 1.3; color: var(--ink-soft); }
 .d-sec { margin: 18px 0 0; }
-.d-sec h3 { font: 700 11px/1 Silkscreen, monospace; letter-spacing: .6px; color: var(--ink-soft); margin: 0 0 8px; font-weight: 400; }
+.d-sec h3 { font: 400 11px/1 var(--ff-pix); letter-spacing: .6px; color: var(--ink-soft); margin: 0 0 8px; }
 .d-skin { display: flex; gap: 12px; align-items: flex-start; }
 .d-swatch { width: 46px; height: 46px; border-radius: 12px; flex: none; position: relative; overflow: hidden; background: #9aa; }
 .d-swatch .card__shine { opacity: .95 !important; mix-blend-mode: normal; filter: none; }
@@ -916,11 +1030,13 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 .d-skin b { font-size: 15px; }
 .d-odds { width: 100%; border-collapse: collapse; font-size: 14px; }
 .d-odds td { padding: 6px 0; border-top: 1px dashed var(--panel-line); }
-.d-odds td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-.d-odds tr.me td { color: var(--accent); }
+.d-odds td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; padding-left: 12px; white-space: nowrap; }
+.d-odds tr.me td { color: var(--accent-ink); font-weight: 700; }
+.d-odds caption { caption-side: bottom; text-align: left; font-size: 12.5px; color: var(--ink-soft); padding-top: 8px; }
 .d-pulls { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 190px; overflow: auto; }
 .d-pulls li { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 5px 10px; border-radius: 9px; background: color-mix(in oklab, var(--ink) 4%, transparent); }
 .d-pulls li.hl { outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent); }
+.d-pulls li.is-pending { opacity: .8; }
 .d-pulls time { font-variant-numeric: tabular-nums; }
 .d-pulls span { color: var(--ink-soft); text-align: right; }
 .d-foot { font-size: 12.5px; color: var(--ink-soft); margin-top: 14px; }
@@ -929,7 +1045,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 @media (max-width: 760px) {
   header.top { padding-top: 10px; gap: 8px; position: relative; }
   #themeBtn { position: absolute; top: 12px; right: 0; }
-  .brand { padding-right: 76px; }
+  .brand { padding-right: 86px; }
   .hint .desk-only { display: none; }
   .hint .phone-only { display: inline; }
   .brand h1 { font-size: 18px; }
@@ -942,17 +1058,26 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
   .tab small { display: none; }
   .tab[aria-selected="true"] small { display: inline; }
   .detail__box { grid-template-columns: 1fr; padding: 18px 16px; gap: 6px; border-radius: 18px; }
-  .detail__stage { position: static; }
-  .detail__stage .card { width: min(72vw, 280px); }
+  .detail__stage { position: static; padding-top: 28px; }
+  .detail__stage .card { width: min(82vw, 320px); }
   .d-name { font-size: 28px; }
   .d-grid { gap: 6px; }
-  .d-stat b { font-size: 20px; }
+  .d-stat { padding: 8px 9px; }
   .pager__label { min-width: 130px; }
   .rings i { filter: none; }
+}
+
+/* reduced motion: nothing moves on its own; state changes (open, flip, dialogs) happen at once */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+  .card.foil.in-view, .badge-shiny, .cover__sticker, .cover__hint { animation: none !important; }
+  .recent__item:hover .card { transform: rotate(var(--r, 0deg)); }
+  .pocket .card:hover, .pocket .card:focus-visible { --lift: 0; }
 }
 </style>
 </head>
 <body>
+<a class="skip" href="#binder">Skip to the binder</a>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -969,11 +1094,11 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
       </div>
     </div>
     <div class="chips" id="chips"></div>
-    <button class="iconbtn" id="themeBtn" type="button" title="Theme: follow system / light / dark" aria-label="Toggle theme">◐ <span id="themeLbl">auto</span></button>
+    <button class="iconbtn" id="themeBtn" type="button" title="Theme: follow system, light or dark"><span aria-hidden="true">◐</span> <span class="sr-only">Theme:</span> <span id="themeLbl">auto</span></button>
   </header>
 
   <section class="recent" aria-labelledby="recentTitle">
-    <div class="recent__head"><h2 id="recentTitle">Fresh pulls</h2><span>newest first, click one to look closer</span></div>
+    <div class="recent__head"><h2 id="recentTitle">Fresh pulls</h2><span>newest first · click one to look closer</span></div>
     <div class="recent__rail" id="recent"></div>
   </section>
 </div>
@@ -981,9 +1106,9 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 <main class="stage">
   <div class="binder is-closed" id="binder">
     <div class="board"></div>
-    <nav class="dividers" id="dividers" role="tablist" aria-label="Packs"></nav>
-    <nav class="dividers dividers--sets" id="setTabs" role="tablist" aria-label="Sets" hidden></nav>
-    <div class="spread" id="spread">
+    <div class="dividers" id="dividers" role="tablist" aria-label="Packs"></div>
+    <div class="dividers dividers--sets" id="setTabs" role="tablist" aria-label="Sets" hidden></div>
+    <div class="spread" id="spread" role="tabpanel" aria-label="Binder pages" tabindex="-1">
       <div class="slot-page left" id="leftSlot"></div>
       <div class="slot-page right" id="rightSlot"></div>
     </div>
@@ -1004,7 +1129,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
         <div class="cover__label" id="coverLabel">My pulls<small>pokeshell · tab pulls</small></div>
         <div class="cover__hint">tap to open →</div>
       </div>
-      <div class="cover__back" id="coverBack"></div>
+      <div class="cover__back" id="coverBack" aria-hidden="true" inert></div>
     </div>
   </div>
   <div class="pager" id="pager">
@@ -1017,16 +1142,18 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
     </div>
     <div class="searchbar">
       <input type="search" id="search" placeholder='search: evolving skies · set:swsh7 · rarity:"rare rainbow" · type:water · shiny' aria-label="Search cards: words and tag filters" autocomplete="off" spellcheck="false">
-      <small id="searchCount"></small>
+      <small id="searchCount" role="status" aria-live="polite"></small>
     </div>
   </div>
-  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">1</span>–<span class="kbd">3</span> packs · <span class="kbd">/</span> search · click a card for details (its tags filter)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">Home</span> <span class="kbd">End</span> first / last page · <span id="packKeys"></span> <span class="kbd">/</span> search · click a card for details (its tags search)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+  <p class="snapshot" id="snapshot"></p>
 </main>
 
 <dialog class="detail" id="detail" aria-labelledby="dName"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
-/* The exporter (export.py) swaps the null below for the data when it bakes binder.html. */
+/* The exporter (tools/binder_web.py) swaps the null below for the data when it bakes binder.html. */
 const INLINE_DATA = /*__INLINE_DATA__*/null;
 
 (async function main() {
@@ -1042,10 +1169,12 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       else if (k === 'html') el.innerHTML = v;
       else el.setAttribute(k, v === true ? '' : v);
     }
-    for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+    for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
     return el;
   };
   const params = new URLSearchParams(location.search);
+  // a flag parameter is on when present (?open, ?open=1), off for 0 / false / no / off
+  const flag = k => params.has(k) && !/^(0|false|no|off)$/i.test(params.get(k) || '');
 
   /* -------------------------------------------------------------- svg textures for the foils */
   const svgUrl = s => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
@@ -1074,13 +1203,17 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   for (const p of packs) {
     p.charById = Object.fromEntries(p.characters.map(c => [c.id, c]));
     p.tierIdx = Object.fromEntries(p.tiers.map((t, i) => [t.id, i]));
-    // real-card packs (layout 'cards'): every card of pack.json, with its tags (set, rarity, types, artist...)
-    if (p.layout === 'cards') p.cardById = Object.fromEntries(p.cards.map(c => [c.id, c]));
+    // real-card packs (layout 'cards'): every droppable card, with its tags and text half
+    if (p.layout === 'cards') { p.cardById = Object.fromEntries(p.cards.map(c => [c.id, c])); p.setById = Object.fromEntries((p.sets || []).map(s => [s.id, s])); }
   }
-  const pulls = DATA.pulls.slice().sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : a.id - b.id);
+  const packTitle = pk => pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name;
+  const pulls = DATA.pulls.filter(p => packById[p.pack]?.charById[p.char] && packById[p.pack].tierIdx[p.tier] != null)
+    .sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : a.id - b.id);
   // preview the earned rule: ?pending=N marks the N newest pulls pending
   const demoPending = Math.max(0, parseInt(params.get('pending') || '0', 10) || 0);
   if (demoPending) pulls.slice(-demoPending).forEach(p => p.status = 'pending');
+  // pending pulls are shown (greyed) but never counted: pulls, shinies, foils, duplicates and best pulls count kept ones
+  const kept = p => p.status === 'collected';
 
   const slotKey = (pack, char, tier) => packById[pack]?.layout === 'dex' ? `${pack}|${char}` : `${pack}|${char}|${tier}`;
   const slots = new Map();
@@ -1099,13 +1232,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const pk = packById[p.pack];
     return pk?.layout === 'cards' && p.card && pk.cardById[p.card] ? getCardSlot(p.pack, p.card) : getSlot(p.pack, p.char, p.tier);
   }
-  for (const p of pulls) {
-    if (!packById[p.pack] || !packById[p.pack].charById[p.char]) continue;
-    slotOf(p).pulls.push(p);
-  }
+  for (const p of pulls) slotOf(p).pulls.push(p);
   function summarize(slot) {
     const pk = packById[slot.pack];
-    const got = slot.pulls.filter(p => p.status === 'collected');
+    const got = slot.pulls.filter(kept);
     const pend = slot.pulls.filter(p => p.status === 'pending');
     const pool = got.length ? got : pend;
     let tier = slot.tier;
@@ -1119,98 +1249,166 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
 
   // o: { caughtOnly, set, query } (pagesFor passes the view's; stats pass only a set)
   function packSlots(pk, o = {}) {
-    const caughtOnly = o.caughtOnly;
     let out = [];
     if (pk.layout === 'cards') {
       out = pk.cards.filter(c => !o.set || c.set_id === o.set).map(c => getCardSlot(pk.id, c.id));
     } else if (pk.layout === 'dex') {
       for (const c of pk.characters) {
         const s = slots.get(`${pk.id}|${c.id}`) || { key: `${pk.id}|${c.id}`, pack: pk.id, char: c.id, tier: null, pulls: [] };
-        if (caughtOnly && !s.pulls.length) continue;
+        if (o.caughtOnly && !s.pulls.length) continue;
         out.push(s);
       }
     } else {
       for (const t of pk.tiers) for (const c of pk.characters) out.push(slots.get(`${pk.id}|${c.id}|${t.id}`) || { key: `${pk.id}|${c.id}|${t.id}`, pack: pk.id, char: c.id, tier: t.id, pulls: [] });
     }
-    if (o.query) { const terms = parseQuery(o.query); out = out.filter(s => matchQuery(terms, slotTags(s), slotFlags(s))); }
+    if (o.query) { const q = parseQuery(o.query); resolveSets(q.terms, pk); out = out.filter(s => matchQuery(q.terms, slotTags(s), slotFlags(s))); }
     return out;
   }
+  const statCache = new Map();
   function packStats(pk, set) {
+    const key = pk.id + '|' + (set || '');
+    if (statCache.has(key)) return statCache.get(key);
     const all = packSlots(pk, { set });
     const sums = all.map(summarize);
     const filled = sums.filter(s => s.owned).length;
     const inSet = p => !set || pk.cardById?.[p.card]?.set_id === set;
     const pk_pulls = pulls.filter(p => p.pack === pk.id && inSet(p));
+    const got = pk_pulls.filter(kept);
     const tierFilled = pk.tiers.map(t => pk.layout === 'dex'
-      ? new Set(pk_pulls.filter(p => p.tier === t.id && p.status === 'collected').map(p => p.char)).size
+      ? new Set(got.filter(p => p.tier === t.id).map(p => p.char)).size
       : all.filter((s, i) => s.tier === t.id && sums[i].owned).length);
     const tierTotal = pk.tiers.map(t => pk.layout === 'cards' ? all.filter(s => s.tier === t.id).length : pk.characters.length);
-    return { total: all.length, filled, pct: all.length ? filled / all.length : 0, pulls: pk_pulls.length,
-             collected: pk_pulls.filter(p => p.status === 'collected').length, pending: pk_pulls.filter(p => p.status === 'pending').length,
-             shinies: pk_pulls.filter(p => p.shiny).length, tierFilled, tierTotal };
+    const st = { total: all.length, filled, pct: all.length ? filled / all.length : 0, collected: got.length,
+                 pending: pk_pulls.length - got.length, shinies: got.filter(p => p.shiny).length, tierFilled, tierTotal };
+    statCache.set(key, st);
+    return st;
   }
 
   /* -------------------------------------------------------------- tags + search (the syntax of binder/src/query.rs)
-     words match anywhere; key:value / key:"a b" filter one tag; shiny foil new pending owned missing test the card */
+     words match the start of any word of any tag (short words: whole words); key:value / key:"a b" match one tag
+     whole (key:pika* for a prefix); -term excludes; shiny foil new pending owned missing test the card.
+     Case, accents, hyphens and underscores don't matter: rare-holo = "Rare Holo", pokémon = Pokemon. */
   const STATES = ['shiny', 'foil', 'new', 'pending', 'owned', 'missing'];
-  const KEYMAP = { sub: 'subtype', subtypes: 'subtype', character: 'char', pokemon: 'char', types: 'type', card: 'id', no: 'number', num: 'number', setname: 'set', series: 'set' };
+  const KEYS = ['pack', 'char', 'tier', 'name', 'id', 'number', 'rarity', 'set', 'artist', 'subtype', 'type', 'attack', 'ability'];
+  const KEYMAP = { sub: 'subtype', subtypes: 'subtype', stage: 'subtype', character: 'char', pokemon: 'char', types: 'type', card: 'id', no: 'number', num: 'number',
+                   setname: 'set', series: 'set', move: 'attack', attacks: 'attack', abilities: 'ability', illus: 'artist', illustrator: 'artist', finish: 'tier' };
+  const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   function parseQuery(q) {
-    const out = [], re = /(?:([A-Za-z]+):)?(?:"([^"]*)"?|(\S+))/g;
+    const terms = [], unknown = [], re = /(-)?(?:([A-Za-z]+):)?(?:"([^"]*)"?|(\S+))/g;
     let m;
     while ((m = re.exec(q || ''))) {
       if (!m[0]) { re.lastIndex++; continue; }
-      let key = m[1] ? m[1].toLowerCase() : null;
+      let key = m[2] ? m[2].toLowerCase() : null;
       if (key) key = KEYMAP[key] || key;
       if (key === 'is' || key === 'state') key = null;
-      const v = (m[2] ?? m[3] ?? '').trim().toLowerCase();
-      if (v) out.push({ key, v });
+      const v = norm(m[3] ?? m[4] ?? '');
+      if (!v || v === '-') continue;
+      const neg = !!m[1];
+      if (key === null && STATES.includes(v)) { terms.push({ neg, state: v }); continue; }
+      if (key && !KEYS.includes(key)) { unknown.push(m[2] + ':'); terms.push({ neg, unknown: true }); continue; }
+      terms.push({ neg, key, v, re: v.includes('*') ? new RegExp('^' + v.split('*').map(escRe).join('.*') + '$') : null });
     }
-    return out;
+    return { terms, unknown };
   }
-  function matchQuery(terms, tags, flags) {
-    return terms.every(({ key, v }) => key === null && STATES.includes(v) ? !!flags[v]
-      : tags.some(([k, x]) => (key === null || k === key) && String(x).toLowerCase().includes(v)));
+  // set: names a set like the app does (binder/src/query.rs): its id or whole name, else the sets whose name words start
+  // with the value's words (set:evolving, set:30th), else the ones whose name has its letters in order (set:evsk)
+  function resolveSets(terms, pk) {
+    for (const t of terms) {
+      t.sets = null;
+      if (t.key !== 'set' || t.re || !pk.sets?.length) continue;
+      const words = t.v.split(' ');
+      const tiers = [
+        s => norm(s.id) === t.v || norm(s.name) === t.v,
+        s => { const nw = norm(s.name).split(/[\s/]+/); return words.every(w => nw.some(x => x.startsWith(w))); },
+        s => { const n = norm(s.name).replace(/\s/g, ''); let i = 0; for (const ch of t.v.replace(/\s/g, '')) { i = n.indexOf(ch, i) + 1; if (!i) return false; } return true; },
+      ];
+      for (const test of tiers) { const hit = pk.sets.filter(test); if (hit.length) { t.sets = new Set(hit.map(s => s.id)); break; } }
+      if (!t.sets) t.sets = new Set();
+    }
   }
-  const termFor = (k, v) => /\s/.test(v) ? `${k}:"${v}"` : `${k}:${v}`;
+  function termMatches(t, tags, flags) {
+    if (t.state) return !!flags[t.state];
+    if (t.unknown) return false;
+    if (t.sets) return tags.some(([k, x]) => k === 'set' && t.sets.has(x));
+    const v = t.v;
+    return tags.some(([k, x]) => {
+      if (t.key && k !== t.key) return false;
+      const nx = norm(x);
+      if (t.key) {
+        if (t.re) return t.re.test(nx);
+        return nx === v || (k === 'number' && nx.split('/')[0] === v.split('/')[0] && !v.includes('/'));
+      }
+      const words = nx.split(/[\s/]+/);
+      if (t.re) return t.re.test(nx) || words.some(w => t.re.test(w));
+      if (v.includes(' ')) return (' ' + nx + ' ').includes(' ' + v + (v.length >= 3 ? '' : ' '));
+      return v.length >= 3 ? words.some(w => w.startsWith(v)) : words.includes(v);
+    });
+  }
+  const matchQuery = (terms, tags, flags) => terms.every(t => termMatches(t, tags, flags) !== !!t.neg);
+  const termFor = (k, v) => /[\s"]/.test(v) ? `${k}:"${v.replace(/"/g, '')}"` : `${k}:${v}`;
   function isFoil(pk, tierId) {
     const t = pk.tiers[pk.tierIdx[tierId]];
     if (!t) return false;
-    return pk.layout === 'cards' ? (t.skins.length > 0 || (t.family && t.family !== 'non-foil')) : pk.tierIdx[tierId] > 0;
+    return pk.layout === 'cards' ? (t.skins.length > 0 || (!!t.family && t.family !== 'non-foil')) : pk.tierIdx[tierId] > 0;
   }
-  // every tag of a slot: [key, value]; real cards add set, rarity, subtypes, types, artist from their card data
+  // every tag of a slot, both spellings: [key, value]; real cards add set, rarity, subtypes, types, artist, moves
+  const tagCache = new Map();
   function slotTags(slot) {
+    if (tagCache.has(slot.key)) return tagCache.get(slot.key);
     const pk = packById[slot.pack], c = pk.charById[slot.char];
     const cd = slot.card ? pk.cardById[slot.card] : null;
     const tierId = slot.tier || summarize(slot).tier;
     const t = pk.tiers[pk.tierIdx[tierId]];
-    const tags = [['pack', pk.id], ['pack', pk.name], ['char', slot.char], ['char', c?.name]];
+    const tags = [['pack', pk.id], ['pack', pk.name], ['pack', packTitle(pk)], ['char', slot.char], ['char', c?.name]];
     if (t) tags.push(['tier', t.id], ['tier', t.label]);
     if (cd) {
       tags.push(['name', cd.name], ['id', cd.id], ['number', cd.number], ['rarity', cd.rarity], ['set', cd.set_id], ['set', cd.set_name], ['artist', cd.artist]);
       for (const x of cd.subtypes || []) tags.push(['subtype', x]);
       for (const x of cd.types || []) tags.push(['type', x]);
+      for (const a of cd.text?.attacks || []) tags.push(['attack', a.name]);
+      for (const a of cd.text?.abilities || []) tags.push(['ability', a.name]);
     } else tags.push(['name', c?.name], ['number', c?.tag], ['rarity', t?.label]);
-    return tags.filter(([, v]) => v);
+    const out = tags.filter(([, v]) => v);
+    if (!slot.pulls.length || slot.card) tagCache.set(slot.key, out);
+    return out;
   }
   function slotFlags(slot) {
     const s = summarize(slot), pk = packById[slot.pack];
-    return { owned: s.owned, pending: s.pending, new: s.isNew, shiny: slot.pulls.some(p => p.shiny), foil: isFoil(pk, s.tier || slot.tier), missing: !s.owned && !s.pending };
+    return { owned: s.owned, pending: s.pending, new: s.isNew, shiny: s.shiny, foil: isFoil(pk, s.tier || slot.tier), missing: !s.owned && !s.pending };
   }
 
   /* -------------------------------------------------------------- formatting */
-  const RAR = {
-    pokemon: { common: '●', holo: '◆', 'rare-holo': '★', 'ultra-rare': '★★', 'secret-rare': '★★★' },
-    onepiece: { common: 'C', 'super-rare': 'SR', 'secret-rare': 'SEC', 'manga-rare': 'MR' },
+  // rarity symbols like the printed ones (● common, ◆ uncommon, ★ rare, ★★ double / ultra, ★★★ secret),
+  // coloured by finish so every tier reads differently
+  const TIER_RAR = {
+    common: ['●'], uncommon: ['◆'], rare: ['★'], 'reverse-holo': ['◈', 'holo'], promo: ['✪', 'special'],
+    'rare-holo': ['★', 'holo'], 'trainer-gallery-rare-holo': ['★', 'holo'], 'rare-holo-star': ['☆', 'special'],
+    'rare-holo-ex': ['★★', 'holo'], 'rare-holo-lv-x': ['★★', 'holo'], 'rare-prime': ['★★', 'holo'], legend: ['★★', 'rainbow'],
+    'rare-break': ['★★', 'rainbow'], 'rare-holo-gx': ['★★', 'rainbow'], 'rare-prism-star': ['◇', 'special'],
+    'rare-holo-v': ['★★', 'silver'], 'rare-holo-vmax': ['★★', 'rainbow'], 'rare-holo-vstar': ['★★', 'gold'],
+    'pikachu-rare': ['★', 'special'], 'double-rare': ['★★'], 'ace-spec-rare': ['★', 'special'], 'rare-shining': ['☆', 'silver'],
+    'rare-shiny': ['☆', 'silver'], 'shiny-rare': ['☆', 'silver'], 'rare-shiny-gx': ['☆☆', 'rainbow'], 'amazing-rare': ['★', 'rainbow'],
+    'radiant-rare': ['★', 'silver'], 'rare-ultra': ['★★', 'silver'], 'ultra-rare': ['★★', 'silver'], 'illustration-rare': ['★', 'gold'],
+    'shiny-ultra-rare': ['☆☆', 'rainbow'], 'rare-rainbow': ['★★★', 'rainbow'], 'rare-secret': ['★★★', 'gold'],
+    'special-illustration-rare': ['★★', 'gold'], 'hyper-rare': ['★★★', 'gold'], 'futuristic-rare': ['★★', 'silver'],
   };
-  RAR.pokedex = RAR.pokemon;
-  const rar = (pack, tier) => (RAR[pack] || {})[tier] || '●';
+  const RAR = {
+    pokedex: { common: ['●'], holo: ['◆', 'holo'], 'rare-holo': ['★', 'holo'], 'ultra-rare': ['★★', 'silver'], 'secret-rare': ['★★★', 'gold'] },
+    onepiece: { common: ['C'], 'super-rare': ['SR', 'special'], 'secret-rare': ['SEC', 'gold'], 'manga-rare': ['MR', 'special'] },
+  };
+  const rarOf = (pack, tier) => (RAR[pack] || TIER_RAR)[tier] || TIER_RAR[tier] || ['●'];
+  const rar = (pack, tier) => rarOf(pack, tier)[0];
+  const rarEl = (pack, tier) => { const [g, c] = rarOf(pack, tier); return h('span', { class: 'rar' + (c ? ' rar--' + c : ''), 'aria-hidden': 'true' }, g); };
   const pct = x => x >= .1 ? (x * 100).toFixed(1) + '%' : x >= .001 ? (x * 100).toFixed(2) + '%' : (x * 100).toFixed(3) + '%';
   const oneIn = x => x > 0 ? '1 in ' + Math.round(1 / x).toLocaleString() : 'never';
   const titleCase = s => s.replace(/(^|[\s-])\w/g, m => m.toUpperCase());
-  const skinName = id => id ? (DATA.skins[id]?.title ? titleCase(DATA.skins[id].title.toLowerCase()) : titleCase(id.replace(/-/g, ' '))) : null;
+  const skinName = id => id ? titleCase((DATA.skins[id]?.title || id).toLowerCase().replace(/-/g, ' ')) : null;
   const when = iso => new Date(iso);
-  const fmtDate = iso => when(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const valid = iso => !isNaN(when(iso).getTime());
+  const fmtDate = iso => valid(iso) ? when(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
   function ago(iso) {
+    if (!valid(iso)) return '—';
     const s = (Date.now() - when(iso).getTime()) / 1000;
     if (s < 60) return 'just now';
     if (s < 3600) return Math.floor(s / 60) + 'm ago';
@@ -1219,21 +1417,27 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     return d < 30 ? d + 'd ago' : fmtDate(iso);
   }
   const hash = s => { let x = 2166136261; for (const ch of s) { x ^= ch.charCodeAt(0); x = Math.imul(x, 16777619); } return (x >>> 0) / 4294967296; };
+  const plural = (n, one, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+  const toastEl = $('#toast');
+  let toastT = 0;
+  function toast(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, 4200); }
 
   /* -------------------------------------------------------------- art */
-  function imgInfo(pack, charId, tier, shiny) {
+  // the exported image of a card / character tier, or null (then a labelled placeholder: never another card's art)
+  function imgInfo(pack, charId, key, shiny, isCard) {
     const c = packById[pack].charById[charId];
     const map = c?.img || {};
-    const k1 = tier + (shiny ? '-shiny' : '');
-    if (map[k1]) return { src: `img/${pack}/${charId}/${k1}.png`, size: map[k1] };
-    if (map[tier]) return { src: `img/${pack}/${charId}/${tier}.png`, size: map[tier] };
+    const src = k => ({ src: `img/${pack}/${charId}/${k}.png`, size: map[k] || null });
+    const k1 = key + (shiny ? '-shiny' : '');
+    if (k1 in map) return src(k1);
+    if (key in map) return src(key);
+    if (isCard) return null;
     const any = Object.keys(map)[0];
-    if (any) return { src: `img/${pack}/${charId}/${any}.png`, size: map[any] };
-    const t0 = packById[pack].tiers[0].id;
-    return { src: `img/${pack}/${charId}/${t0}.png`, size: [32, 32] };
+    return any ? src(any) : null;
   }
   const MISSING = svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><path fill='#0003' d='M2 1h4v1h1v2H6v1H5v1H3V4h1V3h1V2H3v1H2zM3 7h2v1H3z'/></svg>`).slice(5, -2);
   function pixImg(info, extra = {}) {
+    if (!info) return h('span', { class: 'card__noart' }, 'no art yet');
     const im = h('img', { src: info.src, alt: '', loading: 'lazy', decoding: 'async', draggable: 'false', ...extra });
     im.addEventListener('error', () => { im.src = MISSING; }, { once: true });
     return im;
@@ -1251,26 +1455,131 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     return `polygon(${pts.join(',')})`;
   }
 
-  const SPARKLE = `<svg viewBox="0 0 24 24"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9ad5"/></linearGradient></defs><path d="M12 0c1 6 3 9 12 12-9 3-11 6-12 12C11 18 9 15 0 12 9 9 11 6 12 0z" fill="url(#spg)" stroke="#8a5a00" stroke-width=".8"/><path d="M19 1c.3 2 1 3 3 3.3-2 .4-2.7 1-3 3.2-.4-2.2-1-2.8-3.2-3.2 2.2-.3 2.8-1.3 3.2-3.3z" fill="#fff"/></svg>`;
+  let sparkN = 0;   // each shiny badge gets its own gradient id (duplicate ids break the gradient)
+  const sparkle = () => { const id = 'spg' + (++sparkN); return `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9ad5"/></linearGradient></defs><path d="M12 0c1 6 3 9 12 12-9 3-11 6-12 12C11 18 9 15 0 12 9 9 11 6 12 0z" fill="url(#${id})" stroke="#8a5a00" stroke-width=".8"/><path d="M19 1c.3 2 1 3 3 3.3-2 .4-2.7 1-3 3.2-.4-2.2-1-2.8-3.2-3.2 2.2-.3 2.8-1.3 3.2-3.3z" fill="#fff"/></svg>`; };
+
+  /* -------------------------------------------------------------- the real card's text half */
+  const TYPE_TINT = { Grass: '#5da846', Fire: '#e8603a', Water: '#3b8ed8', Lightning: '#f0c020', Psychic: '#a262bf', Fighting: '#c0703a',
+                      Darkness: '#4a5060', Metal: '#9aa6b2', Fairy: '#ec86c0', Dragon: '#b89a3a', Colorless: '#cfcabb' };
+  const STAGES = ['Basic', 'Stage 1', 'Stage 2', 'VMAX', 'VSTAR', 'BREAK', 'Restored', 'MEGA', 'Level-Up', 'V-UNION', 'LEGEND'];
+  const nrg = type => h('i', { class: `nrg nrg--${String(type).toLowerCase()}`, title: type });
+  function costEl(cost) {
+    const counts = {};
+    for (const c of cost) counts[c] = (counts[c] || 0) + 1;
+    const label = cost.length ? 'Cost: ' + Object.entries(counts).map(([k, n]) => `${n} ${k}`).join(', ') : 'No cost';
+    return h('span', { class: 'tx-cost', role: 'img', 'aria-label': label }, cost.map(nrg));
+  }
+  // finish of a tier: its full-art look keyed on the tier's family and frame (pack.json), not its art column
+  function finishOf(t) {
+    if (t.family === 'full-art') return 'full';
+    if (t.family === 'secret') return t.frame?.preset === 'gold' ? 'gold' : t.frame?.preset === 'rainbow' ? 'rainbow' : 'full';
+    if (t.art === 'fullart') return 'full';
+    if (t.art === 'gold') return 'gold';
+    return '';
+  }
+  function textHalf(cd, t, pack) {
+    const tx = cd?.text;
+    if (!tx) return h('div', { class: 'card__text card__text--none' }, h('b', {}, titleCase(cd?.rarity || t.label)), h('span', {}, cd ? 'card text not downloaded' : 'pokeshell card'));
+    const box = h('div', { class: 'card__text' });
+    const trainer = /trainer|energy/i.test(tx.supertype || '');
+    let maxCost = 0;
+    for (const a of tx.abilities || [])
+      box.append(h('div', { class: 'tx tx-ability' },
+        h('div', { class: 'tx-line' }, h('span', { class: 'tx-abl' + (/pok[eé]/i.test(a.type) ? ' tx-abl--poke' : '') }, a.type || 'Ability'), h('b', { class: 'tx-name' }, a.name)),
+        a.text ? h('p', {}, a.text) : null));
+    for (const a of tx.attacks || []) {
+      maxCost = Math.max(maxCost, a.cost.length);
+      box.append(h('div', { class: 'tx tx-attack' },
+        h('div', { class: 'tx-line' }, costEl(a.cost), h('b', { class: 'tx-name' }, a.name), a.damage ? h('span', { class: 'tx-dmg' }, a.damage) : null),
+        a.text ? h('p', {}, a.text) : null));
+    }
+    if (trainer && tx.rules?.length) box.append(h('div', { class: 'tx tx-trainer' }, tx.rules.map(r => h('p', {}, r))));
+    else for (const r of tx.rules || []) box.append(h('p', { class: 'tx-rule' }, r));
+    if (tx.flavor && !tx.rules?.length) box.append(h('p', { class: 'tx-flavor' }, tx.flavor));
+    if (maxCost) box.style.setProperty('--cw', `calc(${maxCost} * 1.22em + ${maxCost - 1} * .18em)`);
+    return box;
+  }
+  function wrrEl(tx) {
+    if (!tx || /trainer|energy/i.test(tx.supertype || '')) return null;
+    const cell = (label, list) => h('span', {}, h('small', {}, label), list?.length ? list.map(w => [nrg(w.type), h('b', {}, w.value)]) : h('b', {}, '—'));
+    return h('div', { class: 'card__wrr' },
+      cell('weakness', tx.weak), cell('resistance', tx.resist),
+      h('span', {}, h('small', {}, 'retreat'), tx.retreat ? Array.from({ length: tx.retreat }, () => nrg('Colorless')) : h('b', {}, '—')));
+  }
+  function topLine(cd) {
+    const tx = cd?.text;
+    if (!tx) return null;
+    const subs = cd.subtypes || [];
+    if (/trainer|energy/i.test(tx.supertype || '')) return h('div', { class: 'card__top' }, h('span', { class: 'card__stage' }, tx.supertype), subs.length ? h('span', { class: 'card__evo' }, subs.join(' · ')) : null);
+    const stage = subs.find(s => STAGES.includes(s)) || subs[0] || 'Basic';
+    const rest = subs.filter(s => s !== stage && !cd.name.split(' ').includes(s));
+    const evo = tx.evolves ? `Evolves from ${tx.evolves}` : rest.join(' · ');
+    return h('div', { class: 'card__top' }, h('span', { class: 'card__stage' }, stage), evo ? h('span', { class: 'card__evo' }, evo) : null);
+  }
+
+  // names always fit: shrink (to 70%), then wrap to two lines; a long text half shrinks until it fits. Sizes are in cqi,
+  // so one measurement (in an off-screen card 320 px wide) holds at every size; results are cached per card
+  const fitCache = new Map();
+  let sandbox = null;
+  function fitCard(card, key) {
+    let f = fitCache.get(key);
+    if (!f) {
+      sandbox ||= document.body.appendChild(h('div', { 'aria-hidden': 'true', inert: true, style: { position: 'fixed', left: '-10000px', top: '0', width: '320px', visibility: 'hidden', 'pointer-events': 'none' } }));
+      sandbox.append(card);
+      f = { ns: 1, wrap: false, ts: 1, flavor: true };
+      const name = card.querySelector('.card__name, .w-name'), text = card.querySelector('.card__text');
+      // the text's own width (the name box itself stretches), with 4% slack: small text doesn't scale exactly with cqi
+      const range = document.createRange(), slack = name?.classList.contains('w-name') ? .92 : .96;
+      const wide = () => { range.selectNodeContents(name); return Math.max(range.getBoundingClientRect().width, name.scrollWidth > name.clientWidth + 1 ? name.scrollWidth : 0) > name.clientWidth * slack; };
+      if (name) {
+        const tall = () => name.scrollHeight > name.clientHeight + 1;
+        const set = v => { f.ns = +v.toFixed(2); card.style.setProperty('--ns', f.ns); };
+        while (wide() && f.ns > .72) set(f.ns - .04);
+        if (wide()) {   // still too long: two lines, as large as the longest word allows
+          f.wrap = true; name.classList.add('wrap'); set(.9);
+          while ((wide() || tall()) && f.ns > .56) set(f.ns - .04);
+        }
+      }
+      if (text && !text.classList.contains('card__text--none')) {
+        const pad = parseFloat(getComputedStyle(text).paddingTop) + parseFloat(getComputedStyle(text).paddingBottom);
+        const over = () => {   // the content's own height (the box stretches), with 3% slack
+          const k = text.children;
+          if (!k.length) return false;
+          const hgt = k[k.length - 1].getBoundingClientRect().bottom - k[0].getBoundingClientRect().top;
+          return hgt > (text.clientHeight - pad) * .97 || text.scrollHeight > text.clientHeight + 1;
+        };
+        const flav = text.querySelector('.tx-flavor');
+        if (flav && over()) { f.flavor = false; flav.remove(); }
+        while (over() && f.ts > .6) { f.ts = +(f.ts - .04).toFixed(2); card.style.setProperty('--ts', f.ts); }
+      }
+      card.remove();
+      fitCache.set(key, f);
+    }
+    card.style.setProperty('--ns', f.ns);
+    card.style.setProperty('--ts', f.ts);
+    if (f.wrap) card.querySelector('.card__name, .w-name')?.classList.add('wrap');
+    if (!f.flavor) card.querySelector('.tx-flavor')?.remove();
+  }
 
   /**
-   * One card. o = { pack, char, tier, shiny, skin, count, pending, isNew, big }
+   * One card. o = { pack, char, tier, card, shiny, skin, count, pending, isNew, static, label }
    */
   function cardEl(o) {
     const pk = packById[o.pack], c = pk.charById[o.char], t = pk.tiers[pk.tierIdx[o.tier]] || pk.tiers[0];
     const ti = pk.tierIdx[t.id];
-    const foil = ti > 0;
-    const cd = o.card && pk.cardById ? pk.cardById[o.card] : null;   // a real card: its own art, name and number
-    const info = imgInfo(o.pack, o.char, cd ? cd.id : t.id, o.shiny);
+    const foil = isFoil(pk, t.id);
+    const cd = o.card && pk.cardById ? pk.cardById[o.card] : null;   // a real card: its own art, name, number and text
+    const info = imgInfo(o.pack, o.char, cd ? cd.id : t.id, o.shiny, !!cd);
     const fc = t.frame.colors || [];
-    const style = { '--tint': c.tint || '#9aa4b0', '--delay': (-hash(o.char + t.id) * 7).toFixed(2) + 's', '--idle': (6 + hash(t.id + o.char) * 4).toFixed(1) + 's' };
+    const style = { '--tint': cd?.tint || c.tint || '#9aa4b0', '--delay': (-hash(o.char + t.id) * 7).toFixed(2) + 's', '--idle': (6 + hash(t.id + o.char) * 4).toFixed(1) + 's' };
     fc.slice(0, 5).forEach((col, i) => style['--f' + i] = col);
     const cls = ['card', `tier-${t.id}`];
     if (foil) cls.push('foil');
     if (o.skin) cls.push(`skin-${o.skin}`);
     if (o.pending) cls.push('pending');
-    let face;
-    const label = `${cd ? cd.name : c.name}, ${t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}`;
+    let face, fitKey = null;
+    const name = cd ? cd.name : c.name;
+    const label = `${name}, ${cd?.rarity || t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}${o.isNew && !o.pending ? ', new' : ''}`;
 
     if (t.frame.style === 'wanted') {
       const pal = t.frame.palette;
@@ -1283,40 +1592,55 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         h('div', { class: 'w-title' }, 'WANTED'),
         h('div', { class: 'w-art' }, pixImg(info, { class: ti > 0 ? 'fill' : '' })),
         h('div', { class: 'w-doa' }, 'DEAD OR ALIVE'),
-        h('div', { class: 'w-name' + (poster.length > 18 ? ' xlong' : poster.length > 12 ? ' long' : '') }, poster),
+        h('div', { class: 'w-name' }, poster.split('·').flatMap((part, i) => i ? ['·', h('wbr'), part] : [part])),
         h('div', { class: 'w-bounty' + (bounty.length > 11 ? ' long' : '') }, h('span', { class: 'w-berry' }, '฿'), bounty, '-'),
-        h('div', { class: 'w-foot' }, h('span', {}, c.tag || ''), h('span', { class: 'rar' }, rar(o.pack, t.id))));
+        h('div', { class: 'w-foot' }, h('span', {}, c.tag || ''), rarEl(o.pack, t.id)));
+      fitKey = `${o.pack}|${o.char}|${t.id}|wanted`;
     } else if (pk.layout === 'dex') {
       cls.push('card--dex');
-      const w = info.size?.[0] || 32;
+      const w = info?.size?.[0] || 32;
       face = h('div', { class: 'card__face' },
         h('div', { class: 'card__panel' },
           h('div', { class: 'dex-art', style: { '--iw': Math.min(96, Math.max(52, w / 44 * 100)) + '%' } }, pixImg(info)),
           h('div', { class: 'dex-bar' },
-            h('span', { class: 'dex-no' }, `${c.tag || '#' + String(c.no).padStart(3, '0')} ${rar(o.pack, t.id)}`),
+            h('span', { class: 'dex-no' }, `${c.tag || '#' + String(c.no).padStart(3, '0')} `, rarEl(o.pack, t.id)),
             h('span', { class: 'dex-name' }, c.name))));
     } else {
-      const full = t.art === 'fullart' || t.art === 'gold';
+      const look = finishOf(t);
       cls.push('card--tcg');
-      if (full) cls.push('card--full');
-      if (t.art === 'gold') cls.push('card--secret');
-      const skinTxt = o.skin ? skinName(o.skin) : (foil ? t.label : 'Plain tab');
+      if (look) cls.push('card--full');
+      if (look === 'gold') cls.push('card--secret');
+      if (look === 'rainbow') cls.push('card--rainbow');
+      const tx = cd?.text;
+      const type = cd?.types?.[0];
+      const panelStyle = type && TYPE_TINT[type] ? { '--ttint': TYPE_TINT[type] } : null;
       face = h('div', { class: 'card__face' },
-        h('div', { class: 'card__panel' },
-          full ? h('div', { class: 'card__wash', style: { 'background-image': `url("${info.src}")` } }) : null,
-          h('div', { class: 'card__head' }, h('span', { class: 'card__name' }, (o.shiny ? '✦ ' : '') + (cd ? cd.name : c.name)), h('span', { class: 'card__tag' }, cd ? cd.number : (c.tag || ''))),
+        h('div', { class: 'card__panel', style: panelStyle },
+          look && info ? h('div', { class: 'card__wash', style: { 'background-image': `url("${info.src}")` } }) : null,
+          topLine(cd),
+          h('div', { class: 'card__head' },
+            h('span', { class: 'card__name' }, o.shiny ? [h('span', { class: 'card__sh', 'aria-hidden': 'true' }, '✦'), ' '] : null, name),
+            tx?.hp ? h('span', { class: 'card__hp' }, h('small', {}, 'HP'), tx.hp, type ? nrg(type) : null)
+              : h('span', { class: 'card__tag' }, cd ? '' : (c.tag || ''))),
           h('div', { class: 'card__art' }, pixImg(info)),
-          h('div', { class: 'card__box' },
-            h('div', { class: 'card__move' }, h('b', {}, skinTxt), h('span', {}, foil ? 'foil' : 'tab')),
-            h('div', { class: 'card__rule' }),
-            h('div', { class: 'card__move' }, h('b', {}, titleCase(t.label)), h('span', {}, o.count ? '×' + o.count : ''))),
-          h('div', { class: 'card__foot' }, h('span', {}, cd ? (cd.set_id || 'PKSH').toUpperCase() : 'PKSH'), h('span', {}, cd ? cd.number : `${String(c.no).padStart(3, '0')}/${String(pk.characters.length).padStart(3, '0')}`), h('span', { class: 'rar' }, rar(o.pack, t.id)))));
+          textHalf(cd, t, o.pack),
+          wrrEl(tx),
+          h('div', { class: 'card__foot' },
+            h('span', { class: 'card__illus' }, cd?.artist ? `Illus. ${cd.artist}` : ''),
+            h('span', { class: 'card__code' }, cd ? (cd.set_id || 'PKSH').toUpperCase() : 'PKSH'),
+            h('span', { class: 'card__no' }, cd ? cd.number : `${String(c.no).padStart(3, '0')}/${String(pk.characters.length).padStart(3, '0')}`),
+            rarEl(o.pack, t.id))));
+      fitKey = `${o.pack}|${cd ? cd.id : o.char + '|' + t.id}|${o.shiny ? 1 : 0}|${look}`;
     }
-    const card = h(o.static ? 'div' : 'button', { class: cls.join(' '), style, type: o.static ? null : 'button', 'aria-label': o.static ? null : label, title: o.static ? null : label },
-      h('div', { class: 'card__inner' }, face, h('div', { class: 'card__shine' }), h('div', { class: 'card__glare' })));
-    if (o.shiny) card.append(h('span', { class: 'badge-shiny', html: SPARKLE }));
-    if (o.count > 1) card.append(h('span', { class: 'badge-count' }, '×' + o.count));
-    if (o.isNew && !o.pending) card.append(h('span', { class: 'badge-new', title: 'new: not viewed in the binder yet' }, 'NEW'));
+    const tag = o.static ? 'div' : 'button';
+    const card = h(tag, { class: cls.join(' '), style, type: o.static ? null : 'button',
+      'aria-label': o.static ? null : label, title: o.static ? null : label, role: o.static ? 'group' : null, 'aria-roledescription': o.static ? 'card' : null },
+      h('div', { class: 'card__inner' }, face, h('div', { class: 'card__shine', 'aria-hidden': 'true' }), h('div', { class: 'card__glare', 'aria-hidden': 'true' })));
+    if (o.static) card.setAttribute('aria-label', label);
+    if (o.shiny) card.append(h('span', { class: 'badge-shiny', html: sparkle() }));
+    if (o.count > 1) card.append(h('span', { class: 'badge-count', 'aria-hidden': 'true' }, '×' + o.count));
+    if (o.isNew && !o.pending) card.append(h('span', { class: 'badge-new', title: 'new: not viewed in the binder yet', 'aria-hidden': 'true' }, 'NEW'));
+    if (fitKey) fitCard(card, fitKey);
     if (!o.static) attachTilt(card);
     return card;
   }
@@ -1329,33 +1653,42 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => { card.style.setProperty('--px', x.toFixed(3)); card.style.setProperty('--py', y.toFixed(3)); });
     };
-    card.addEventListener('pointerenter', e => { card.classList.add('live'); move(e); });
-    card.addEventListener('pointermove', move);
+    card.addEventListener('pointerenter', e => { if (reduced) return; card.classList.add('live'); move(e); });
+    card.addEventListener('pointermove', e => { if (!reduced) move(e); });
     card.addEventListener('pointerleave', () => {
       card.classList.remove('live'); cancelAnimationFrame(raf);
       card.style.removeProperty('--px'); card.style.removeProperty('--py');
     });
   }
 
+  // the idle foil sway runs only on foils on screen: pages and the detail card (the strip rests until hovered)
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('in-view', e.isIntersecting); }, { rootMargin: '40px' }) : null;
+  function refreshIdle() {
+    if (!io) return;
+    io.disconnect();
+    for (const c of document.querySelectorAll(state.open ? '.slot-page .card.foil, dialog[open] .card.foil' : 'dialog[open] .card.foil')) io.observe(c);
+    if (!state.open) for (const c of document.querySelectorAll('.slot-page .card.in-view')) c.classList.remove('in-view');
+  }
+
   function ghostEl(slot) {
     const pk = packById[slot.pack], c = pk.charById[slot.char];
-    const g = h('div', { class: 'ghost', 'aria-label': `Empty: ${c.name}${slot.tier ? ', ' + pk.tiers[pk.tierIdx[slot.tier]].label : ''}`, role: 'img' });
+    const cd = slot.card ? pk.cardById[slot.card] : null;
+    const t = pk.tiers[pk.tierIdx[cd ? cd.tier : slot.tier]];
+    const g = h('div', { class: 'ghost', role: 'img', 'aria-label': `Empty pocket: ${cd ? `${cd.name}, ${cd.number}` : c.name}${t ? ', ' + (cd?.rarity || t.label) : ''}` });
     if (pk.layout === 'dex' && pk.atlas) {
       const a = pk.atlas, i = pk.characters.indexOf(c);
       g.append(h('div', { class: 'ghost__sil atlas', style: {
         '--m': `url("${a.file}")`, '--ms': `${a.cols * 100}% ${a.rows * 100}%`,
         '--mp': `${(i % a.cols) / (a.cols - 1) * 100}% ${Math.floor(i / a.cols) / (a.rows - 1) * 100}%` } }));
       g.append(h('div', { class: 'ghost__label' }, h('small', {}, c.tag || '')));
-    } else if (slot.card) {
-      const cd = pk.cardById[slot.card], t = pk.tiers[pk.tierIdx[cd.tier]];
-      g.append(h('div', { class: 'ghost__q' }, '?'));
-      g.append(h('div', { class: 'ghost__label' }, h('small', {}, `${rar(slot.pack, cd.tier)} ${cd.number}`), h('b', {}, cd.name), t ? t.label : ''));
+    } else if (cd) {
+      g.append(h('div', { class: 'ghost__q', 'aria-hidden': 'true' }, '?'));
+      g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, rar(slot.pack, cd.tier) + ' ' + cd.number), h('b', {}, cd.name), t ? t.label : ''));
     } else {
-      const info = imgInfo(slot.pack, slot.char, pk.tiers[0].id, false);
-      g.append(h('div', { class: 'ghost__sil', style: { '--m': `url("${info.src}")` } }));
-      g.append(h('div', { class: 'ghost__q' }, '?'));
-      const t = pk.tiers[pk.tierIdx[slot.tier]];
-      g.append(h('div', { class: 'ghost__label' }, h('small', {}, `${rar(slot.pack, t.id)} ${c.tag || ''}`), t.label));
+      const info = imgInfo(slot.pack, slot.char, pk.tiers[0].id, false, false);
+      if (info) g.append(h('div', { class: 'ghost__sil', style: { '--m': `url("${info.src}")` } }));
+      g.append(h('div', { class: 'ghost__q', 'aria-hidden': 'true' }, '?'));
+      g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, `${rar(slot.pack, t.id)} ${c.tag || ''}`), t.label));
     }
     return g;
   }
@@ -1369,22 +1702,25 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
 
   /* -------------------------------------------------------------- pages */
   const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false, set: null, query: '' };
-  const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot');
+  const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot'), spreadEl = $('#spread');
   const mq = matchMedia('(max-width: 760px)');
+  const rm = matchMedia('(prefers-reduced-motion: reduce)');
+  let reduced = rm.matches;
+  rm.addEventListener('change', e => { reduced = e.matches; });
 
   function pagesFor(pk) {
     const per = pk.layout === 'dex' ? 16 : 9;
     const list = packSlots(pk, { caughtOnly: pk.layout === 'dex' && state.caughtOnly, set: pk.layout === 'cards' ? state.set : null, query: state.query });
     const pages = [{ kind: 'title', pack: pk.id }];
     for (let i = 0; i < list.length; i += per) pages.push({ kind: 'pockets', pack: pk.id, slots: list.slice(i, i + per), n: pages.length });
-    if (list.length === 0) pages.push({ kind: 'pockets', pack: pk.id, slots: [], n: 1 });
+    if (list.length === 0) pages.push({ kind: 'pockets', pack: pk.id, slots: [], n: 1, empty: true });
     if (!state.single && pages.length % 2) pages.push({ kind: 'blank', pack: pk.id });
     return pages;
   }
 
-  function holes() { return h('div', { class: 'page__holes' }, h('i'), h('i'), h('i')); }
+  function holes() { return h('div', { class: 'page__holes', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')); }
 
-  function pageEl(pg, side, idx, total) {
+  function pageEl(pg, side, idx) {
     const pk = packById[pg.pack];
     const cls = ['page', side, `pk-${pk.id}`];
     if (pg.kind === 'title') cls.push('page--title');
@@ -1394,7 +1730,11 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     else if (pg.kind === 'pockets') {
       const per = pk.layout === 'dex' ? 16 : 9;
       const grid = h('div', { class: 'pockets' });
-      for (let i = 0; i < per; i++) {
+      if (pg.empty) {
+        grid.append(h('div', { class: 'pocket--empty' }, h('div', {},
+          h('p', {}, state.query ? `No cards match “${state.query}”` : state.caughtOnly ? 'Nothing caught yet' : 'No cards here yet'),
+          state.query ? h('small', {}, 'Esc clears the search. Try set:swsh7 · type:water · rarity:"rare holo" · shiny') : null)));
+      } else for (let i = 0; i < per; i++) {
         const slot = pg.slots[i];
         const pocket = h('div', { class: 'pocket' });
         if (slot) {
@@ -1405,62 +1745,86 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         grid.append(pocket);
       }
       el.append(grid);
-      el.append(h('div', { class: 'page__label' }, pk.name.toUpperCase()));
+      el.append(h('div', { class: 'page__label', 'aria-hidden': 'true' }, pk.name.toUpperCase()));
     } else {
       el.append(h('div', { class: 'tp' }, h('div', { class: 'note', style: { margin: 'auto', textAlign: 'center', fontSize: '6cqi' } }, 'room for more…')));
     }
-    if (idx != null && pg.kind !== 'blank') el.append(h('div', { class: 'page__folio' }, `${idx + 1}`));
+    if (idx != null && pg.kind !== 'blank') el.append(h('div', { class: 'page__folio', 'aria-hidden': 'true' }, `${idx + 1}`));
     return el;
   }
 
+  // the title page scales its content (--tps) to fit; one scale per content, cached
+  const tpFit = new Map();
+  function fitTitlePages() {
+    for (const tp of document.querySelectorAll('.slot-page .tp[data-fit]')) {
+      const key = tp.dataset.fit;
+      const min = state.single ? .78 : .6;   // below that the text gets too small: the page scrolls instead
+      if (tpFit.has(key)) { const k = tpFit.get(key); tp.style.setProperty('--tps', k.k); tp.classList.toggle('scroll', k.scroll); continue; }
+      if (!tp.clientHeight) continue;
+      let k = 1;
+      tp.style.setProperty('--tps', k);
+      while (tp.scrollHeight > tp.clientHeight + 1 && k > min) { k = +(k - .03).toFixed(2); tp.style.setProperty('--tps', k); }
+      const scroll = tp.scrollHeight > tp.clientHeight + 1;
+      tp.classList.toggle('scroll', scroll);
+      if (scroll) tp.tabIndex = 0;   // a scrollable region is reachable by keyboard
+      tpFit.set(key, { k, scroll });
+    }
+  }
+
   function titlePage(pk) {
-    const set = pk.layout === 'cards' && state.set ? pk.sets.find(s => s.id === state.set) : null;
+    const set = pk.layout === 'cards' && state.set ? pk.setById[state.set] : null;
     const st = packStats(pk, set?.id);
     const tp = h('div', { class: 'tp' });
     const isDex = pk.layout === 'dex';
     tp.append(h('div', { class: 'tp__kicker' }, set ? `SET · ${set.id.toUpperCase()} · CHECKLIST` : isDex ? 'DIVIDER · LOCAL PACK' : 'DIVIDER'));
-    tp.append(h('h2', { class: 'tp__title' }, set ? set.name : pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name));
+    tp.append(h('h2', { class: 'tp__title' }, set ? set.name : packTitle(pk)));
     const pctv = Math.round(st.pct * 1000) / 10;
     tp.append(h('div', { class: 'tp__hero' },
-      h('div', { class: 'ring', style: { '--p': Math.max(st.pct * 100, st.filled ? 1.5 : 0) } }, h('span', {}, `${pctv}`, h('small', {}, '%'))),
+      h('div', { class: 'ring', style: { '--p': Math.max(st.pct * 100, st.filled ? 1.5 : 0) }, role: 'img', 'aria-label': `${pctv}% complete` }, h('span', { 'aria-hidden': 'true' }, `${pctv}`, h('small', {}, '%'))),
       h('div', { class: 'tp__facts' },
-        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : set ? 'cards of the set' : 'card slots filled')),
-        h('div', { class: 'fact' }, h('b', {}, st.pulls), h('span', {}, 'pulls logged')),
-        h('div', { class: 'fact' }, h('b', {}, Math.max(0, st.collected - st.filled)), h('span', {}, 'duplicates')),
+        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : set ? `cards you can pull from this set${set.printed && set.printed !== st.total ? ` (${set.printed} printed)` : ''}` : 'card slots filled')),
+        h('div', { class: 'fact' }, h('b', {}, st.collected.toLocaleString()), h('span', {}, `pulls kept${st.pending ? ` · ${st.pending} pending` : ''}`)),
+        h('div', { class: 'fact' }, h('b', {}, Math.max(0, st.collected - st.filled).toLocaleString()), h('span', {}, 'duplicates')),
         h('div', { class: 'fact' }, h('b', {}, pk.shiny_chance > 0 ? '✦ ' + st.shinies : '—'), h('span', {}, pk.shiny_chance > 0 ? 'shinies' : 'no shinies here')))));
-    // rarity table
+    // rarity table: the tiers that can drop (the exporter leaves the others out), with the game's odds
     const tb = h('tbody');
     pk.tiers.forEach((t, i) => {
       const tot = st.tierTotal[i];
       if (pk.layout === 'cards' && !tot) return;
       tb.append(h('tr', {},
-        h('td', {}, h('span', { class: 'rar' }, rar(pk.id, t.id)), ' ', t.label),
+        h('td', { class: 'lbl', title: t.label }, rarEl(pk.id, t.id), ' ', t.label),
         h('td', { class: 'num' }, pct(t.odds)),
-        h('td', { class: 'num' }, oneIn(t.odds)),
-        h('td', { style: { width: '20%', paddingLeft: '5cqi' } }, h('div', { class: 'bar', title: `${st.tierFilled[i]} of ${tot}` }, h('i', { style: { width: Math.max(st.tierFilled[i] ? 4 : 0, st.tierFilled[i] / tot * 100) + '%' } }))),
-        h('td', { class: 'num', style: { paddingLeft: '2cqi' } }, `${st.tierFilled[i]}/${tot}`)));
+        h('td', { class: 'num perpull' }, oneIn(t.odds)),
+        h('td', { class: 'barcell' }, h('div', { class: 'bar', role: 'img', 'aria-label': `${st.tierFilled[i]} of ${tot} collected` }, h('i', { style: { width: Math.max(st.tierFilled[i] ? 4 : 0, st.tierFilled[i] / tot * 100) + '%' } }))),
+        h('td', { class: 'num got' }, `${st.tierFilled[i]}/${tot}`)));
     });
-    tp.append(h('table', { class: 'odds' }, h('thead', {}, h('tr', {}, h('th', {}, 'RARITY'), h('th', { style: { textAlign: 'right' } }, 'ODDS'), h('th', { style: { textAlign: 'right' } }, 'PER PULL'), h('th', { colspan: 2, style: { textAlign: 'right' } }, 'GOT'))), tb));
-    // best pulls: since DATA.best_since (config.txt best_since; default: when the real cards went live)
+    tp.append(h('table', { class: 'odds' }, h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'RARITY'), h('th', { scope: 'col', class: 'num' }, 'ODDS'), h('th', { scope: 'col', class: 'num perpull' }, 'PER PULL'), h('th', { scope: 'col', colspan: 2, class: 'num' }, 'GOT'))), tb));
+    // best pulls: kept pulls since DATA.best_since (config.txt best_since; default: when the real cards went live)
     const since = DATA.best_since || '';
-    const best = pulls.filter(p => p.pack === pk.id && p.time >= since && (!set || pk.cardById?.[p.card]?.set_id === set.id)).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
+    const best = pulls.filter(p => p.pack === pk.id && kept(p) && p.time >= since && (!set || pk.cardById?.[p.card]?.set_id === set.id))
+      .sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
     if (best.length) {
       const row = h('div', { class: 'tp__best' });
       for (const b of best) {
-        const card = cardEl({ pack: b.pack, char: b.char, tier: b.tier, card: b.card, shiny: b.shiny, skin: b.skin, pending: b.status === 'pending', isNew: b.new });
+        const card = cardEl({ pack: b.pack, char: b.char, tier: b.tier, card: b.card, shiny: b.shiny, skin: b.skin, isNew: b.new });
         card.addEventListener('click', () => openDetail(slotOf(b), b));
         row.append(card);
       }
-      const sinceLabel = since ? ` · SINCE ${['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+since.slice(5, 7) - 1]} ${+since.slice(8, 10)}` : '';
+      const sinceLabel = since && valid(since) ? ` · SINCE ${when(since).toLocaleString('en', { month: 'short' }).toUpperCase()} ${when(since).getDate()}` : '';
       tp.append(h('div', {}, h('div', { class: 'tp__best-label' }, 'BEST PULLS', h('span', { class: 'tp__best-since' }, sinceLabel)), row));
     }
-    const note = pk.active_packs > 1 ? `pokeshell picks 1 of ${pk.active_packs} packs per tab, so each tab lands here 1 time in ${pk.active_packs}.` : '';
-    tp.append(h('div', { class: 'note' }, (isDex ? 'Compact pages: 16 pockets each. ' : '') + note));
+    const notes = [];
+    if (isDex) notes.push('Compact pages: 16 pockets each.');
+    if (pk.active_packs > 1) notes.push(`pokeshell picks 1 of ${pk.active_packs} packs per tab, so each tab lands here 1 time in ${pk.active_packs}.`);
+    if (!set && pk.unbuilt) notes.push(`${plural(pk.unbuilt, 'card')} of the pack have no art built yet and can't drop.`);
+    if (notes.length) tp.append(h('div', { class: 'note' }, notes.join(' ')));
     tp.append(h('div', { class: 'legend' },
-      h('span', {}, h('i', { style: { background: 'linear-gradient(135deg,#c9a93a,#f4dc6a)' } }), 'collected'),
+      h('span', {}, h('i', { style: { background: 'linear-gradient(135deg,#c9a93a,#f4dc6a)' } }), 'kept'),
       h('span', {}, h('i', { style: { background: 'repeating-linear-gradient(90deg,#ffd666 0 3px,#ffe28c 3px 6px)' } }), 'pending (tab not used yet)'),
       h('span', {}, h('i', { style: { border: '1.5px dashed var(--ghost-line)' } }), 'empty'),
       h('span', {}, '✦ shiny'), h('span', {}, '×2 duplicates')));
+    tp.dataset.fit = [pk.id, set?.id || '', best.length, notes.length, state.single ? 1 : 0].join('|');
+    if (tpFit.has(tp.dataset.fit)) { const f = tpFit.get(tp.dataset.fit); tp.style.setProperty('--tps', f.k); if (f.scroll) { tp.classList.add('scroll'); tp.tabIndex = 0; } }
     return tp;
   }
 
@@ -1470,34 +1834,46 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const pages = currentPages();
     const pk = packById[state.pack];
     if (state.single) {
-      state.page = Math.min(state.page, pages.length - 1);
-      rightSlot.replaceChildren(pageEl(pages[state.page], 'right', state.page, pages.length));
+      state.page = Math.max(0, Math.min(state.page, pages.length - 1));
+      rightSlot.replaceChildren(pageEl(pages[state.page], 'right', state.page));
       leftSlot.replaceChildren();
     } else {
-      state.page = Math.min(state.page - (state.page % 2), pages.length - 2);
-      leftSlot.replaceChildren(pageEl(pages[state.page], 'left', state.page, pages.length));
-      rightSlot.replaceChildren(pageEl(pages[state.page + 1], 'right', state.page + 1, pages.length));
+      state.page = Math.max(0, Math.min(state.page - (state.page % 2), pages.length - 2));
+      leftSlot.replaceChildren(pageEl(pages[state.page], 'left', state.page));
+      rightSlot.replaceChildren(pageEl(pages[state.page + 1], 'right', state.page + 1));
     }
-    $('#coverBack').replaceChildren(pageEl(pages[0], 'left', 0, pages.length));
-    // tabs
-    for (const b of document.querySelectorAll('.tab[data-pack]')) b.setAttribute('aria-selected', String(b.dataset.pack === state.pack));
+    // the cover's inside shows the title page only while the cover is shut or turning (a decorative copy)
+    const coverBack = $('#coverBack');
+    if (!state.open || !binder.classList.contains('cover-gone')) coverBack.replaceChildren(pageEl(pages[0], 'left', 0));
+    else coverBack.replaceChildren();
+    // closed: nothing behind the cover takes focus or reaches screen readers
+    for (const el of [$('#dividers'), $('#setTabs'), spreadEl]) el.inert = !state.open;
+    $('#cover').inert = state.open;
+    $('#cover').tabIndex = state.open ? -1 : 0;
+    for (const b of document.querySelectorAll('.tab[data-pack]')) { const on = b.dataset.pack === state.pack; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
     renderSetTabs();
-    const nMatch = state.query ? packSlots(pk, { set: pk.layout === 'cards' ? state.set : null, query: state.query }).length : null;
-    $('#searchCount').textContent = nMatch == null ? '' : `${nMatch} match${nMatch === 1 ? '' : 'es'}`;
+    const q = state.query ? parseQuery(state.query) : null;
+    const nMatch = q ? packSlots(pk, { set: pk.layout === 'cards' ? state.set : null, query: state.query }).length : null;
+    const cnt = $('#searchCount');
+    cnt.replaceChildren(...(nMatch == null ? [] : [`${plural(nMatch, 'match', 'matches')} in ${packTitle(pk)}${pk.layout === 'cards' && state.set ? ' · ' + (pk.setById[state.set]?.name || '') : ''}`,
+      q.unknown.length ? h('em', {}, ` · unknown filter ${q.unknown.join(' ')} (try ${['set', 'type', 'rarity', 'name', 'artist'].map(k => k + ':').join(' ')})`) : '']));
     // pager
     const step = state.single ? 1 : 2;
     const n = pages.length;
     const first = state.page + 1, last = Math.min(n, state.page + step);
-    const lbl = $('#pageLbl');
-    const setName = pk.layout === 'cards' && state.set ? ' · ' + (pk.sets.find(s => s.id === state.set)?.name || state.set) : '';
-    lbl.replaceChildren(h('b', {}, (pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name) + setName), state.single || first === last ? `page ${first} of ${n}` : `pages ${first}–${last} of ${n}`);
+    const setName = pk.layout === 'cards' && state.set ? ' · ' + (pk.setById[state.set]?.name || state.set) : '';
+    $('#pageLbl').replaceChildren(h('b', {}, packTitle(pk) + setName), !state.open ? 'closed' : state.single || first === last ? `page ${first} of ${n}` : `pages ${first}–${last} of ${n}`);
     const atStart = state.page === 0 && packs[0].id === state.pack;
-    $('#prevBtn').disabled = !state.open;
+    const prevBtn = $('#prevBtn');
+    prevBtn.disabled = !state.open;
+    prevBtn.setAttribute('aria-label', state.open && atStart ? 'Close the binder' : 'Previous page');
     $('#nextBtn').disabled = state.open && state.page + step >= n && packs[packs.length - 1].id === state.pack;
+    $('#nextBtn').setAttribute('aria-label', state.open ? 'Next page' : 'Open the binder');
     const scrub = $('#scrub');
     scrub.hidden = pk.layout !== 'dex' || !state.open;
     const r = $('#scrubRange'); r.max = String(Math.max(0, Math.ceil(n / step) - 1)); r.value = String(Math.floor(state.page / step));
-    void atStart;
+    fitTitlePages();
+    refreshIdle();
   }
 
   /* -------------------------------------------------------------- flipping */
@@ -1508,10 +1884,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (shade) shade.animate([{ opacity: 0 }, { opacity: .8 }, { opacity: 0 }], { duration: ms, easing: 'ease-in-out' });
     return a.finished;
   }
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let queued = null;   // one key press that came in during a flip runs right after it
 
   async function goTo(packId, page, dir) {
-    if (state.busy) return;
+    if (state.busy) { queued = () => goTo(packId, page, dir); return; }
     const oldPages = currentPages(), oldPage = state.page, oldPack = state.pack;
     state.pack = packId;
     if (packId !== oldPack) state.set = null;
@@ -1522,20 +1898,20 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     state.page = page;
     if (reduced || !state.open) { render(); return; }
     state.busy = true;
-    const spread = $('#spread');
     try {
       if (state.single) {
         const oldEl = pageEl(oldPages[oldPage], 'right', oldPage), newEl = pageEl(newPages[page], 'right', page);
         const back = h('div', { class: 'page back right' });
         if (dir > 0) {
           rightSlot.replaceChildren(pageEl(newPages[page], 'right', page));
-          const leaf = h('div', { class: 'leaf', style: { left: '10px', 'transform-origin': 'left center' } }, oldEl, back, h('div', { class: 'leaf__shade' }));
-          spread.append(leaf);
+          fitTitlePages();
+          const leaf = h('div', { class: 'leaf', 'aria-hidden': 'true', style: { left: '10px', 'transform-origin': 'left center' } }, oldEl, back, h('div', { class: 'leaf__shade' }));
+          spreadEl.append(leaf);
           await animateLeaf(leaf, 0, -180);
           leaf.remove();
         } else {
-          const leaf = h('div', { class: 'leaf', style: { left: '10px', 'transform-origin': 'left center' } }, newEl, back, h('div', { class: 'leaf__shade' }));
-          spread.append(leaf);
+          const leaf = h('div', { class: 'leaf', 'aria-hidden': 'true', style: { left: '10px', 'transform-origin': 'left center' } }, newEl, back, h('div', { class: 'leaf__shade' }));
+          spreadEl.append(leaf);
           await animateLeaf(leaf, -180, 0);
           leaf.remove();
         }
@@ -1544,19 +1920,21 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         if (dir > 0) {
           // right page lifts and turns onto the left
           rightSlot.replaceChildren(pageEl(newPages[page + 1], 'right', page + 1));
+          fitTitlePages();
           const front = pageEl(oldPages[oldPage + 1], 'right', oldPage + 1);
           const back = pageEl(newPages[page], 'left back', page);
-          const leaf = h('div', { class: 'leaf', style: { left: `calc(var(--pw) + ${gap}px)`, 'transform-origin': `${-gap / 2}px center` } }, front, back, h('div', { class: 'leaf__shade' }));
-          spread.append(leaf);
+          const leaf = h('div', { class: 'leaf', 'aria-hidden': 'true', style: { left: `calc(var(--pw) + ${gap}px)`, 'transform-origin': `${-gap / 2}px center` } }, front, back, h('div', { class: 'leaf__shade' }));
+          spreadEl.append(leaf);
           await animateLeaf(leaf, 0, -180);
           leftSlot.replaceChildren(pageEl(newPages[page], 'left', page));
           leaf.remove();
         } else {
           leftSlot.replaceChildren(pageEl(newPages[page], 'left', page));
+          fitTitlePages();
           const front = pageEl(oldPages[oldPage], 'left', oldPage);
           const back = pageEl(newPages[page + 1], 'right back', page + 1);
-          const leaf = h('div', { class: 'leaf', style: { left: '0px', 'transform-origin': `calc(100% + ${gap / 2}px) center` } }, front, back, h('div', { class: 'leaf__shade' }));
-          spread.append(leaf);
+          const leaf = h('div', { class: 'leaf', 'aria-hidden': 'true', style: { left: '0px', 'transform-origin': `calc(100% + ${gap / 2}px) center` } }, front, back, h('div', { class: 'leaf__shade' }));
+          spreadEl.append(leaf);
           await animateLeaf(leaf, 0, 180);
           rightSlot.replaceChildren(pageEl(newPages[page + 1], 'right', page + 1));
           leaf.remove();
@@ -1565,183 +1943,276 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     } finally {
       state.busy = false;
       render();
+      if (queued) { const q = queued; queued = null; q(); }
     }
   }
 
   function next() {
+    if (state.busy) { queued = next; return; }
     if (!state.open) return openBinder();
     const n = currentPages().length, step = state.single ? 1 : 2;
     if (state.page + step < n) return goTo(state.pack, state.page + step, 1);
     const i = packs.findIndex(p => p.id === state.pack);
     if (i < packs.length - 1) return goTo(packs[i + 1].id, 0, 1);
   }
-  function prev() {
+  // prev: the ◀ button closes the binder from its first page; the ← key stops there
+  function prev(fromKey) {
+    if (state.busy) { queued = () => prev(fromKey); return; }
     if (!state.open) return;
     const step = state.single ? 1 : 2;
     if (state.page > 0) return goTo(state.pack, state.page - step, -1);
     const i = packs.findIndex(p => p.id === state.pack);
     if (i > 0) { const pk = packs[i - 1]; const saved = state.pack; state.pack = pk.id; const n = currentPages().length; state.pack = saved; return goTo(pk.id, n - (state.single ? 1 : 2), -1); }
-    closeBinder();
+    if (!fromKey) closeBinder();
   }
+  function lastPage() { const n = currentPages().length; return goTo(state.pack, n - 1, 1); }
 
-  function openBinder() {
+  function openBinder(focus = true) {
     if (state.open || state.busy) return;
     state.open = true; state.busy = true;
     render();
     binder.classList.remove('is-closed');
-    setTimeout(() => { binder.classList.add('cover-gone'); state.busy = false; render(); }, reduced ? 0 : 1050);
+    setTimeout(() => {
+      binder.classList.add('cover-gone'); state.busy = false; render();
+      if (focus && document.activeElement && (document.activeElement === document.body || document.activeElement.closest('#cover, .pager'))) spreadEl.focus({ preventScroll: true });
+      if (queued) { const q = queued; queued = null; q(); }
+    }, reduced ? 0 : 1050);
   }
   function closeBinder() {
     if (!state.open || state.busy) return;
     state.busy = true;
     binder.classList.remove('cover-gone');
-    requestAnimationFrame(() => { binder.classList.add('is-closed'); state.open = false; });
+    render();
+    requestAnimationFrame(() => { binder.classList.add('is-closed'); state.open = false; render(); $('#cover').focus({ preventScroll: true }); });
     setTimeout(() => { state.busy = false; render(); }, reduced ? 0 : 1050);
   }
 
-  /* -------------------------------------------------------------- tabs, header, recent */
+  /* -------------------------------------------------------------- tabs (tablists: arrow keys move, Enter / Space pick) */
+  function tablistKeys(list) {
+    list.addEventListener('keydown', e => {
+      const tabs = [...list.querySelectorAll('[role=tab]')];
+      const i = tabs.indexOf(document.activeElement);
+      if (i < 0) return;
+      let j = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') j = 0;
+      else if (e.key === 'End') j = tabs.length - 1;
+      if (j == null) return;
+      e.preventDefault(); e.stopPropagation();
+      tabs[j].focus();
+      tabs[j].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+  }
   const dividers = $('#dividers');
   packs.forEach((pk, i) => {
     const st = packStats(pk);
-    const b = h('button', { class: `tab tab--${pk.id}`, role: 'tab', type: 'button', 'data-pack': pk.id, 'aria-selected': 'false', title: `${pk.name}: ${st.filled}/${st.total} (${pct(st.pct)})` },
-      pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name, h('small', {}, Math.round(st.pct * 100) + '%'));
+    const b = h('button', { class: `tab tab--${pk.id}`, role: 'tab', type: 'button', 'data-pack': pk.id, 'aria-selected': 'false', 'aria-controls': 'spread', tabindex: '-1',
+      title: `${pk.name}: ${st.filled}/${st.total} (${pct(st.pct)})` },
+      packTitle(pk), h('small', { 'aria-hidden': 'true' }, Math.round(st.pct * 100) + '%'), h('span', { class: 'sr-only' }, `, ${Math.round(st.pct * 100)}% complete`));
     b.addEventListener('click', () => {
-      if (!state.open) { state.pack = pk.id; state.page = 0; openBinder(); return; }
+      if (!state.open) { state.pack = pk.id; state.page = 0; state.set = null; openBinder(); return; }
       if (pk.id === state.pack) { if (state.page !== 0) goTo(pk.id, 0, -1); return; }
       goTo(pk.id, 0, i > packs.findIndex(p => p.id === state.pack) ? 1 : -1);
     });
     dividers.append(b);
   });
+  tablistKeys(dividers);
 
-  // set dividers (real-card packs): every set, or one set's checklist
+  // set dividers (real-card packs): every set, or one set's checklist; built once per pack, then only re-selected
   const setTabs = $('#setTabs');
+  tablistKeys(setTabs);
+  let setTabsPack = null;
   function renderSetTabs() {
     const pk = packById[state.pack];
-    if (pk.layout !== 'cards' || !pk.sets?.length) { setTabs.hidden = true; setTabs.replaceChildren(); return; }
+    const has = pk.layout === 'cards' && pk.sets?.length > 0;
+    binder.classList.toggle('has-sets', has);
+    if (!has) { setTabs.hidden = true; setTabs.replaceChildren(); setTabsPack = null; return; }
     setTabs.hidden = false;
-    const mk = (id, label) => {
-      const st = packStats(pk, id);
-      const b = h('button', { class: 'tab tab--set', type: 'button', role: 'tab', 'aria-selected': String((state.set || null) === id), title: `${label}: ${st.filled}/${st.total}` },
-        label, h('small', {}, `${st.filled}/${st.total}`));
-      b.addEventListener('click', () => { state.set = id; state.page = 0; if (!state.open) openBinder(); else render(); });
-      return b;
-    };
-    setTabs.replaceChildren(mk(null, 'All sets'), ...pk.sets.map(s => mk(s.id, s.name)));
+    if (setTabsPack !== pk.id) {
+      setTabsPack = pk.id;
+      const mk = (id, label) => {
+        const st = packStats(pk, id);
+        const b = h('button', { class: 'tab tab--set', type: 'button', role: 'tab', 'data-set': id || '', 'aria-controls': 'spread', title: `${label}: ${st.filled}/${st.total}` },
+          label, h('small', {}, `${st.filled}/${st.total}`));
+        b.addEventListener('click', () => { if (state.busy) return; state.set = id; state.page = 0; if (!state.open) openBinder(); else render(); });
+        return b;
+      };
+      setTabs.replaceChildren(mk(null, 'All sets'), ...pk.sets.map(s => mk(s.id, s.name)));
+    }
+    for (const b of setTabs.children) { const on = (b.dataset.set || null) === (state.set || null); b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
   }
-  // search: applies to the pack (and set) on screen
+
+  // search: applies to the pack (and set) on screen; typing updates the count even while the binder is shut
   const searchBox = $('#search');
-  function applyQuery(q) {
+  function applyQuery(q, pack) {
+    if (pack && packById[pack] && pack !== state.pack) { state.pack = pack; state.set = null; }
+    else if (pack) state.set = null;
     state.query = q.trim(); searchBox.value = q;
     state.page = 0;
-    if (!state.open) openBinder(); else render();
+    if (!state.open) openBinder(false); else render();
   }
-  searchBox.addEventListener('input', () => { state.query = searchBox.value.trim(); state.page = 0; if (state.open) render(); });
-  searchBox.addEventListener('keydown', e => { if (e.key === 'Enter' && !state.open) openBinder(); if (e.key === 'Escape') applyQuery(''); });
+  searchBox.addEventListener('input', () => { state.query = searchBox.value.trim(); state.page = 0; render(); });
+  searchBox.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !state.open) openBinder(false);
+    if (e.key === 'Escape' && searchBox.value) { e.preventDefault(); searchBox.value = ''; state.query = ''; state.page = 0; render(); }
+  });
 
-  const total = pulls.length;
-  const collected = pulls.filter(p => p.status === 'collected').length;
+  /* -------------------------------------------------------------- header, recent */
+  const got = pulls.filter(kept);
+  const nPend = pulls.length - got.length;
   const uniq = [...slots.values()].filter(s => summarize(s).owned).length;
-  const shinies = pulls.filter(p => p.shiny).length;
-  const foils = pulls.filter(p => packById[p.pack] && isFoil(packById[p.pack], p.tier)).length;
+  const shinies = got.filter(p => p.shiny).length;
+  const foils = got.filter(p => isFoil(packById[p.pack], p.tier)).length;
+  const hiddenN = (DATA.hidden || 0) + (DATA.bad_lines || 0);
   $('#chips').append(
-    h('span', { class: 'chip' }, h('b', {}, total), 'pulls'),
+    h('span', { class: 'chip', title: 'pulls kept (a pending pull counts once its tab is used)' }, h('b', {}, got.length.toLocaleString()), got.length === 1 ? 'pull' : 'pulls'),
     h('span', { class: 'chip' }, h('b', {}, uniq), 'cards'),
     h('span', { class: 'chip' }, h('b', {}, foils), 'foils'),
     h('span', { class: 'chip' }, h('b', {}, '✦ ' + shinies), 'shiny'),
-    collected < total ? h('span', { class: 'chip' }, h('b', {}, total - collected), 'pending') : '');
-  const firstDay = pulls.length ? fmtDate(pulls[0].time) : '';
+    nPend ? h('span', { class: 'chip', title: 'pulled in a tab you have not used yet: kept on its first command' }, h('b', {}, nPend), 'pending') : '',
+    hiddenN ? h('span', { class: 'chip', title: `${DATA.hidden || 0} pulls of retired art or of cards not built yet${DATA.bad_lines ? `, ${DATA.bad_lines} unreadable lines` : ''}; still in pulls.log` }, h('b', {}, hiddenN), 'hidden') : '');
+  const firstDay = got.length ? fmtDate(got[0].time) : pulls.length ? fmtDate(pulls[0].time) : '';
   $('#subtitle').textContent = pulls.length ? `Trainer binder · pulling since ${firstDay}` : 'Trainer binder · open a new tab to pull a card';
   $('#coverLabel').firstChild.textContent = (DATA.owner ? DATA.owner + "'s" : 'My') + ' cards';
-  $('#coverLabel small').textContent = `${total} pulls · ${uniq} cards`;
+  $('#coverLabel small').textContent = `${plural(got.length, 'pull')} · ${plural(uniq, 'card')}`;
+  $('#snapshot').textContent = `A snapshot of pulls.log from ${fmtDate(DATA.generated)} · pokeshell binder --web rebuilds it`
+    + (hiddenN ? ` · ${plural(hiddenN, 'older pull')} not shown (retired art or cards not built yet)` : '');
+  if (packs.length > 1) $('#packKeys').append(h('span', { class: 'kbd' }, '1'), '–', h('span', { class: 'kbd' }, String(Math.min(9, packs.length))), ' packs · ');
+
+  // measure with the real fonts: the name / text fits and title-page scales depend on them. Fonts only start loading
+  // once something uses them, so ask for them (offline, the fallbacks are measured instead: also consistent)
+  if (document.fonts?.load) {
+    const faces = ['700 16px Fredoka', '600 16px Fredoka', '500 16px Fredoka', '400 16px Silkscreen', '700 16px Silkscreen', '700 16px Caveat', '400 16px "Alfa Slab One"'];
+    await Promise.race([Promise.allSettled(faces.map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 2500))]);
+  }
 
   const rail = $('#recent');
   const recent = pulls.slice().reverse().slice(0, 18);
-  recent.forEach((p, i) => {
-    const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, card: p.card, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
-    card.addEventListener('click', () => openDetail(slotOf(p), p));
-    const isNew = p.new || Date.now() - when(p.time).getTime() < 3600e3;
-    rail.append(h('div', { class: 'recent__item' + (isNew ? ' is-new' : ''), style: { '--r': ((hash(p.time + i) - .5) * 9).toFixed(1) + 'deg' } }, card,
-      h('time', { class: 'recent__when', datetime: p.time, title: fmtDate(p.time) }, ago(p.time))));
+  function renderRecent() {
+    rail.replaceChildren();
+    recent.forEach((p, i) => {
+      const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, card: p.card, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
+      card.addEventListener('click', () => openDetail(slotOf(p), p));
+      const isNew = p.new || Date.now() - when(p.time).getTime() < 3600e3;
+      rail.append(h('div', { class: 'recent__item' + (isNew ? ' is-new' : ''), style: { '--r': ((hash(p.time + i) - .5) * 9).toFixed(1) + 'deg' } }, card,
+        h('time', { class: 'recent__when', datetime: p.time, title: fmtDate(p.time) }, ago(p.time))));
+    });
+    if (!recent.length) rail.append(h('p', { class: 'note' }, 'No pulls yet. Open a new Windows Terminal tab!'));
+  }
+  renderRecent();
+  // a font that arrives late (slow network) changes every measurement: fit everything again
+  document.fonts?.addEventListener?.('loadingdone', () => {
+    fitCache.clear(); tpFit.clear();
+    renderRecent();
+    if (!state.busy) render();
+    if (dlg.open && detailCtx) { renderDetail(detailCtx); refreshIdle(); }
   });
-  if (!recent.length) rail.append(h('p', { class: 'note' }, 'No pulls yet. Open a new Windows Terminal tab!'));
 
   /* -------------------------------------------------------------- detail */
   const dlg = $('#detail');
+  let lastFocus = null;
   function openDetail(slot, focusPull) {
+    lastFocus = document.activeElement;
+    const s = summarize(slot);
+    const tierId = focusPull?.tier || s.tier || slot.tier || packById[slot.pack].tiers[0].id;
+    const inTier = slot.pulls.filter(p => p.tier === tierId);
+    const ctx = { slot, tierId, focusPull, showShiny: focusPull ? focusPull.shiny : (inTier.filter(kept).some(p => p.shiny) || (!inTier.some(kept) && s.show?.shiny) || false) };
+    renderDetail(ctx);
+    if (!dlg.open) dlg.showModal();
+    dlg.querySelector('.detail__box').focus({ preventScroll: true });
+    refreshIdle();
+  }
+  // the whole dialog follows the Normal / Shiny toggle: card, name, skin, odds, highlight
+  let detailCtx = null;
+  function renderDetail(ctx) {
+    detailCtx = ctx;
+    const { slot, tierId } = ctx;
     const pk = packById[slot.pack], c = pk.charById[slot.char];
     const cd = slot.card ? pk.cardById[slot.card] : null;
-    const s = summarize(slot);
-    const tierId = focusPull?.tier || s.tier || slot.tier || pk.tiers[0].id;
     const t = pk.tiers[pk.tierIdx[tierId]];
     const inTier = slot.pulls.filter(p => p.tier === tierId);
-    const got = inTier.filter(p => p.status === 'collected');
     const hasShiny = inTier.some(p => p.shiny), hasPlain = inTier.some(p => !p.shiny);
-    let showShiny = focusPull ? focusPull.shiny : (s.show?.shiny || false);
-    const skinPull = focusPull || [...inTier].reverse().find(p => p.shiny === showShiny) || inTier[inTier.length - 1];
+    const showShiny = ctx.showShiny;
+    const variant = inTier.filter(p => p.shiny === showShiny);
+    const gotAll = inTier.filter(kept), gotV = variant.filter(kept);
+    const pendAll = inTier.length - gotAll.length;
+    const fp = ctx.focusPull && ctx.focusPull.shiny === showShiny ? ctx.focusPull : null;
+    const skinPull = fp || [...gotV].reverse()[0] || [...variant].reverse()[0] || null;
     const skin = skinPull?.skin;
-    const status = got.length ? 'collected' : inTier.length ? 'pending' : 'none';
+    const status = gotV.length ? 'collected' : variant.length ? 'pending' : inTier.length ? (gotAll.length ? 'collected' : 'pending') : 'none';
+    const nameTxt = cd ? cd.name : pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
 
     const stage = h('div', { class: 'detail__stage' });
-    const mkCard = () => cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: got.length, pending: status === 'pending', isNew: got.some(p => p.new) });
-    let big = mkCard();
+    const big = cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: gotV.length, pending: status === 'pending', isNew: gotV.some(p => p.new), static: true });
     stage.append(big);
     if (hasShiny && hasPlain) {
-      const sw = h('div', { class: 'detail__swap' });
-      const b1 = h('button', { type: 'button', 'aria-pressed': String(!showShiny) }, 'Normal');
-      const b2 = h('button', { type: 'button', 'aria-pressed': String(showShiny) }, '✦ Shiny');
-      const set = v => { showShiny = v; b1.setAttribute('aria-pressed', String(!v)); b2.setAttribute('aria-pressed', String(v)); const nb = mkCard(); big.replaceWith(nb); big = nb; };
-      b1.onclick = () => set(false); b2.onclick = () => set(true);
-      sw.append(b1, b2); stage.append(sw);
+      const sw = h('div', { class: 'detail__swap', role: 'group', 'aria-label': 'Show the card' });
+      const mk = (v, txt) => h('button', { type: 'button', 'aria-pressed': String(showShiny === v), onclick: () => {
+        if (ctx.showShiny === v) return;
+        ctx.showShiny = v; renderDetail(ctx); refreshIdle();
+        dlg.querySelector(`.detail__swap button[data-v="${v}"]`)?.focus();
+      }, 'data-v': String(v) }, txt);
+      sw.append(mk(false, 'Normal'), mk(true, '✦ Shiny'));
+      stage.append(sw);
     }
 
-    const nameTxt = cd ? cd.name : pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
     const info = h('div', { class: 'detail__info' });
     info.append(h('div', { class: 'd-kicker' },
-      h('span', {}, cd ? `${(cd.set_name || cd.set_id).toUpperCase()} · ${cd.number}` : (pk.id === 'pokemon' ? 'POKÉMON' : pk.id === 'pokedex' ? 'POKÉDEX' : pk.name.toUpperCase()) + ` · ${c.tag || '#' + c.no}`),
-      status === 'collected' ? h('span', { class: 'pill pill--ok' }, '✓ collected')
+      h('span', {}, cd ? `${(cd.set_name || cd.set_id).toUpperCase()} · ${cd.number}` : packTitle(pk).toUpperCase() + ` · ${c.tag || '#' + c.no}`),
+      status === 'collected' ? h('span', { class: 'pill pill--ok' }, '✓ kept')
         : status === 'pending' ? h('span', { class: 'pill pill--pending' }, '⏳ pending: use that tab to keep it')
         : h('span', { class: 'pill pill--none' }, 'not pulled yet')));
-    info.append(h('h2', { class: 'd-name', id: 'dName' }, (showShiny ? '✦ ' : '') + nameTxt));
-    info.append(h('div', { class: 'd-sub' }, h('span', { class: 'rar' }, rar(pk.id, t.id)), ` ${cd?.rarity || titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : '',
+    info.append(h('h2', { class: 'd-name', id: 'dName' }, showShiny ? h('span', { 'aria-label': 'shiny' }, '✦ ') : '', nameTxt));
+    info.append(h('div', { class: 'd-sub' }, rarEl(pk.id, t.id), ` ${cd?.rarity || titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : '',
       cd?.artist ? ` · illus. ${cd.artist}` : ''));
-    // tags: a click shows every card with that tag (the search box)
-    const seenTag = new Set(), chips = h('div', { class: 'd-tags' });
+
+    // tags: one readable chip per tag; a click searches every card with it (in this card's pack, all sets)
+    const chips = h('div', { class: 'd-tags' });
+    const chip = (key, text, q, title) => chips.append(h('button', { class: 'tagchip', type: 'button', title: title || `search ${q}`,
+      onclick: () => { dlg.close(); applyQuery(q, slot.pack); searchBox.focus({ preventScroll: true }); } }, h('small', {}, key), text));
     const fl = slotFlags(slot);
-    for (const w of STATES) if (fl[w] && w !== 'missing') chips.append(h('button', { class: 'tagchip', type: 'button', title: `every ${w} card`, onclick: () => { dlg.close(); applyQuery(w); } }, w));
-    for (const [k, v] of slotTags(slot)) {
-      if (k === 'pack' || k === 'id' || k === 'number' || seenTag.has(k + '|' + v)) continue;
-      seenTag.add(k + '|' + v);
-      const q = termFor(k, v);
-      chips.append(h('button', { class: 'tagchip', type: 'button', title: `search ${q}`, onclick: () => { dlg.close(); applyQuery(q); } }, h('small', {}, k), ' ', v));
-    }
+    for (const w of ['owned', 'shiny', 'foil', 'new', 'pending']) if (fl[w]) chip('is', w, w, `every ${w} card`);
+    chip(pk.layout === 'dex' || pk.id === 'pokemon' ? 'Pokémon' : 'character', c.name, termFor('char', slot.char));
+    if (cd) {
+      if (cd.set_id) chip('set', cd.set_name || cd.set_id, termFor('set', cd.set_id));
+      chip('rarity', cd.rarity || t.label, termFor('tier', t.id));
+      for (const x of cd.types || []) chip('type', x, termFor('type', x));
+      for (const x of cd.subtypes || []) chip(STAGES.includes(x) ? 'stage' : 'subtype', x, termFor('subtype', x));
+      if (cd.artist) chip('illus.', cd.artist, termFor('artist', cd.artist));
+    } else chip('rarity', t.label, termFor('tier', t.id));
     info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'TAGS'), chips));
-    const firstP = inTier[0], lastP = inTier[inTier.length - 1];
+
+    const firstGot = gotAll[0] || inTier[0];
+    const exact = t.card_odds * (showShiny ? pk.shiny_chance : 1);
+    const nShinyGot = gotAll.filter(p => p.shiny).length;
     info.append(h('div', { class: 'd-grid' },
-      h('div', { class: 'd-stat' }, h('b', {}, '×' + inTier.length), h('span', {}, inTier.length === 1 ? 'pulled once' : 'times pulled')),
-      h('div', { class: 'd-stat' }, h('b', {}, firstP ? ago(firstP.time) : '—'), h('span', {}, 'first pulled')),
-      h('div', { class: 'd-stat' }, h('b', {}, oneIn(t.card_odds * (showShiny ? pk.shiny_chance : 1)).replace('1 in ', '1 in ')), h('span', {}, 'odds of this exact card'))));
+      h('div', { class: 'd-stat' }, h('b', {}, '×' + gotAll.length), h('span', {},
+        (gotAll.length === 1 ? 'copy kept' : 'copies kept') + (hasShiny && hasPlain && nShinyGot ? ` · ${nShinyGot} ✦` : '') + (pendAll ? ` · ${pendAll} pending` : ''))),
+      h('div', { class: 'd-stat' }, h('b', { title: firstGot ? fmtDate(firstGot.time) : '' }, firstGot ? ago(firstGot.time) : '—'), h('span', {}, gotAll.length ? 'first kept' : 'first pulled')),
+      h('div', { class: 'd-stat' }, h('b', { title: oneIn(exact) + ' pulls' }, oneIn(exact)), h('span', {}, showShiny ? 'odds of this card, shiny' : 'odds of this exact card'))));
 
     // skin
     const skinSec = h('div', { class: 'd-sec' }, h('h3', {}, 'TAB SKIN'));
     if (skin) {
       const sk = DATA.skins[skin] || {};
       const so = t.skins.find(x => x.id === skin);
-      const sw = h('div', { class: `d-swatch card foil skin-${skin}`, style: { '--px': '.3', '--py': '.4' } }, h('div', { class: 'card__shine' }));
+      const sw = h('div', { class: `d-swatch card foil skin-${skin}`, style: { '--px': '.3', '--py': '.4' }, 'aria-hidden': 'true' }, h('div', { class: 'card__shine' }));
       skinSec.append(h('div', { class: 'd-skin' }, sw, h('div', {}, h('b', {}, skinName(skin)), so ? h('span', { style: { color: 'var(--ink-soft)', fontSize: '13px' } }, ` · ${pct(so.odds)} of pulls`) : null,
         sk.desc ? h('p', {}, 'Imitates ' + sk.desc) : null)));
-    } else if (pk.tierIdx[t.id] === 0) {
-      skinSec.append(h('div', { class: 'd-skin' }, h('div', { class: 'd-swatch', style: { background: 'linear-gradient(135deg,#3a3a44,#1c1c22)' } }), h('div', {}, h('b', {}, 'Plain tab'), h('p', {}, 'Commons print into your normal terminal colors; foil tiers swap in a holo pixel shader for that tab.'))));
-    } else skinSec.append(h('p', { class: 'd-foot' }, 'No skin recorded for this pull.'));
+    } else if (!isFoil(pk, t.id)) {
+      skinSec.append(h('div', { class: 'd-skin' }, h('div', { class: 'd-swatch', style: { background: 'linear-gradient(135deg,#3a3a44,#1c1c22)' }, 'aria-hidden': 'true' }), h('div', {}, h('b', {}, 'Plain tab'), h('p', {}, `${titleCase(t.label)} cards print into your normal terminal colours; foil rarities swap in a holo pixel shader for that tab.`))));
+    } else skinSec.append(h('p', { class: 'd-foot' }, inTier.length ? 'No skin recorded for this pull (the foil was blocked, or the skin isn\'t installed).' : `Pulled as a foil, this card gets one of: ${t.skins.map(x => skinName(x.id)).join(', ') || 'no skin yet'}.`));
     info.append(skinSec);
 
-    // odds
+    // odds: the game's (tools/binder_web.py mirrors `pokeshell odds`)
     const tb = h('tbody');
-    pk.tiers.forEach(tt => tb.append(h('tr', { class: tt.id === t.id ? 'me' : '' }, h('td', {}, `${rar(pk.id, tt.id)} ${tt.label}`), h('td', {}, `${pct(tt.odds)} · ${oneIn(tt.odds)}`))));
-    if (pk.shiny_chance > 0) tb.append(h('tr', { class: showShiny ? 'me' : '' }, h('td', {}, '✦ shiny (any tier)'), h('td', {}, `${pct(pk.shiny_chance)} · ${oneIn(pk.shiny_chance)}`)));
-    const exact = t.card_odds * (showShiny ? pk.shiny_chance : 1);
-    tb.append(h('tr', { class: 'me' }, h('td', {}, `this card: ${cd ? cd.name : c.name}${showShiny ? ' ✦' : ''}, ${t.label}`), h('td', {}, `${oneIn(exact)} pulls`)));
+    pk.tiers.forEach(tt => tb.append(h('tr', { class: tt.id === t.id ? 'me' : '' }, h('td', {}, rarEl(pk.id, tt.id), ` ${tt.label}`), h('td', {}, `${pct(tt.odds)} · ${oneIn(tt.odds)}`))));
+    if (pk.shiny_chance > 0) tb.append(h('tr', { class: showShiny ? 'me' : '' }, h('td', {}, '✦ shiny (any rarity)'), h('td', {}, `${pct(pk.shiny_chance)} · ${oneIn(pk.shiny_chance)}`)));
+    tb.append(h('tr', { class: 'me' }, h('td', {}, `this card: ${nameTxt}${showShiny ? ' ✦ shiny' : ''}`), h('td', {}, `${oneIn(exact)} pulls`)));
     if (pk.active_packs > 1) tb.append(h('tr', {}, h('td', {}, `…counting tabs (1 of ${pk.active_packs} packs per tab)`), h('td', {}, `${oneIn(exact / pk.active_packs)} tabs`)));
-    info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'ODDS FROM PACK.JSON'), h('table', { class: 'd-odds' }, tb)));
+    const cap = pk.layout === 'cards' ? `A pull picks a rarity by its weight among the rarities that can drop, then one of its ${t.cards ?? ''} cards.` : '';
+    info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'PULL ODDS'), h('table', { class: 'd-odds' }, cap ? h('caption', {}, cap) : null, tb)));
 
     // pulls
     if (inTier.length) {
@@ -1751,9 +2222,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         if (p.shiny) bits.push('✦ shiny');
         if (p.status === 'pending') bits.push('pending');
         for (const f of p.flags) if (f.startsWith('denied:')) bits.push(`foil blocked (${f.slice(7)} gate)`);
-        ul.append(h('li', { class: focusPull && p.id === focusPull.id ? 'hl' : '' }, h('time', { datetime: p.time }, fmtDate(p.time)), h('span', {}, bits.join(' · '))));
+        ul.append(h('li', { class: [ctx.focusPull && p.id === ctx.focusPull.id ? 'hl' : '', p.status === 'pending' ? 'is-pending' : ''].join(' ').trim() || null },
+          h('time', { datetime: p.time }, fmtDate(p.time)), h('span', {}, bits.join(' · '))));
       }
-      info.append(h('div', { class: 'd-sec' }, h('h3', {}, `PULL HISTORY (${inTier.length})`), ul));
+      info.append(h('div', { class: 'd-sec' }, h('h3', {}, `PULL HISTORY · ${gotAll.length} KEPT${pendAll ? ` · ${pendAll} PENDING` : ''}`), ul));
     }
     const otherTiers = pk.layout === 'dex' ? [...new Set(slot.pulls.map(p => p.tier))].filter(x => x !== tierId) : [];
     if (otherTiers.length) info.append(h('p', { class: 'd-foot' }, `Also pulled as: ${otherTiers.map(x => pk.tiers[pk.tierIdx[x]].label).join(', ')}.`));
@@ -1763,10 +2235,9 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     close.onclick = () => dlg.close();
     const box = h('div', { class: 'detail__box', tabindex: '-1' }, close, stage, info);
     dlg.replaceChildren(box);
-    dlg.showModal();
-    box.focus({ preventScroll: true });
     // the big card follows the pointer anywhere over the stage too
     stage.addEventListener('pointermove', e => {
+      if (reduced) return;
       const r = big.getBoundingClientRect();
       big.classList.add('live');
       big.style.setProperty('--px', Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)).toFixed(3));
@@ -1775,11 +2246,16 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     stage.addEventListener('pointerleave', () => { big.classList.remove('live'); big.style.removeProperty('--px'); big.style.removeProperty('--py'); });
   }
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('close', () => {
+    refreshIdle();
+    const back = lastFocus && lastFocus !== document.body && lastFocus.isConnected && !lastFocus.closest('[inert]') ? lastFocus : null;
+    if (back) back.focus({ preventScroll: true }); else if (!document.activeElement || document.activeElement === document.body || document.activeElement === dlg) (state.open ? spreadEl : $('#cover')).focus({ preventScroll: true });
+  });
 
   /* -------------------------------------------------------------- controls */
-  $('#prevBtn').onclick = prev;
+  $('#prevBtn').onclick = () => prev(false);
   $('#nextBtn').onclick = next;
-  $('#cover').addEventListener('click', openBinder);
+  $('#cover').addEventListener('click', () => openBinder());
   $('#cover').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBinder(); } });
   $('#scrubRange').addEventListener('input', e => {
     const step = state.single ? 1 : 2, target = +e.target.value * step;
@@ -1788,50 +2264,80 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   $('#caughtOnly').addEventListener('change', e => { state.caughtOnly = e.target.checked; state.page = 0; render(); });
   document.addEventListener('keydown', e => {
     if (dlg.open || e.altKey || e.ctrlKey || e.metaKey) return;
-    if (e.target.matches?.('input, textarea')) return;
+    if (e.target.matches?.('input, textarea, select')) return;
+    if (e.target.closest?.('[role=tablist]') && /^(Arrow|Home|End)/.test(e.key)) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
-    else if (/^[1-9]$/.test(e.key) && packs[+e.key - 1]) { const pk = packs[+e.key - 1]; if (!state.open) { state.pack = pk.id; state.page = 0; openBinder(); } else if (pk.id !== state.pack) goTo(pk.id, 0, +e.key - 1 > packs.findIndex(p => p.id === state.pack) ? 1 : -1); }
-    else if (e.key === 'Home' && state.open) goTo(state.pack, 0, -1);
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(true); }
+    else if (/^[1-9]$/.test(e.key) && packs[+e.key - 1]) {
+      const pk = packs[+e.key - 1];
+      if (!state.open) { state.pack = pk.id; state.page = 0; state.set = null; openBinder(); }
+      else if (pk.id !== state.pack) goTo(pk.id, 0, +e.key - 1 > packs.findIndex(p => p.id === state.pack) ? 1 : -1);
+    }
+    else if (e.key === 'Home' && state.open) { e.preventDefault(); goTo(state.pack, 0, -1); }
+    else if (e.key === 'End' && state.open) { e.preventDefault(); lastPage(); }
+    else if (e.key === 'Escape' && state.open && !e.target.closest?.('dialog')) closeBinder();
     else if (e.key === '/') { e.preventDefault(); searchBox.focus(); }
   });
   // swipe on touch
   { let x0 = null, y0 = 0;
-    const sp = $('#spread');
-    sp.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
-    sp.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) (dx < 0 ? next : prev)(); }, { passive: true });
+    spreadEl.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    spreadEl.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) (dx < 0 ? next : () => prev(true))(); }, { passive: true });
   }
 
   // theme toggle: auto -> light -> dark
   const themes = ['auto', 'light', 'dark'];
   let theme = 'auto';
   try { theme = localStorage.getItem('pokeshell-binder-theme') || 'auto'; } catch {}
-  if (params.get('theme')) theme = params.get('theme');
-  const applyTheme = () => { if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; $('#themeLbl').textContent = theme; };
+  if (params.has('theme')) theme = params.get('theme');
+  if (!themes.includes(theme)) theme = 'auto';
+  const applyTheme = () => {
+    if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme;
+    $('#themeLbl').textContent = theme;
+    $('#themeBtn').title = `Theme: ${theme === 'auto' ? 'follows your system' : theme} (click for ${themes[(themes.indexOf(theme) + 1) % 3]})`;
+  };
   applyTheme();
   $('#themeBtn').onclick = () => { theme = themes[(themes.indexOf(theme) + 1) % 3]; applyTheme(); try { localStorage.setItem('pokeshell-binder-theme', theme); } catch {} };
 
   function layout() {
     const single = mq.matches;
     if (single !== state.single) { state.single = single; binder.classList.toggle('is-single', single); }
+    binder.style.setProperty('--packs-w', dividers.offsetWidth + 'px');
     render();
   }
   mq.addEventListener('change', layout);
-  layout();
 
-  // deep links for screenshots / sharing: ?open=1&pack=onepiece&page=2&card=pokemon/pikachu/holo
-  if (params.get('pack') && packById[params.get('pack')]) state.pack = params.get('pack');
-  if (params.get('page')) state.page = +params.get('page') || 0;
-  if (params.get('caught')) { state.caughtOnly = true; $('#caughtOnly').checked = true; }
-  if (params.get('set')) state.set = params.get('set');
-  if (params.get('q')) { state.query = params.get('q'); searchBox.value = state.query; }
-  if (params.get('open')) { state.open = true; binder.classList.remove('is-closed'); binder.classList.add('cover-gone'); }
-  render();
+  // deep links (screenshots / sharing): ?open &pack=onepiece &set=swsh7 &page=2 &q=... &caught &card=pokemon/swsh7-215 &theme=dark
+  if (params.get('pack')) {
+    if (packById[params.get('pack')]) state.pack = params.get('pack');
+    else toast(`No pack “${params.get('pack')}” in this binder`);
+  }
+  if (params.get('page')) state.page = Math.max(0, parseInt(params.get('page'), 10) || 0);
+  if (flag('caught')) { state.caughtOnly = true; $('#caughtOnly').checked = true; }
+  if (params.get('set')) {
+    const pk = packById[state.pack];
+    if (pk.layout === 'cards' && pk.setById[params.get('set')]) state.set = params.get('set');
+    else toast(`No set “${params.get('set')}” in ${packTitle(pk)}`);
+  }
+  if (params.get('q')) { state.query = params.get('q').trim(); searchBox.value = state.query; }
+  let deepCard = null;
   if (params.get('card')) {
     const [pp, cc, tt] = params.get('card').split('/');
-    if (packById[pp]?.cardById?.[cc]) openDetail(getCardSlot(pp, cc));   // ?card=pokemon/swsh7-215
-    else if (packById[pp]?.charById[cc]) openDetail(getSlot(pp, cc, tt || packById[pp].tiers[0].id));
+    if (packById[pp]?.cardById?.[cc]) deepCard = getCardSlot(pp, cc);   // ?card=pokemon/swsh7-215
+    else if (packById[pp]?.charById[cc]) deepCard = getSlot(pp, cc, tt && packById[pp].tierIdx[tt] != null ? tt : packById[pp].tiers[0].id);
+    else toast(`No card “${params.get('card')}” in this binder`);
+    if (deepCard) {   // open the binder on the card's page, then its details
+      state.pack = deepCard.pack;
+      const pk = packById[state.pack];
+      if (state.set && pk.cardById?.[deepCard.card]?.set_id !== state.set) state.set = null;
+      const find = () => pagesFor(pk).findIndex(pg => pg.slots?.some(s => s.key === deepCard.key));
+      let at = find();
+      if (at < 0 && state.query) { state.query = ''; searchBox.value = ''; at = find(); }
+      if (at >= 0 && !params.get('page')) state.page = at;
+    }
   }
+  if (flag('open') || deepCard) { state.open = true; binder.classList.remove('is-closed'); binder.classList.add('cover-gone'); }
+  layout();
+  if (deepCard) openDetail(deepCard);
 })();
 </script>
 </body>

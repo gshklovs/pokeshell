@@ -54,13 +54,16 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
   `cards/<id>.json`, else pack.json's card fields), character, artist, pack; state tags `shiny`, `foil`, `new`,
   `pending` (and `owned`, `missing`) from the pulls.
 - **Search** (`/`): words match any tag; `key:value` / `key:"a b"` filter one tag (keys: set, rarity, tier, type,
-  subtype, char, artist, pack, name, number, id); state words stand alone. Example: `set:swsh7 rarity:"rare rainbow"`.
+  subtype, char, artist, pack, name, number, id; the page adds attack, ability); state words stand alone. Example: `set:swsh7 rarity:"rare rainbow"`.
   Case and accents don't matter (`flabebe` finds Flabébé). Three keys are exact rather than substrings, so a short
   value doesn't catch its neighbours: `set:` names a set by its id (`set:swsh1` is not swsh10), else by its name
   (word starts: `set:evolving`, `set:30th`; then letters in order: `set:evsk`), and the best-matching sets win;
   `number:17` is the printed number's numerator (17/203, not 117 or 170); `id:` is the whole card id. A quoted value
-  (`id:"swsh7-2"`) is a plain substring for any key. `binder/src/query.rs` implements this; the page's parser follows
-  the same rules.
+  (`id:"swsh7-2"`) is a plain substring for any key. `binder/src/query.rs` implements this. The page follows it for
+  `set:`, `number:` and `id:` and is stricter elsewhere: any `key:value`, quoted or not, matches a whole tag
+  (`rarity:rare` is not every "Rare ..."; `key:pika*` for a prefix; hyphens don't matter, `tier:rare-holo` =
+  `rarity:"rare holo"`), a bare word matches the start of a tag's word (under 3 letters, a whole word: `ex`), and
+  `-term` excludes.
 - **Sets**: real-card packs get a set tab (app: next to the pack tabs, `S` or a click opens the set picker, with each
   set's completion, filtered by typing; web: a divider tab per set). A set page is its checklist: every card of that
   set in pack.json `cards`, in printed-number order (plain numbers, the secret rares past the printed total after
@@ -72,7 +75,11 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
 - **Web**: a card's page lists its tags as chips; a click runs that search.
 
 ## Web binder
-- **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running.
+- **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running. Each real
+  card shows its text half from `packs/<pack>/cards/<id>.json` (HP, abilities, attacks with energy costs, weakness /
+  resistance / retreat, rules; docs/CARD_FORMAT.md); the tab skin stays in the card's details. Odds are the game's
+  (only tiers with a built card roll). Pending pulls are shown greyed and never counted. Decoded art is cached
+  (`img\.cache.json`), so a rebuild takes well under a second once the art is cached.
 - **Soon: hosted backend** for sync and battles; see below.
 
 ## Backend (next phase: sync + battles)
