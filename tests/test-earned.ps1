@@ -149,7 +149,21 @@ Assert (-not (Test-Path (Join-Path $hs 'errors.log'))) "no hook errors"
 
 Write-Host "4. reading the log: earned / pending / expired, legacy lines, viewed.txt, retired art" -ForegroundColor Cyan
 # the pokemon pack is a real-card pack (pack.json "cards"): the art column holds the card id; older lines resolve
-# through pack.json "retired" (an old common -> its base-set card; an old holo -> hidden)
+# through pack.json "retired" (an old common -> its base-set card; an old holo -> hidden). A card whose art isn't built
+# is muted: pulls resolving to it are hidden too. So sections 4-7 run the CLI and the binders on a fixture root (the
+# scripts, the web export and pokemon's pack.json copied, fake art for the cards below), whatever is built locally.
+$fx = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-earned-root-$PID"
+Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
+foreach ($d in 'packs\pokemon', 'dist\pokemon', 'tools\binder-web') { [void][IO.Directory]::CreateDirectory((Join-Path $fx $d)) }
+Copy-Item -Recurse (Join-Path $RepoRoot 'scripts') $fx
+Copy-Item (Join-Path $RepoRoot 'tools\binder_web.py') (Join-Path $fx 'tools')
+Copy-Item (Join-Path $RepoRoot 'tools\binder-web\index.html') (Join-Path $fx 'tools\binder-web')
+Copy-Item (Join-Path $RepoRoot 'packs\pokemon\pack.json') (Join-Path $fx 'packs\pokemon')
+$fxArt = "$e[0;38;2;10;20;30m" + [char]0x2580 + "$e[0m`n"
+$fxBuilt = 'bulbasaur-base1-44', 'charmander-base1-46', 'pikachu-base1-58', 'squirtle-base1-63', 'bulbasaur-sv3pt5-166', 'charmander-sv3pt5-168',
+  'squirtle-sv3pt5-170', 'charmander-sma-SV6', 'glaceon-swsh7-40', 'glaceon-swsh7-41', 'glaceon-swsh7-174', 'glaceon-swsh7-175'   # 12 built; e.g. swsh4-170 is not
+foreach ($n in $fxBuilt) { [IO.File]::WriteAllText((Join-Path $fx "dist\pokemon\$n.ans"), $fxArt, [Text.UTF8Encoding]::new($false)) }
+$cli = Join-Path $fx 'scripts\pokeshell.ps1'
 $rs = New-TestState 'earn-read'
 $now = [DateTime]::UtcNow; $boot = [Pokeshell.Core]::BootId()
 function L($ago, $ch, $tier, $card, $flags, $idTicks, $b = $boot) {
@@ -161,19 +175,36 @@ $b = L 40 'squirtle' 'illustration-rare' 'sv3pt5-170' 'pending' $now.AddMinutes(
 $c = L 1600 'charmander' 'rare-shiny' 'sma-SV6' 'pending' $now.AddHours(-26).Ticks
 $d = L 30 'bulbasaur' 'common' 'base1-44' 'denied:rate,pending' $now.AddMinutes(-30).Ticks ($boot - 7200)
 $v = L 20 'bulbasaur' 'illustration-rare' 'sv3pt5-166' 'pending' $now.AddMinutes(-20).Ticks
+$old = $now.AddDays(-3).ToLocalTime().ToString('s'); $realT = $now.AddDays(-2).ToLocalTime()
+function RealLine($min, $ch, $tier, $card) { "$($realT.AddMinutes($min).ToString('s'))`tpokemon`t$ch`t$tier`t$card`t`t0`t" }
 $lines = @(
-  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tsquirtle`tcommon`tcommon`t`t0`t",   # before the earned rule (and real cards): -> base1-63
+  "$old`tpokemon`tsquirtle`tcommon`tcommon`t`t1`t",   # before the earned rule (and real cards): -> base1-63; a shiny, but older than the best pulls' start
+  (RealLine -10 'pikachu' 'rare-ultra' 'swsh4-170'),          # a real card whose art isn't built: hidden (and not the best pulls' start)
+  (RealLine 0 'glaceon' 'rare-holo-v' 'swsh7-40'), (RealLine 1 'glaceon' 'rare-ultra' 'swsh7-174'), (RealLine 2 'glaceon' 'rare-ultra' 'swsh7-175'),
+  (RealLine 3 'glaceon' 'rare-holo-vmax' 'swsh7-41'),         # four Glaceon cards, two of them in one rarity: four slots
   $a.line, "x`tearned:$($a.id)", $b.line, $c.line, $d.line, $v.line, "x`tearned:$($v.id)",
-  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tpikachu`tholo`tholo`tsheen`t0`t",     # retired art: hidden
+  "$old`tpokemon`tpikachu`tholo`tholo`tsheen`t0`t",     # retired art: hidden
   "$($now.ToLocalTime().ToString('s'))`tpokemon`tpikachu`tcommon`tbase1-58`t`t0`tdryrun,pending`tid=X`tboot=$boot")
 [IO.File]::WriteAllLines((Join-Path $rs 'pulls.log'), [string[]]$lines)
 [IO.File]::WriteAllLines((Join-Path $rs 'viewed.txt'), [string[]]@($v.id))
 $recs = @([Pokeshell.Core]::ReadPulls($rs, $now.Ticks, $boot))
 $got = ($recs | ForEach-Object { "$($_.Character)/$($_.Status)$(if ($_.New) { '+new' })" }) -join ' '
-Assert ($got -eq 'squirtle/earned pikachu/earned+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/earned pikachu/earned') "statuses: $got"
+Assert ($got -eq 'squirtle/earned pikachu/earned glaceon/earned glaceon/earned glaceon/earned glaceon/earned pikachu/earned+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/earned pikachu/earned') "statuses: $got"
 Assert (($recs | Where-Object Status -eq 'expired' | ForEach-Object Derived) -notcontains $false) "expired by age / boot: derived, no event yet"
 $out = Strip (Invoke-Cli $rs 'collection')
-Assert ($out -match 'BINDER\s+3 pulls' -and $out -match '1 pending' -and $out -match '1 new' -and $out -match '1 pulls of retired art not shown') "pokeshell collection counts earned pulls only, shows pending, new and retired: '$((($out -split "`n") | Where-Object { $_ -match 'BINDER' }).Trim())'"
+Assert ($out -match 'BINDER\s+7 pulls' -and $out -match '1 pending' -and $out -match '1 new' -and $out -match '2 pulls of retired art not shown') "pokeshell collection counts earned pulls only, shows pending, new and retired (+ unbuilt): '$((($out -split "`n") | Where-Object { $_ -match 'BINDER' }).Trim())'"
+Assert ($out -match '7/12 card slots filled') "every built card is a slot, unbuilt ones are not; two Glaceon cards of one rarity are two slots (7/12)"
+Assert ($out -match 'Glaceon\s.*2 \(2/2\)' -and $out -notmatch 'Vivid Voltage|Pikachu V') "the Glaceon row: 2 pulls of its 2 rare-ultra cards"
+$sinceLabel = $realT.ToString('MMM d', [Globalization.CultureInfo]::InvariantCulture)
+Assert ($out -match "best pulls \(since $sinceLabel\):" -and $out -match 'rare ultra : Glaceon' -and $out -notmatch 'Squirtle \(shiny\)') "best pulls start when the real cards went live (the first built real-card pull, $sinceLabel); the old shiny is left out"
+$day = $now.AddDays(-1).ToLocalTime()
+[IO.File]::WriteAllLines((Join-Path $rs 'config.txt'), [string[]]@("best_since=$($day.ToString('yyyy-MM-dd'))"))
+$outDay = Strip (Invoke-Cli $rs 'collection')
+Assert ($outDay -match "best pulls \(since $($day.ToString('MMM d', [Globalization.CultureInfo]::InvariantCulture))\):" -and $outDay -match 'illustration rare : Bulbasaur' -and $outDay -notmatch ': Glaceon') "config best_since=<date>: from that day on"
+[IO.File]::WriteAllLines((Join-Path $rs 'config.txt'), [string[]]@('best_since=all'))
+$outAll = Strip (Invoke-Cli $rs 'collection')
+Assert ($outAll -match '  best pulls:' -and $outAll -match 'rare ultra : Glaceon') "config best_since=all: every pull, no cutoff label"
+Remove-Item (Join-Path $rs 'config.txt')
 $exp = @(Get-Content (Join-Path $rs 'pulls.log') | Where-Object { $_ -match "`texpired:" })
 Assert ($exp.Count -eq 2 -and ($exp -join ' ') -match $c.id -and ($exp -join ' ') -match $d.id) "reading writes the expired:<id> lines (append-only)"
 $null = Invoke-Cli $rs 'collection'
@@ -195,29 +226,38 @@ Assert ([Pokeshell.Core]::EarnMode('MINUTES:1.5') -eq 'minutes:1.5' -and [Pokesh
 
 Write-Host "6. binder: the app, the text fallback, --pull / --card" -ForegroundColor Cyan
 $out = Strip (Invoke-Cli $rs 'binder' @{ POKESHELL_BINDER = (Join-Path $rs 'no-such-binder.exe') })
-Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+3 pulls') "no exe: the text table"
+Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+7 pulls') "no exe: the text table"
 $exe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
 if (Test-Path $exe) {
   $viewedBefore = (Get-FileHash (Join-Path $rs 'viewed.txt')).Hash
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --first-frame | Out-String)
   Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur illustration rare); header counts pending and new"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --pull $a.id --first-frame | Out-String)
+  Assert ($frame -match '\b8 pulls' -and $frame -match "best pulls\S*since $sinceLabel") "unbuilt and retired pulls are left out (8 shown); best pulls since ${sinceLabel}: $((($frame -split "`n") | Select-Object -First 1).Trim()) / $((($frame -split "`n") | Where-Object { $_ -match 'best pulls' }) -replace '.*best pulls', 'best pulls')"
+  $frame = Strip (& $exe --root $fx --state $rs --pull $a.id --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'collected') "--pull <id> opens that pull, with its NEW sticker"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/charmander/rare shiny' --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/charmander/rare shiny' --first-frame | Out-String)
   Assert ($frame -match 'Charmander' -and $frame -match 'SV6/SV94' -and $frame -match 'not pulled yet') "--card pack/character/tier (tier by label) opens that card"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/sv3pt5-170' --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-170' --first-frame | Out-String)
   Assert ($frame -match 'Squirtle' -and $frame -match 'pending') "--card pack/<card id> opens that real card"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
   # tags and sets: a set's checklist (every pack.json card of the set, pulled or not) and a tag search
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --set sv3pt5 --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --set sv3pt5 --first-frame | Out-String)
   Assert ($frame -match 'set 151' -and $frame -match '2/3' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled, one of them pending)"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --search 'set:base1 owned' --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --search 'set:base1 owned' --first-frame | Out-String)
   Assert ($frame -match '/set:base1 owned 2') "--search 'set:base1 owned': tag filter + state word (2 cards)"
-  $frame = Strip (& $exe --root $RepoRoot --state $rs --search 'rarity:\"illustration rare\" pending' --first-frame | Out-String)
+  $frame = Strip (& $exe --root $fx --state $rs --search 'rarity:\"illustration rare\" pending' --first-frame | Out-String)
   Assert ($frame -match 'pending 1') "--search with a quoted tag value and a state word"
-  $out = & $exe --root $RepoRoot --state $rs --selftest | Out-String
+  $frame = Strip (& $exe --root $fx --state $rs --search 'glaceon owned' --first-frame | Out-String)
+  Assert ($frame -match '/glaceon owned 4') "four Glaceon cards pulled (two of one rarity): four slots"
+  $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/swsh4-170' --first-frame | Out-String)
+  Assert ($frame -notmatch 'Pikachu V') "an unbuilt card is no slot (--card pokemon/swsh4-170 doesn't land on it)"
+  [IO.File]::WriteAllLines((Join-Path $rs 'config.txt'), [string[]]@('best_since=all'))
+  $frame = Strip (& $exe --root $fx --state $rs --first-frame | Out-String)
+  Assert ($frame -match 'best pulls\S*rarest' -and $frame -notmatch 'best pulls\S*since') "config best_since=all: every pull, no cutoff label"
+  Remove-Item (Join-Path $rs 'config.txt')
+  $out = & $exe --root $fx --state $rs --selftest | Out-String
   Assert ($out -match 'selftest ok') "binder --selftest (keys incl. v / d, mouse, resizes): $($out.Trim())"
 } else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
 
@@ -227,14 +267,19 @@ if ($py) {
   $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_PYTHON = $py; POKESHELL_NO_OPEN = '1' })
   $data = Get-Content (Join-Path $rs 'web\data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   $st2 = ($data.pulls | ForEach-Object { "$($_.char)/$($_.status)$(if ($_.new) { '+new' })" }) -join ' '
-  Assert ($st2 -eq 'squirtle/collected pikachu/collected+new squirtle/pending bulbasaur/collected' -and $data.hidden -eq 1) "data.json marks earned vs pending (expired left out, retired art hidden): $st2"
+  Assert ($st2 -eq 'squirtle/collected glaceon/collected glaceon/collected glaceon/collected glaceon/collected pikachu/collected+new squirtle/pending bulbasaur/collected' -and $data.hidden -eq 2) "data.json marks earned vs pending (expired left out, retired art and unbuilt cards hidden): $st2"
+  Assert (@($data.pulls | Where-Object char -eq 'glaceon' | ForEach-Object card | Sort-Object -Unique).Count -eq 4) "each Glaceon pull keeps its own card (four slots)"
+  Assert ($data.best_since -eq $realT.ToString('s')) "best pulls start at the first built real-card pull ($($data.best_since))"
   Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'earned' } | Select-Object -First 1).Trim()))"
   Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
   $pk = $data.packs | Where-Object id -eq 'pokemon'
-  Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every card with its set (the checklists) in data.json"
+  Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and -not @($pk.cards | Where-Object id -eq 'swsh4-170') -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every built card with its set (the checklists) in data.json; unbuilt ones left out"
   $html = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
   Assert ($html.Contains('id="setTabs"') -and $html.Contains('id="search"') -and $html.Contains('tagchip')) "the page has set tabs, the search box and tag chips"
 } else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
+
+$cli = Join-Path $RepoRoot 'scripts\pokeshell.ps1'   # sections 8-9: the repo's CLI again
+Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "8. the Ctrl+Shift+B hotkey, on settings.json copies" -ForegroundColor Cyan
 $fakeExe = Join-Path $rs 'binder.exe'; Set-Content $fakeExe 'not a real exe'

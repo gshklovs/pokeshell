@@ -85,6 +85,8 @@ pub struct App {
     pub help: bool,
     pub hist: usize,
     pub best_sel: usize,
+    /// best pulls start here (config.txt `best_since`, default: when the real cards went live); None = every pull
+    pub best_since: Option<i64>,
     pub now: i64,
     pub anim_t0: Instant,
     /// Fixed shimmer phase (snapshots); None = real time.
@@ -139,6 +141,7 @@ impl App {
             help: false,
             hist: 0,
             best_sel: 0,
+            best_since: None,
             now: now_local(),
             anim_t0: Instant::now(),
             phase_override: None,
@@ -153,6 +156,7 @@ impl App {
             viewed,
             seen_slot: None,
         };
+        app.best_since = app.best_since_setting();
         // --set / --search: open on that set (in its pack) / with that search, on its first card
         let set = app.opts.set.clone();
         if !set.is_empty() {
@@ -286,6 +290,7 @@ impl App {
         let packs = std::mem::take(&mut self.coll.packs);
         self.seen_slot = None;
         self.coll = Collection::build(pulls, packs);
+        self.best_since = self.best_since_setting();
         self.slots_key.5 = self.slots_key.5.wrapping_add(1);
         self.slots_key.0 = usize::MAX;
         if let Some(k) = cur {
@@ -518,12 +523,21 @@ impl App {
         }
     }
 
-    /// Ranked best pulls across all packs: rarest odds first.
+    /// config.txt (next to pulls.log) `best_since`, else when the real cards went live
+    fn best_since_setting(&self) -> Option<i64> {
+        let dir = self.opts.log.parent().map(|d| d.to_path_buf()).unwrap_or_default();
+        crate::data::best_since(crate::data::read_config(&dir, "best_since").as_deref(), self.coll.real_since)
+    }
+
+    /// Ranked best pulls across all packs, since best_since: rarest odds first.
     pub fn best_pulls(&self) -> Vec<(usize, f64)> {
         let mut v: Vec<(usize, f64)> = (0..self.coll.pulls.len())
             .filter_map(|i| {
                 let k = self.coll.slot_of[i]?;
                 let p = &self.coll.pulls[i];
+                if self.best_since.is_some_and(|t| p.ts < t) {
+                    return None;
+                }
                 if !self.coll.packs[k.pack].foil_tier(k.tier) && !p.shiny {
                     return None;
                 }

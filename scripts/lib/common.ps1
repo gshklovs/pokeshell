@@ -100,14 +100,18 @@ What a pulls.log line shows today, for the binders: the real card it resolves to
   - the art column is a card id of this pack (and the character matches): that card
   - else pack.json "retired" names the old character/tier: its card id (e.g. an old common -> the base-set common), or null
   - anything else doesn't resolve to a current real card: hidden
+  - a card whose art isn't built (Test-PokeshellCardBuilt) is muted: it counts as absent from the pack, so a pull
+    resolving to it is hidden too, until it is built
 Mirrored by binder-tui / the web export (docs/PACK_FORMAT.md, "retired").
 #>
 function Resolve-PokeshellPull($Pack, [string]$Character, [string]$Tier, [string]$Art) {
   if (-not $Pack.isCardPack) { return 'legacy' }
+  $root = Split-Path (Split-Path $Pack.dir); $id = Split-Path -Leaf $Pack.dir
   $c = $Pack.cardIndex[$Art]
-  if ($c -and $c.character -eq $Character) { return $c }
+  if ($c -and $c.character -eq $Character -and (Test-PokeshellCardBuilt $root $id $c)) { return $c }
   $k = "$Character/$Tier"
-  if ($Pack.retired.ContainsKey($k) -and $Pack.retired[$k]) { return $Pack.cardIndex[$Pack.retired[$k]] }
+  $c = if ($Pack.retired.ContainsKey($k) -and $Pack.retired[$k]) { $Pack.cardIndex[$Pack.retired[$k]] }
+  if ($c -and (Test-PokeshellCardBuilt $root $id $c)) { return $c }
   $null
 }
 

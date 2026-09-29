@@ -280,24 +280,37 @@ function Read-Pulls([switch]$All) {
 }
 
 # Real-card packs: each pull as the card it resolves to today (Resolve-PokeshellPull), its tier/art columns set to
-# that card's; pulls of retired art (pack.json "retired") are left out and counted in $script:HiddenPulls.
-# pulls.log itself is never rewritten.
+# that card's; pulls of retired art (pack.json "retired") or of a card whose art isn't built are left out and counted
+# in $script:HiddenPulls. $script:RealSince: when the real cards went live, the time of the first shown pull whose
+# line names a built card itself (the default start of the best pulls). pulls.log itself is never rewritten.
 function Get-ShownPulls($Pulls) {
-  $packs = @{}; $script:HiddenPulls = 0
+  $packs = @{}; $script:HiddenPulls = 0; $script:RealSince = $null
   foreach ($x in $Pulls) {
     if (-not $packs.ContainsKey($x.pack)) { $packs[$x.pack] = try { Read-PokeshellPack $Root $x.pack } catch { $null } }
     $pk = $packs[$x.pack]
     if (-not $pk -or -not $pk.isCardPack) { $x; continue }
     $c = Resolve-PokeshellPull $pk $x.character $x.tier $x.art
     if (-not $c) { $script:HiddenPulls++; continue }
+    if ($c.id -eq $x.art -and ($null -eq $script:RealSince -or [string]::CompareOrdinal($x.time, $script:RealSince) -lt 0)) { $script:RealSince = $x.time }
     $x.tier = $c.tierId; $x.art = $c.id; $x
   }
+}
+
+# config.txt best_since: 'all' -> '' (every pull); 'YYYY-MM-DD[THH:MM[:SS]]' -> that local time (pull times compare as
+# ISO strings); anything else (unset) -> $Default, when the real cards went live
+function Get-BestSince([string]$Setting, [string]$Default) {
+  $v = "$Setting".Trim()
+  if ($v -eq 'all') { return '' }
+  $v = $v.Replace(' ', 'T')
+  if ($v -match '^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$') { return $v }
+  "$Default"
 }
 
 function Invoke-Collection {
   $every = @(Get-ShownPulls @(Read-Pulls -All))   # earned, pending (expired left out); retired art hidden
   $pulls = @($every | Where-Object status -eq 'earned')
   $pending = @($every | Where-Object status -eq 'pending')
+  $since = Get-BestSince $Cfg['best_since'] $script:RealSince   # best pulls start here ('' = all)
   $hidden = if ($script:HiddenPulls) { "  ($script:HiddenPulls pulls of retired art not shown)" } else { '' }
   if (-not $pulls) {
     if ($pending) { Write-Host "pokeshell: $($pending.Count) pending pull$(if ($pending.Count -gt 1) { 's' }): use $(if ($pending.Count -gt 1) { 'their tabs' } else { 'its tab' }) to earn $(if ($pending.Count -gt 1) { 'them' } else { 'it' })$hidden" }
@@ -311,9 +324,12 @@ function Invoke-Collection {
     $(if ($newN) { "  $newN new" })) -ForegroundColor Cyan
   foreach ($grp in ($pulls | Group-Object pack)) {
     $pack = try { Read-PokeshellPack $Root $grp.Name } catch { $null }
-    $tiers = if ($pack -and $pack.isCardPack) { $has = @($pack.cardList | ForEach-Object tier); @(for ($i = 0; $i -lt @($pack.tiers).Count; $i++) { if ($has -contains $i) { $pack.tiers[$i] } }) }   # the rarities it has cards in
+    $isCards = $pack -and $pack.isCardPack
+    $cards = if ($isCards) { @($pack.cardList | Where-Object { Test-PokeshellCardBuilt $Root $grp.Name $_ }) }   # unbuilt cards are muted: no slot
+    $tiers = if ($isCards) { $has = @($cards | ForEach-Object tier); @(for ($i = 0; $i -lt @($pack.tiers).Count; $i++) { if ($has -contains $i) { $pack.tiers[$i] } }) }   # the rarities it has cards in
              elseif ($pack) { @($pack.tiers) } else { @($grp.Group | Select-Object -ExpandProperty tier -Unique | ForEach-Object { [pscustomobject]@{ id = $_; label = $_ } }) }
-    $chars = if ($pack) { @($pack.characters) } else { @($grp.Group | Select-Object -ExpandProperty character -Unique) }
+    $chars = if ($isCards) { @($pack.characters | Where-Object { $ch = $_; @($cards | Where-Object character -eq $ch).Count }) }
+             elseif ($pack) { @($pack.characters) } else { @($grp.Group | Select-Object -ExpandProperty character -Unique) }
     $caught = ''
     if ($chars.Count -gt 40) {   # big packs: only the rows you have pulled
       $seen = @{}; foreach ($x in $grp.Group) { $seen[$x.character] = $true }
@@ -325,8 +341,15 @@ function Invoke-Collection {
       $mine = @($grp.Group | Where-Object character -eq $c)
       $row = [ordered]@{ character = $(if ($pack) { $pack.names[$c] } else { $c }) }
       foreach ($t in $tiers) {
-        if ($pack -and $pack.isCardPack -and -not @($pack.cardList | Where-Object { $_.character -eq $c -and $_.tierId -eq $t.id })) { $row[$t.label] = '-'; continue }   # no such real card
-        $k = @($mine | Where-Object tier -eq $t.id).Count; $slots++; if ($k) { $owned++ }
+        $inTier = @($mine | Where-Object tier -eq $t.id); $k = $inTier.Count
+        if ($isCards) {   # every real card is its own slot (a character can have several in one rarity: "pulls (cards got/of)")
+          $of = @($cards | Where-Object { $_.character -eq $c -and $_.tierId -eq $t.id }).Count
+          if (-not $of) { $row[$t.label] = '-'; continue }   # no such real card
+          $got = @($inTier | Select-Object -ExpandProperty art -Unique).Count; $slots += $of; $owned += $got
+          $row[$t.label] = if (-not $k) { '.' } elseif ($of -gt 1) { "$k ($got/$of)" } else { "$k" }
+          continue
+        }
+        $slots++; if ($k) { $owned++ }
         $row[$t.label] = if ($k) { "$k" } else { '.' }
       }
       $sh = @($mine | Where-Object shiny).Count
@@ -337,11 +360,11 @@ function Invoke-Collection {
     Write-Host ''
     Write-Host "$(if ($pack) { $pack.name } else { $grp.Name })  -  $($grp.Count) pulls, $owned/$slots card slots filled$caught" -ForegroundColor Yellow
     $rows | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
-    $best = @($grp.Group | Where-Object { $_.tier -ne $tiers[0].id -or $_.shiny })
+    $best = @($grp.Group | Where-Object { ($_.tier -ne $tiers[0].id -or $_.shiny) -and [string]::CompareOrdinal($_.time, $since) -ge 0 })
     if ($best) {
       $rank = @{}; for ($i = 0; $i -lt $tiers.Count; $i++) { $rank[$tiers[$i].id] = $i }
       $top = $best | Sort-Object @{ e = { $rank[$_.tier] }; Descending = $true }, @{ e = { $_.shiny }; Descending = $true } | Select-Object -First 5
-      Write-Host '  best pulls:'
+      Write-Host "  best pulls$(if ($since) { ' (since ' + [datetime]::ParseExact($since.Substring(0, 10), 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture).ToString('MMM d', [Globalization.CultureInfo]::InvariantCulture) + ')' }):"
       foreach ($b in $top) {
         $label = ($tiers | Where-Object id -eq $b.tier | Select-Object -First 1).label
         $name = if ($pack) { $pack.names[$b.character] } else { $b.character }

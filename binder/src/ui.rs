@@ -951,7 +951,8 @@ fn best_panel(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, focused: bool
     let best = app.best_pulls();
     let mut ti = Titles::new();
     ti.tl.push(vec![segb("best pulls", t.title)]);
-    ti.tr.push(vec![seg("rarest", t.dim)]);
+    // the cutoff (config.txt best_since), subtly: "since Sep 29"
+    ti.tr.push(vec![seg(&app.best_since.map_or("rarest".to_string(), |s| format!("since {}", crate::data::date_short(s))), t.dim)]);
     let (_, inner) = panel(buf, r, box_col(t, t.box_stats, focused), t.bg, &ti);
     let rows = inner.height as usize;
     if best.is_empty() {

@@ -85,7 +85,7 @@ $total = @(Get-Content (Join-Path $st 'pulls.log')).Count
 $out = Strip (Invoke-Cli collection)
 Assert ($out -match "BINDER\s+$total pulls") "binder counts all $total pulls"
 Assert ($out -match 'Pikachu' -and $out -match 'card slots filled') "per-character rows and completion"
-Assert ($out -match 'best pulls:') "best pulls listed"
+Assert ($out -match 'best pulls( \(since [A-Z][a-z]{2} \d+\))?:') "best pulls listed (since the first real-card pull)"
 Write-Host ($out -split "`n" | Select-Object -First 16 | Out-String)
 
 Write-Host "4. color" -ForegroundColor Cyan

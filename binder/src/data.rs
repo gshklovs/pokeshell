@@ -19,6 +19,33 @@ pub fn parse_ts(s: &str) -> Option<i64> {
     Some(days_from_civil(y, mo, d) * 86400 + h * 3600 + mi * 60 + se)
 }
 
+/// config.txt `best_since`: "all" -> None (every pull); "YYYY-MM-DD[THH:MM[:SS]]" (local) -> Some(that time);
+/// anything else (unset, unreadable) -> the default, when the real cards went live (Collection::real_since).
+pub fn best_since(setting: Option<&str>, default: Option<i64>) -> Option<i64> {
+    let v = setting.map(str::trim).unwrap_or("");
+    if v.eq_ignore_ascii_case("all") {
+        return None;
+    }
+    let v = v.replace(' ', "T");
+    let full = match v.len() {
+        10 => format!("{v}T00:00:00"),
+        16 => format!("{v}:00"),
+        _ => v,
+    };
+    parse_ts(&full).or(default)
+}
+
+/// A key of <state>/config.txt (`key=value` lines, the file the PowerShell side reads; the last one wins)
+pub fn read_config(dir: &Path, key: &str) -> Option<String> {
+    let text = std::fs::read_to_string(dir.join("config.txt")).ok()?;
+    text.lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once('='))
+        .filter(|(k, _)| k.trim().trim_start_matches('\u{feff}').eq_ignore_ascii_case(key))
+        .last()
+        .map(|(_, v)| v.trim().to_string())
+}
+
 pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = y.div_euclid(400);
@@ -351,7 +378,8 @@ pub struct Pack {
     pub total_weight: u32,
     /// A real-card pack (pack.json has "cards"): every slot is a real printed card keyed by its pokemontcg.io id.
     pub is_cards: bool,
-    /// pack.json `cards` in file order (real-card packs only)
+    /// pack.json `cards` in file order (real-card packs only), built ones only (card_built): a card whose art isn't
+    /// built is muted (it never rolls), so it is no binder slot and pulls that resolve to it are hidden
     pub card_list: Vec<CardDef>,
     card_ix: HashMap<String, usize>,
     /// (character, tier) -> indices into card_list
@@ -457,6 +485,13 @@ fn str_map(v: &Value, key: &str) -> HashMap<String, String> {
         .unwrap_or_default()
 }
 
+/// Is a real card's art built? dist/<pack>/<character>-<card id>.ans exists: the test the roll uses
+/// (Test-PokeshellCardBuilt in scripts/lib/common.ps1). Checked when the pack loads, so a card built later shows up
+/// (with its old pulls) the next time the binder starts; pulls.log is never rewritten.
+pub fn card_built(dist: &Path, ch: &str, id: &str) -> bool {
+    dist.join(format!("{ch}-{id}.ans")).is_file()
+}
+
 impl Pack {
     pub fn load(root: &Path, id: &str) -> Option<Pack> {
         let dir = root.join("packs").join(id);
@@ -470,10 +505,11 @@ impl Pack {
             .and_then(|x| x.as_array())
             .map(|a| a.iter().filter_map(|c| c.as_str().map(String::from)).collect())
             .unwrap_or_default();
+        let dist = root.join("dist").join(id);
         if let Some(cm) = cards_v {
-            for c in cm.values() {
+            for (cid, c) in cm {
                 if let Some(ch) = c.get("character").and_then(|x| x.as_str()) {
-                    if !chars.iter().any(|x| x == ch) {
+                    if card_built(&dist, ch, cid) && !chars.iter().any(|x| x == ch) {
                         chars.push(ch.to_string());
                     }
                 }
@@ -510,6 +546,9 @@ impl Pack {
             for (cid, c) in cm {
                 let s = |k: &str| c.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
                 let (Some(&ch), Some(tier)) = (char_ix.get(&s("character")), tier_of(&s("tier"))) else { continue };
+                if !card_built(&dist, &s("character"), cid) {
+                    continue; // muted: no art built yet (its pulls are hidden until it is)
+                }
                 let mut card = CardDef {
                     id: cid.clone(),
                     ch,
@@ -548,7 +587,7 @@ impl Pack {
         Some(Pack {
             id: id.to_string(),
             name: v.get("name").and_then(|x| x.as_str()).unwrap_or(id).to_string(),
-            dist: root.join("dist").join(id),
+            dist,
             dir,
             foil: v.get("foil_chance").and_then(|x| x.as_f64()).unwrap_or(0.2),
             shiny: v.get("shiny_chance").and_then(|x| x.as_f64()).unwrap_or(0.0),
@@ -574,22 +613,25 @@ impl Pack {
     ///   - packs without "cards": as logged (tier by id, or by label);
     ///   - real-card packs: the art column (or a `card=` column) is a card id of this pack whose character matches:
     ///     that card, in its tier; else retired["<character>/<tier>"] names a card: that card; else hidden.
+    ///     A card whose art isn't built is not in card_list, so a pull resolving to it is hidden too.
     pub fn resolve(&self, ch: &str, tier: &str, art: &str, card: &str) -> Option<(usize, usize, Option<String>)> {
         if !self.is_cards {
             let ci = *self.char_ix.get(ch)?;
             let ti = self.tier_ix(tier).or_else(|| self.tiers.iter().position(|t| t.label.eq_ignore_ascii_case(tier)))?;
             return Some((ci, ti, None));
         }
-        for cid in [card, art] {
-            if let Some(c) = self.card(cid) {
-                if self.chars[c.ch] == ch {
-                    return Some((c.ch, c.tier, Some(c.id.clone())));
-                }
-            }
+        if let Some(c) = self.logged_card(ch, art, card) {
+            return Some((c.ch, c.tier, Some(c.id.clone())));
         }
         let now = self.retired.get(&format!("{ch}/{tier}"))?.as_deref()?;
         let c = self.card(now)?;
         Some((c.ch, c.tier, Some(c.id.clone())))
+    }
+
+    /// The (built) real card a pull line names itself: its `card=` or art column is a card id of this pack, of the
+    /// same character. None for older lines (resolved through `retired`, if at all) and packs without cards.
+    pub fn logged_card(&self, ch: &str, art: &str, card: &str) -> Option<&CardDef> {
+        [card, art].into_iter().filter_map(|cid| self.card(cid)).find(|c| self.chars[c.ch] == ch)
     }
 
     pub fn card(&self, id: &str) -> Option<&CardDef> {
@@ -609,9 +651,10 @@ impl Pack {
         (0..self.tiers.len()).filter(|&t| !self.is_cards || (0..self.chars.len()).any(|c| self.has_slot(c, t))).collect()
     }
 
-    /// Slots in the full set: characters x tiers, or (real-card packs) one per card slot.
+    /// Slots in the full set: characters x tiers, or (real-card packs) one per card (a character can have several
+    /// cards in one rarity: each is its own slot).
     pub fn slot_count(&self) -> usize {
-        if self.is_cards { self.slot_cards.len() } else { self.chars.len() * self.tiers.len() }
+        if self.is_cards { self.card_list.len() } else { self.chars.len() * self.tiers.len() }
     }
 
     /// The card of a slot (real-card packs: SlotKey.card), if any.
@@ -802,19 +845,24 @@ pub struct Collection {
     pub by_slot: HashMap<SlotKey, Vec<usize>>,
     /// pull index -> its slot (None: pack/character/tier unknown to the current pack.json)
     pub slot_of: Vec<Option<SlotKey>>,
-    /// pulls left out because they no longer resolve (retired art, a pack or character that is gone)
+    /// pulls left out because they no longer resolve (retired art, a card whose art isn't built, a pack or character
+    /// that is gone)
     pub hidden: usize,
+    /// when the real cards went live: the first shown pull whose line names a built real card itself (not through
+    /// `retired`); the default start of the best pulls (best_since)
+    pub real_since: Option<i64>,
 }
 
 impl Collection {
-    /// Pulls that don't resolve to a current card (Pack::resolve: a pack, character or tier that is gone, or a
-    /// real-card pack's retired art) are left out of the binder; pulls.log itself is never rewritten.
+    /// Pulls that don't resolve to a current card (Pack::resolve: a pack, character or tier that is gone, a
+    /// real-card pack's retired art, or a card whose art isn't built) are left out of the binder; pulls.log itself is never rewritten.
     pub fn build(pulls: Vec<Pull>, packs: Vec<Pack>) -> Collection {
         let mut by_slot: HashMap<SlotKey, Vec<usize>> = HashMap::new();
         let pack_ix: HashMap<&str, usize> = packs.iter().enumerate().map(|(i, p)| (p.id.as_str(), i)).collect();
         let mut kept = Vec::with_capacity(pulls.len());
         let mut slot_of = Vec::with_capacity(pulls.len());
         let mut hidden = 0;
+        let mut real_since: Option<i64> = None;
         for mut p in pulls {
             let key = pack_ix.get(p.pack.as_str()).and_then(|&pi| {
                 let (ch, tier, card) = packs[pi].resolve(&p.ch, &p.tier, &p.art, &p.card)?;
@@ -825,6 +873,9 @@ impl Collection {
                 hidden += 1;
                 continue;
             };
+            if packs[k.pack].logged_card(&p.ch, &p.art, &p.card).is_some() {
+                real_since = Some(real_since.map_or(p.ts, |t| t.min(p.ts)));
+            }
             if let Some(c) = card {
                 p.card = c;
             }
@@ -832,7 +883,7 @@ impl Collection {
             slot_of.push(Some(k));
             kept.push(p);
         }
-        Collection { pulls: kept, packs, by_slot, slot_of, hidden }
+        Collection { pulls: kept, packs, by_slot, slot_of, hidden, real_since }
     }
 
     /// Does this slot hold an earned pull that hasn't been viewed yet?
@@ -967,6 +1018,10 @@ mod tests {
                  "set": { "id": "swsh4", "name": "Vivid Voltage" }, "rarity": "Rare Ultra", "artist": "Ryota Murayama" }"#,
         )
         .unwrap();
+        std::fs::create_dir_all(d.join("dist/p")).unwrap();
+        for f in ["pikachu-base1-58", "pikachu-swsh4-170", "bulbasaur-base1-44"] {
+            std::fs::write(d.join(format!("dist/p/{f}.ans")), "x").unwrap();
+        }
         let p = Pack::load(&d, "p").unwrap();
         assert!(p.is_cards);
         assert_eq!(p.chars, vec!["pikachu".to_string(), "bulbasaur".to_string()], "characters come from the cards");
@@ -1011,6 +1066,93 @@ mod tests {
         assert_eq!(l.resolve("b", "common", "common", ""), None);
         let _ = std::fs::remove_dir_all(&d);
     }
+    fn pull(ts: i64, ch: &str, tier: &str, art: &str, shiny: bool) -> Pull {
+        Pull {
+            ts,
+            pack: "p".into(),
+            ch: ch.into(),
+            tier: tier.into(),
+            skin: String::new(),
+            shiny,
+            flags: String::new(),
+            status: Status::Collected,
+            id: String::new(),
+            art: art.into(),
+            card: String::new(),
+            new: false,
+        }
+    }
+
+    #[test]
+    fn unbuilt_cards_are_muted() {
+        // a card whose art isn't built (dist/<pack>/<character>-<card id>.ans) is no slot, and pulls resolving to it
+        // are hidden like retired ones; building it brings them back (derived at load, pulls.log untouched)
+        let d = tmp("muted");
+        std::fs::create_dir_all(d.join("packs/p")).unwrap();
+        std::fs::create_dir_all(d.join("dist/p")).unwrap();
+        std::fs::write(
+            d.join("packs/p/pack.json"),
+            r#"{ "id": "p",
+                 "tiers": [ { "id": "common", "label": "common", "weight": 50000, "skins": {} },
+                            { "id": "rare-holo-v", "label": "rare holo V", "family": "holo", "weight": 900, "skins": {} },
+                            { "id": "rare-holo-vmax", "label": "rare holo VMAX", "family": "holo", "weight": 500, "skins": {} } ],
+                 "cards": { "base1-44": { "character": "bulbasaur", "tier": "common", "name": "Bulbasaur" },
+                            "swsh7-40": { "character": "glaceon", "tier": "rare-holo-v", "name": "Glaceon V" },
+                            "swsh7-174": { "character": "glaceon", "tier": "rare-holo-v", "name": "Glaceon V" },
+                            "swsh7-41": { "character": "glaceon", "tier": "rare-holo-vmax", "name": "Glaceon VMAX" } },
+                 "retired": { "bulbasaur/common": "base1-44" } }"#,
+        )
+        .unwrap();
+        for f in ["glaceon-swsh7-40", "glaceon-swsh7-174", "glaceon-swsh7-41"] {
+            std::fs::write(d.join(format!("dist/p/{f}.ans")), "x").unwrap();
+        }
+        let log = || {
+            vec![
+                pull(100, "bulbasaur", "common", "common", false),   // an old common -> base1-44 (not built)
+                pull(200, "bulbasaur", "common", "base1-44", false), // names the unbuilt card itself
+                pull(300, "glaceon", "rare-holo-v", "swsh7-40", false),
+                pull(400, "glaceon", "rare-holo-v", "swsh7-174", true),
+                pull(500, "glaceon", "rare-holo-vmax", "swsh7-41", false),
+            ]
+        };
+        let p = Pack::load(&d, "p").unwrap();
+        assert!(card_built(&p.dist, "glaceon", "swsh7-40") && !card_built(&p.dist, "bulbasaur", "base1-44"));
+        assert_eq!(p.chars, vec!["glaceon".to_string()], "a character with no built card is not in the binder");
+        assert_eq!(p.card_list.len(), 3);
+        assert_eq!(p.slot_count(), 3, "every built card is a slot; the unbuilt one is not");
+        assert_eq!(p.resolve("bulbasaur", "common", "common", ""), None, "retired -> an unbuilt card: hidden");
+        assert_eq!(p.resolve("bulbasaur", "common", "base1-44", ""), None, "an unbuilt card: hidden");
+        let c = Collection::build(log(), vec![p]);
+        assert_eq!((c.pulls.len(), c.hidden), (3, 2), "shown / hidden (the header's retired count)");
+        // two Glaceon V cards of one rarity and a VMAX: three slots, not one per character
+        let keys: HashSet<SlotKey> = c.by_slot.keys().copied().collect();
+        assert_eq!(keys.len(), 3);
+        assert!(keys.iter().all(|k| k.card != NO_CARD && k.ch == 0));
+        let ids: HashSet<&str> = keys.iter().map(|k| c.packs[0].card_list[k.card as usize].id.as_str()).collect();
+        assert_eq!(ids, ["swsh7-40", "swsh7-174", "swsh7-41"].into_iter().collect());
+        // the per-character (dex) view still groups them: its best card is the VMAX
+        let best = c.best_slot(0, 0, false).unwrap();
+        assert_eq!(c.packs[0].card_list[best.card as usize].id, "swsh7-41");
+        // best pulls start when the real cards went live (the first line naming a built card), unless config says
+        assert_eq!(c.real_since, Some(300));
+        assert_eq!(best_since(None, c.real_since), Some(300));
+        assert_eq!(best_since(Some("all"), c.real_since), None);
+        assert_eq!(best_since(Some("2026-09-29"), c.real_since), parse_ts("2026-09-29T00:00:00"));
+        assert_eq!(best_since(Some("2026-09-29 00:40"), c.real_since), parse_ts("2026-09-29T00:40:00"));
+        assert_eq!(best_since(Some("soon"), c.real_since), Some(300));
+        std::fs::write(d.join("config.txt"), "pack=p
+best_since = all
+").unwrap();
+        assert_eq!(read_config(&d, "best_since").as_deref(), Some("all"));
+        assert_eq!(read_config(&d, "nope"), None);
+        // unmuted: its art gets built -> the pulls come back
+        std::fs::write(d.join("dist/p/bulbasaur-base1-44.ans"), "x").unwrap();
+        let c = Collection::build(log(), vec![Pack::load(&d, "p").unwrap()]);
+        assert_eq!((c.pulls.len(), c.hidden, c.packs[0].slot_count()), (5, 0, 4));
+        assert_eq!(c.real_since, Some(200), "the line naming base1-44 counts now; the old common never does");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
     #[test]
     fn ulid_roundtrip() {
         let id = ulid_at(1_790_000_000, "ABCDEFGHJKMNPQRS");

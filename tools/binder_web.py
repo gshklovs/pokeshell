@@ -157,9 +157,31 @@ def read_pulls(log, viewed=frozenset(), now=None, boot=None):
     return pulls
 
 
+def card_built(pid, char, cid):
+    """a real card's art is built: dist/<pack>/<character>-<card id>.ans exists (the roll's test,
+    Test-PokeshellCardBuilt in scripts/lib/common.ps1). Cards without it never roll."""
+    return (ROOT / "dist" / pid / f"{char}-{cid}.ans").is_file()
+
+
+def mute_unbuilt(pid, pk):
+    """a real-card pack keeps only its built cards: an unbuilt card is muted, so it is no binder slot and pulls that
+    resolve to it are hidden (like retired ones) until its art is built; pulls.log is never rewritten"""
+    if pk and isinstance(pk.get("cards"), dict):
+        pk["cards"] = {cid: c for cid, c in pk["cards"].items() if card_built(pid, c.get("character") or "", cid)}
+    return pk
+
+
 def load_pack_json(pid):
     f = ROOT / "packs" / pid / "pack.json"
-    return json.loads(f.read_text(encoding="utf-8-sig")) if f.exists() else None
+    return mute_unbuilt(pid, json.loads(f.read_text(encoding="utf-8-sig"))) if f.exists() else None
+
+
+def logged_card(pk, char, art, card=None):
+    """the real card a pull line names itself (its card= or art column, same character), else None"""
+    cards = pk.get("cards")
+    if not isinstance(cards, dict):
+        return None
+    return next((cid for cid in (card, art) if cid and (cards.get(cid) or {}).get("character") == char), None)
 
 
 def resolve_pull(pk, char, tier, art, card=None):
@@ -167,17 +189,17 @@ def resolve_pull(pk, char, tier, art, card=None):
     Resolve-PokeshellPull (scripts/lib/common.ps1, docs/PACK_FORMAT.md "retired"):
       packs without "cards": as logged (tier by id, or by label);
       real-card packs: the art column (or a card= column) is a card id of the pack whose character matches ->
-      that card; else retired["<character>/<tier>"] names a card -> that card; else hidden"""
+      that card; else retired["<character>/<tier>"] names a card -> that card; else hidden.
+    pk comes from load_pack_json: unbuilt cards are left out, so a pull resolving to one is hidden too"""
     cards = pk.get("cards")
     if not isinstance(cards, dict):
         tiers = pk.get("tiers") or []
         ids = [t["id"] for t in tiers]
         t = tier if tier in ids else next((x["id"] for x in tiers if x.get("label", "").lower() == tier.lower()), None)
         return (char, t, None) if t and char in (pk.get("characters") or []) else None
-    for cid in (card, art):
-        c = cards.get(cid) if cid else None
-        if c and c.get("character") == char:
-            return char, c["tier"], cid
+    cid = logged_card(pk, char, art, card)
+    if cid:
+        return char, cards[cid]["tier"], cid
     retired = pk.get("retired") or {}
     now = retired.get(f"{char}/{tier}") if isinstance(retired, dict) else None
     c = cards.get(now) if now else None
@@ -185,8 +207,10 @@ def resolve_pull(pk, char, tier, art, card=None):
 
 
 def resolve_pulls(pulls):
-    """each pull as the card it shows today; the ones that don't resolve (retired art) are left out and counted"""
-    out, hidden, cache = [], 0, {}
+    """each pull as the card it shows today; the ones that don't resolve (retired art, an unbuilt card) are left out
+    and counted. Also returns when the real cards went live: the time of the first shown pull whose line names a
+    built real card itself (the default best_since)"""
+    out, hidden, cache, real_since = [], 0, {}, None
     for p in pulls:
         if p["pack"] not in cache:
             cache[p["pack"]] = load_pack_json(p["pack"])
@@ -196,8 +220,20 @@ def resolve_pulls(pulls):
             hidden += 1
             continue
         char, tier, card = r
+        if logged_card(pk, p["char"], p["art"], p["card"]) and (real_since is None or p["time"] < real_since):
+            real_since = p["time"]
         out.append({**p, "char": char, "tier": tier, "card": card or p["card"]})
-    return out, hidden
+    return out, hidden, real_since
+
+
+def best_since(setting, default):
+    """config.txt best_since: "all" -> None (every pull); "YYYY-MM-DD[THH:MM[:SS]]" -> that local time (pull times
+    compare as ISO strings); anything else (unset) -> default, when the real cards went live"""
+    v = (setting or "").strip()
+    if v.lower() == "all":
+        return None
+    v = v.replace(" ", "T")
+    return v if re.fullmatch(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?", v) else default
 
 
 def ansi_grid(text):
@@ -364,7 +400,7 @@ def card_meta(pid, cid, c):
 
 
 def pack_info(pid, n_active_packs):
-    p = json.loads((ROOT / "packs" / pid / "pack.json").read_text(encoding="utf-8-sig"))
+    p = mute_unbuilt(pid, json.loads((ROOT / "packs" / pid / "pack.json").read_text(encoding="utf-8-sig")))
     if isinstance(p.get("cards"), dict):
         return card_pack_info(pid, p, n_active_packs)
     tiers = p["tiers"]
@@ -595,7 +631,7 @@ def main():
     log = Path(a.log) if a.log else state / "pulls.log"
     vf = log.parent / "viewed.txt"
     viewed = frozenset(l.strip() for l in vf.read_text(encoding="utf-8-sig").splitlines() if l.strip()) if vf.exists() else frozenset()
-    pulls, hidden = resolve_pulls(read_pulls(log, viewed))
+    pulls, hidden, real_since = resolve_pulls(read_pulls(log, viewed))
     cfg = {}
     cfg_file = log.parent / "config.txt"
     if cfg_file.exists():
@@ -634,7 +670,8 @@ def main():
         "earned": {"enforced": True,
                    "note": "A card only counts once you use the tab it was pulled in: its first command earns it "
                            "(docs/BINDER_SPEC.md). Pending cards show greyed until then."},
-        "hidden": hidden,   # pulls of retired art that no longer resolve to a current card (not shown; still in pulls.log)
+        "hidden": hidden,   # pulls that no longer resolve to a current built card (retired art, unbuilt; still in pulls.log)
+        "best_since": best_since(cfg.get("best_since"), real_since),   # best pulls start here (local ISO time); None: all
         "packs": packs, "skins": skins, "pulls": pulls,
     }
     (out / "data.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
