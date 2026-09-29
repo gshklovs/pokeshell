@@ -1,0 +1,661 @@
+{
+ "commons": [
+  {
+   "id": "base1-43",
+   "name": "Abra",
+   "number": "43",
+   "rarity": "Common",
+   "sprite": "abra"
+  },
+  {
+   "id": "base1-44",
+   "name": "Bulbasaur",
+   "number": "44",
+   "rarity": "Common",
+   "sprite": "bulbasaur"
+  },
+  {
+   "id": "base1-45",
+   "name": "Caterpie",
+   "number": "45",
+   "rarity": "Common",
+   "sprite": "caterpie"
+  },
+  {
+   "id": "base1-46",
+   "name": "Charmander",
+   "number": "46",
+   "rarity": "Common",
+   "sprite": "charmander"
+  },
+  {
+   "id": "base1-47",
+   "name": "Diglett",
+   "number": "47",
+   "rarity": "Common",
+   "sprite": "diglett"
+  },
+  {
+   "id": "base1-48",
+   "name": "Doduo",
+   "number": "48",
+   "rarity": "Common",
+   "sprite": "doduo"
+  },
+  {
+   "id": "base1-49",
+   "name": "Drowzee",
+   "number": "49",
+   "rarity": "Common",
+   "sprite": "drowzee"
+  },
+  {
+   "id": "base1-50",
+   "name": "Gastly",
+   "number": "50",
+   "rarity": "Common",
+   "sprite": "gastly"
+  },
+  {
+   "id": "base1-51",
+   "name": "Koffing",
+   "number": "51",
+   "rarity": "Common",
+   "sprite": "koffing"
+  },
+  {
+   "id": "base1-52",
+   "name": "Machop",
+   "number": "52",
+   "rarity": "Common",
+   "sprite": "machop"
+  },
+  {
+   "id": "base1-53",
+   "name": "Magnemite",
+   "number": "53",
+   "rarity": "Common",
+   "sprite": "magnemite"
+  },
+  {
+   "id": "base1-54",
+   "name": "Metapod",
+   "number": "54",
+   "rarity": "Common",
+   "sprite": "metapod"
+  },
+  {
+   "id": "base1-55",
+   "name": "Nidoran ♂",
+   "number": "55",
+   "rarity": "Common",
+   "sprite": "nidoran-m"
+  },
+  {
+   "id": "base1-56",
+   "name": "Onix",
+   "number": "56",
+   "rarity": "Common",
+   "sprite": "onix"
+  },
+  {
+   "id": "base1-57",
+   "name": "Pidgey",
+   "number": "57",
+   "rarity": "Common",
+   "sprite": "pidgey"
+  },
+  {
+   "id": "base1-58",
+   "name": "Pikachu",
+   "number": "58",
+   "rarity": "Common",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "base1-59",
+   "name": "Poliwag",
+   "number": "59",
+   "rarity": "Common",
+   "sprite": "poliwag"
+  },
+  {
+   "id": "base1-60",
+   "name": "Ponyta",
+   "number": "60",
+   "rarity": "Common",
+   "sprite": "ponyta"
+  },
+  {
+   "id": "base1-61",
+   "name": "Rattata",
+   "number": "61",
+   "rarity": "Common",
+   "sprite": "rattata"
+  },
+  {
+   "id": "base1-62",
+   "name": "Sandshrew",
+   "number": "62",
+   "rarity": "Common",
+   "sprite": "sandshrew"
+  },
+  {
+   "id": "base1-63",
+   "name": "Squirtle",
+   "number": "63",
+   "rarity": "Common",
+   "sprite": "squirtle"
+  },
+  {
+   "id": "base1-64",
+   "name": "Starmie",
+   "number": "64",
+   "rarity": "Common",
+   "sprite": "starmie"
+  },
+  {
+   "id": "base1-65",
+   "name": "Staryu",
+   "number": "65",
+   "rarity": "Common",
+   "sprite": "staryu"
+  },
+  {
+   "id": "base1-66",
+   "name": "Tangela",
+   "number": "66",
+   "rarity": "Common",
+   "sprite": "tangela"
+  },
+  {
+   "id": "base1-67",
+   "name": "Voltorb",
+   "number": "67",
+   "rarity": "Common",
+   "sprite": "voltorb"
+  },
+  {
+   "id": "base1-68",
+   "name": "Vulpix",
+   "number": "68",
+   "rarity": "Common",
+   "sprite": "vulpix"
+  },
+  {
+   "id": "base1-69",
+   "name": "Weedle",
+   "number": "69",
+   "rarity": "Common",
+   "sprite": "weedle"
+  }
+ ],
+ "uncommon": [
+  {
+   "id": "base1-23",
+   "name": "Arcanine",
+   "number": "23",
+   "rarity": "Uncommon",
+   "sprite": "arcanine"
+  },
+  {
+   "id": "base1-24",
+   "name": "Charmeleon",
+   "number": "24",
+   "rarity": "Uncommon",
+   "sprite": "charmeleon"
+  },
+  {
+   "id": "base1-25",
+   "name": "Dewgong",
+   "number": "25",
+   "rarity": "Uncommon",
+   "sprite": "dewgong"
+  },
+  {
+   "id": "base1-26",
+   "name": "Dratini",
+   "number": "26",
+   "rarity": "Uncommon",
+   "sprite": "dratini"
+  },
+  {
+   "id": "base1-27",
+   "name": "Farfetch'd",
+   "number": "27",
+   "rarity": "Uncommon",
+   "sprite": "farfetchd"
+  },
+  {
+   "id": "base1-28",
+   "name": "Growlithe",
+   "number": "28",
+   "rarity": "Uncommon",
+   "sprite": "growlithe"
+  },
+  {
+   "id": "base1-29",
+   "name": "Haunter",
+   "number": "29",
+   "rarity": "Uncommon",
+   "sprite": "haunter"
+  },
+  {
+   "id": "base1-30",
+   "name": "Ivysaur",
+   "number": "30",
+   "rarity": "Uncommon",
+   "sprite": "ivysaur"
+  },
+  {
+   "id": "base1-31",
+   "name": "Jynx",
+   "number": "31",
+   "rarity": "Uncommon",
+   "sprite": "jynx"
+  },
+  {
+   "id": "base1-32",
+   "name": "Kadabra",
+   "number": "32",
+   "rarity": "Uncommon",
+   "sprite": "kadabra"
+  },
+  {
+   "id": "base1-33",
+   "name": "Kakuna",
+   "number": "33",
+   "rarity": "Uncommon",
+   "sprite": "kakuna"
+  },
+  {
+   "id": "base1-34",
+   "name": "Machoke",
+   "number": "34",
+   "rarity": "Uncommon",
+   "sprite": "machoke"
+  },
+  {
+   "id": "base1-35",
+   "name": "Magikarp",
+   "number": "35",
+   "rarity": "Uncommon",
+   "sprite": "magikarp"
+  },
+  {
+   "id": "base1-36",
+   "name": "Magmar",
+   "number": "36",
+   "rarity": "Uncommon",
+   "sprite": "magmar"
+  },
+  {
+   "id": "base1-37",
+   "name": "Nidorino",
+   "number": "37",
+   "rarity": "Uncommon",
+   "sprite": "nidorino"
+  },
+  {
+   "id": "base1-38",
+   "name": "Poliwhirl",
+   "number": "38",
+   "rarity": "Uncommon",
+   "sprite": "poliwhirl"
+  },
+  {
+   "id": "base1-39",
+   "name": "Porygon",
+   "number": "39",
+   "rarity": "Uncommon",
+   "sprite": "porygon"
+  },
+  {
+   "id": "base1-40",
+   "name": "Raticate",
+   "number": "40",
+   "rarity": "Uncommon",
+   "sprite": "raticate"
+  },
+  {
+   "id": "base1-41",
+   "name": "Seel",
+   "number": "41",
+   "rarity": "Uncommon",
+   "sprite": "seel"
+  },
+  {
+   "id": "base1-42",
+   "name": "Wartortle",
+   "number": "42",
+   "rarity": "Uncommon",
+   "sprite": "wartortle"
+  }
+ ],
+ "rare": [
+  {
+   "id": "base1-17",
+   "name": "Beedrill",
+   "number": "17",
+   "rarity": "Rare",
+   "sprite": "beedrill"
+  },
+  {
+   "id": "base1-18",
+   "name": "Dragonair",
+   "number": "18",
+   "rarity": "Rare",
+   "sprite": "dragonair"
+  },
+  {
+   "id": "base1-19",
+   "name": "Dugtrio",
+   "number": "19",
+   "rarity": "Rare",
+   "sprite": "dugtrio"
+  },
+  {
+   "id": "base1-20",
+   "name": "Electabuzz",
+   "number": "20",
+   "rarity": "Rare",
+   "sprite": "electabuzz"
+  },
+  {
+   "id": "base1-21",
+   "name": "Electrode",
+   "number": "21",
+   "rarity": "Rare",
+   "sprite": "electrode"
+  },
+  {
+   "id": "base1-22",
+   "name": "Pidgeotto",
+   "number": "22",
+   "rarity": "Rare",
+   "sprite": "pidgeotto"
+  }
+ ],
+ "holo": [
+  {
+   "id": "base1-1",
+   "name": "Alakazam",
+   "number": "1",
+   "rarity": "Rare Holo",
+   "sprite": "alakazam"
+  },
+  {
+   "id": "base1-2",
+   "name": "Blastoise",
+   "number": "2",
+   "rarity": "Rare Holo",
+   "sprite": "blastoise"
+  },
+  {
+   "id": "base1-3",
+   "name": "Chansey",
+   "number": "3",
+   "rarity": "Rare Holo",
+   "sprite": "chansey"
+  },
+  {
+   "id": "base1-4",
+   "name": "Charizard",
+   "number": "4",
+   "rarity": "Rare Holo",
+   "sprite": "charizard"
+  },
+  {
+   "id": "base1-5",
+   "name": "Clefairy",
+   "number": "5",
+   "rarity": "Rare Holo",
+   "sprite": "clefairy"
+  },
+  {
+   "id": "base1-6",
+   "name": "Gyarados",
+   "number": "6",
+   "rarity": "Rare Holo",
+   "sprite": "gyarados"
+  },
+  {
+   "id": "base1-7",
+   "name": "Hitmonchan",
+   "number": "7",
+   "rarity": "Rare Holo",
+   "sprite": "hitmonchan"
+  },
+  {
+   "id": "base1-8",
+   "name": "Machamp",
+   "number": "8",
+   "rarity": "Rare Holo",
+   "sprite": "machamp"
+  },
+  {
+   "id": "base1-9",
+   "name": "Magneton",
+   "number": "9",
+   "rarity": "Rare Holo",
+   "sprite": "magneton"
+  },
+  {
+   "id": "base1-10",
+   "name": "Mewtwo",
+   "number": "10",
+   "rarity": "Rare Holo",
+   "sprite": "mewtwo"
+  },
+  {
+   "id": "base1-11",
+   "name": "Nidoking",
+   "number": "11",
+   "rarity": "Rare Holo",
+   "sprite": "nidoking"
+  },
+  {
+   "id": "base1-12",
+   "name": "Ninetales",
+   "number": "12",
+   "rarity": "Rare Holo",
+   "sprite": "ninetales"
+  },
+  {
+   "id": "base1-13",
+   "name": "Poliwrath",
+   "number": "13",
+   "rarity": "Rare Holo",
+   "sprite": "poliwrath"
+  },
+  {
+   "id": "base1-14",
+   "name": "Raichu",
+   "number": "14",
+   "rarity": "Rare Holo",
+   "sprite": "raichu"
+  },
+  {
+   "id": "base1-15",
+   "name": "Venusaur",
+   "number": "15",
+   "rarity": "Rare Holo",
+   "sprite": "venusaur"
+  },
+  {
+   "id": "base1-16",
+   "name": "Zapdos",
+   "number": "16",
+   "rarity": "Rare Holo",
+   "sprite": "zapdos"
+  }
+ ],
+ "_skipped": [
+  {
+   "id": "base1-70",
+   "name": "Clefairy Doll",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-71",
+   "name": "Computer Search",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-72",
+   "name": "Devolution Spray",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-73",
+   "name": "Impostor Professor Oak",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-74",
+   "name": "Item Finder",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-75",
+   "name": "Lass",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-76",
+   "name": "Pokémon Breeder",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-77",
+   "name": "Pokémon Trader",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-78",
+   "name": "Scoop Up",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-79",
+   "name": "Super Energy Removal",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-80",
+   "name": "Defender",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-81",
+   "name": "Energy Retrieval",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-82",
+   "name": "Full Heal",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-83",
+   "name": "Maintenance",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-84",
+   "name": "PlusPower",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-85",
+   "name": "Pokémon Center",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-86",
+   "name": "Pokémon Flute",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-87",
+   "name": "Pokédex",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-88",
+   "name": "Professor Oak",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-89",
+   "name": "Revive",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-90",
+   "name": "Super Potion",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-91",
+   "name": "Bill",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-92",
+   "name": "Energy Removal",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-93",
+   "name": "Gust of Wind",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-94",
+   "name": "Potion",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-95",
+   "name": "Switch",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "base1-96",
+   "name": "Double Colorless Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-97",
+   "name": "Fighting Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-98",
+   "name": "Fire Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-99",
+   "name": "Grass Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-100",
+   "name": "Lightning Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-101",
+   "name": "Psychic Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "base1-102",
+   "name": "Water Energy",
+   "reason": "Energy (no Pokemon)"
+  }
+ ],
+ "_ladder_done": []
+}

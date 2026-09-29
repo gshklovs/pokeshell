@@ -1,0 +1,39 @@
+{
+ "name": "Base",
+ "set_id": "base1",
+ "prefix": "base1",
+ "printed_total": "102",
+ "lookbook": {
+  "section_prefix": "baseset_",
+  "anchor": "base",
+  "place": "after"
+ },
+ "groups": {
+  "Common": "commons",
+  "Uncommon": "uncommon",
+  "Rare": "rare",
+  "Rare Holo": "holo"
+ },
+ "labels": {
+  "commons": "Common",
+  "uncommon": "Uncommon",
+  "rare": "Rare",
+  "holo": "Rare Holo",
+  "ladder": "Base Set rarity ladder"
+ },
+ "ladder": [
+  "base1-46",
+  "base1-24",
+  "base1-18",
+  "base1-4"
+ ],
+ "forms": {},
+ "flip_commons": [
+  "base1-46",
+  "base1-59"
+ ],
+ "notes": {
+  "_flip_commons": "commons whose real card faces the other way from the vendor sprite: Charmander 46 (faces right), Poliwag 59 (near-frontal, tail sweeps left: flagged)",
+  "_skipped": "26 Trainers (70-95) and 7 Energy (96-102): no Pokemon"
+ }
+}
