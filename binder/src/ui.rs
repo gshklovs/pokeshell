@@ -362,9 +362,12 @@ fn header(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
 fn binder_tabs(app: &App, t: &Theme, level: u8) -> (Vec<Vec<Seg>>, Vec<Tab>) {
     let mut groups = Vec::new();
     let mut ids = Vec::new();
+    // with a search on, a pack without matching cards has no tab, and the others show how many match
+    let counts = app.search_counts();
     for (i, p) in app.coll.packs.iter().enumerate() {
         let active = i == app.pack;
-        if !active && level >= 3 {
+        let hits = counts.as_ref().map(|c| c.packs[i]);
+        if !active && (level >= 3 || hits == Some(0)) {
             continue;
         }
         let label = match (active, level) {
@@ -375,6 +378,9 @@ fn binder_tabs(app: &App, t: &Theme, level: u8) -> (Vec<Vec<Seg>>, Vec<Tab>) {
         let mut g = vec![seg(SUP.get(i).copied().unwrap_or(""), if active { t.hi } else { t.dim })];
         if !label.is_empty() {
             g.push(if active { segb(label, t.title) } else { seg(label, t.dim) });
+        }
+        if let Some(n) = hits.filter(|_| level <= 2) {
+            g.push(seg(format!(" {n}"), if n > 0 { t.accent } else { t.faint }));
         }
         groups.push(g);
         ids.push(Tab::Pack(i));
@@ -396,6 +402,9 @@ fn binder_tabs(app: &App, t: &Theme, level: u8) -> (Vec<Vec<Seg>>, Vec<Tab>) {
                 g.push(segb(trunc(&s.name, name_max), t.title));
             }
             None => g.push(seg("all sets", t.dim)),
+        }
+        if let Some(n) = counts.as_ref().and_then(|c| c.sets.get(app.set_sel[app.pack]).copied()) {
+            g.push(seg(format!(" {n}"), if n > 0 { t.accent } else { t.faint }));
         }
         g.push(seg(" ▾", t.dim));
         groups.push(g);
@@ -572,7 +581,22 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
             card: k.card,
         };
         card::draw(buf, sr, &c, img.as_deref(), &theme);
+        flash(app, buf, sr, *k, &theme);
     }
+}
+
+/// An opened search result glows on its real page for a moment (App::flash): its pocket brightens, fading out.
+fn flash(app: &App, buf: &mut Buffer, r: Rect, k: SlotKey, t: &Theme) {
+    let lv = app.flash_level(k);
+    if lv <= 0.0 {
+        return;
+    }
+    let hi = t.hi;
+    let (x0, y0, x1, y1) = (r.x as i32, r.y as i32, (r.x + r.width) as i32 - 1, (r.y + r.height) as i32 - 1);
+    crate::draw::recolor(buf, r, &|x, y, c| {
+        let edge = x == x0 || x == x1 || y == y0 || y == y1;
+        mix(c, hi, lv * if edge { 0.85 } else { 0.22 })
+    });
 }
 
 /// The binder's page as a list (terminals too small for the 3x3 grid): "● 17/203 Applin  R holo".
@@ -612,6 +636,7 @@ fn list_page(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, slots: &[SlotK
             puts(buf, r.x as i32 + w as i32 - width(&lab) as i32 - 5, y as i32, "NEW", rgb(0x1a1020), Some(NEW_PINK), true, 3);
         }
         app.hits.slots.push((Rect::new(r.x, y, r.width, 1), idx));
+        flash(app, buf, Rect::new(r.x, y, r.width, 1), *k, t);
     }
 }
 
@@ -711,7 +736,7 @@ fn search_hint(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
                 ("  ·  ", t.faint),
                 ("owned missing pending new shiny foil", t.accent),
                 ("  ·  ", t.faint),
-                ("⏎ keep  esc clear", t.dim),
+                ("⏎ open on its page  esc back", t.dim),
             ] {
                 segs.push((s.to_string(), c));
             }
@@ -1316,7 +1341,13 @@ fn picker(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
         let mark = if sr.ix == cur { ("●", t.hi) } else { (" ", t.dim) };
         puts(buf, x0, y, mark.0, mark.1, bg, false, 1);
         let fg = if sr.ix == 0 { t.dim } else { t.title };
-        puts(buf, x0 + 2, y, &trunc(&sr.name, name_w), fg, bg, on || sr.ix == cur, name_w);
+        let nw = puts(buf, x0 + 2, y, &trunc(&sr.name, name_w), fg, bg, on || sr.ix == cur, name_w);
+        if let Some(n) = sr.hits {
+            let s = format!(" {n} found");
+            if nw + width(&s) <= name_w {
+                puts(buf, x0 + 2 + nw as i32, y, &s, t.accent, bg, false, name_w - nw);
+            }
+        }
         let mut x = x0 + iw as i32 - right_w as i32;
         if show_id {
             puts(buf, x, y, &trunc(&sr.id, id_w), t.dim, bg, false, id_w);
@@ -1354,10 +1385,11 @@ fn help(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
         ("↑ ↓ ⏎   in stats", "pick a best pull and open it"),
         ("S   click the set tab", "sets: pick one (type to filter) · its checklist"),
         ("#", "jump to a printed number in the set: #17  #TG05  #B"),
-        ("/", "search: words, and tags as key:value"),
-        ("  set:evolving set:swsh7", "  a set by name or id  ·  number:17  id:swsh7-17"),
+        ("/", "search: the binder shows only the matching cards; ⏎ opens one on its real page"),
+        ("  pikchu  lyc vmax", "  forgiving: letters in order (evs rainbow), every word must match"),
+        ("  set:evolving set:swsh7", "  a set by name or id  ·  number:17  id:swsh7-17  -holo leaves out"),
         ("  rarity:\"rare rainbow\"", "  type:water  subtype:vmax  artist:…  name:…"),
-        ("  owned missing pending", "  state words (also new shiny foil); tab completes"),
+        ("  owned missing pending", "  state words (also new shiny foil); tab completes; esc goes back"),
         ("o   m", "owned only (earned) · missing only"),
         ("s", "shiny-only binder"),
         ("v", "the card's text half (moves, HP, weakness) under the art"),

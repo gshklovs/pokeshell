@@ -205,6 +205,19 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
         ("url-lycanroc", Opts { start: crate::app::Start::Pull("01M3PVNCBPMN1R80FRY6ZMVD19".into()), ..opts.clone() }, |_| {}),
         ("missing", Opts { set: "evolving".into(), ..opts.clone() }, |app| app.on_event(key('m'))),
         ("nomatch", Opts { search: "set:zzz foo:bar".into(), ..opts.clone() }, |_| {}),
+        // a search mid-typing: the binder holds only the matching cards, the tabs their counts
+        ("search-fuzzy", opts.clone(), |app| {
+            for c in "/evs rainbow".chars() {
+                app.on_event(key(c));
+            }
+        }),
+        // ⏎ on a result: its real page (every card of the binder around it), the card selected and glowing
+        ("search-opened", opts.clone(), |app| {
+            for c in "/lyc vmax".chars() {
+                app.on_event(key(c));
+            }
+            app.on_event(crossterm::event::Event::Key(crossterm::event::KeyEvent::new(crossterm::event::KeyCode::Enter, crossterm::event::KeyModifiers::NONE)));
+        }),
         ("help", opts.clone(), |app| app.on_event(key('?'))),
     ];
     for (name, o, setup) in scenes {

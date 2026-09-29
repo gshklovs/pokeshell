@@ -510,6 +510,7 @@ pub fn matches_hay(terms: &[Term], hay: &[(&'static str, Field)], flags: Flags) 
 }
 
 /// Does a slot with these tags and state match every term? (prepares the tags on the fly)
+#[cfg(test)]
 pub fn matches(terms: &[Term], tags: &[(&'static str, String)], flags: Flags) -> bool {
     matches_hay(terms, &prepare(tags), flags)
 }

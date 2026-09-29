@@ -1,4 +1,4 @@
-﻿//! App state: which pack/page/card is selected, filters, focus, and input handling.
+//! App state: which pack/page/card is selected, filters, focus, and input handling.
 
 use crate::art::ArtStore;
 use crate::data::{Collection, NO_CARD, Pull, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
@@ -107,7 +107,32 @@ pub struct SetRow {
     pub id: String,
     pub name: String,
     pub done: Completion,
+    /// with a search on: the matching cards in this set (rows without any are left out)
+    pub hits: Option<usize>,
 }
+
+/// Where you were when a search started (`/`): Esc, or clearing the search, goes back there.
+#[derive(Clone, Debug)]
+pub struct Before {
+    pack: usize,
+    sel: usize,
+    set: usize,
+    view: View,
+    own: Own,
+    focus: Option<SlotKey>,
+    hist: Option<(SlotKey, usize)>,
+}
+
+/// The matching cards per pack (all its sets) and per set of the current pack, for the tabs and the set picker.
+#[derive(Clone, Debug, Default)]
+pub struct SearchCounts {
+    pub packs: Vec<usize>,
+    /// index 0: every set; i + 1: pack.sets[i]
+    pub sets: Vec<usize>,
+}
+
+/// How long an opened search result glows on its real page.
+pub const FLASH_SECS: f32 = 1.6;
 
 /// Completion of a checklist: earned, pending (pulled, not earned yet: not counted as done), total.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -155,6 +180,9 @@ struct Memo {
     stats: Option<(i64, Rc<Stats>)>,
     done: HashMap<(usize, usize, bool, bool), Completion>,
     tiers: HashMap<(usize, usize, bool), Rc<Vec<TierRow>>>,
+    /// each slot's tags, prepared for the search (query::Hay): built on first use, so a keystroke only matches
+    hay: HashMap<SlotKey, Rc<query::Hay>>,
+    counts: Option<((String, usize, Own, bool), Rc<SearchCounts>)>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -187,6 +215,10 @@ pub struct App {
     pub set_sel: Vec<usize>,
     /// `S`: the set picker, when open
     pub picker: Option<Picker>,
+    /// where you were before the search (Esc goes back)
+    pub before: Option<Before>,
+    /// a search result just opened on its real page: it glows for FLASH_SECS
+    pub flash: Option<(SlotKey, Instant)>,
     /// `#`: the jump-to-number prompt, when open
     pub number: Option<String>,
     /// per pack, dex view: the card a character's slot shows when you jumped to it (--card, --pull, the newest pull,
@@ -262,6 +294,8 @@ impl App {
             cursor: 0,
             set_sel: vec![0; n],
             picker: None,
+            before: None,
+            flash: None,
             number: None,
             dex_focus: vec![None; n],
             focus: Focus::Binder,
@@ -580,7 +614,136 @@ impl App {
     }
 
     fn visible_with(&self, terms: &[query::Term], k: SlotKey) -> bool {
-        k.pack == self.pack && self.in_set(k) && self.own_ok(k) && (terms.is_empty() || query::matches(terms, &self.coll.packs[k.pack].slot_tags(k), self.slot_flags(k)))
+        k.pack == self.pack && self.in_set(k) && self.own_ok(k) && self.term_ok(terms, k)
+    }
+
+    /// A slot's tags, prepared for matching (cached per collection version).
+    fn hay(&self, k: SlotKey) -> Rc<query::Hay> {
+        if let Some(h) = self.memo().hay.get(&k) {
+            return h.clone();
+        }
+        let h = Rc::new(query::prepare(&self.coll.packs[k.pack].slot_tags(k)));
+        self.memo().hay.insert(k, h.clone());
+        h
+    }
+
+    /// Does a slot pass the search terms? (true without any)
+    fn term_ok(&self, terms: &[query::Term], k: SlotKey) -> bool {
+        if terms.is_empty() {
+            return true;
+        }
+        let states = terms.iter().any(|t| t.key.is_none() && query::STATES.contains(&t.value.as_str()));
+        let flags = if states { self.slot_flags(k) } else { query::Flags::default() };
+        query::matches_hay(terms, &self.hay(k), flags)
+    }
+
+    /// With a search on: how many cards match in each pack (every set) and in each set of the current pack (with the
+    /// owned / missing / shiny filters). None without a search.
+    pub fn search_counts(&self) -> Option<Rc<SearchCounts>> {
+        if query::parse(&self.search).is_empty() || self.coll.packs.is_empty() {
+            return None;
+        }
+        let key = (self.search.clone(), self.pack, self.own, self.shiny_only);
+        if let Some((k, c)) = &self.memo().counts {
+            if *k == key {
+                return Some(c.clone());
+            }
+        }
+        let mut out = SearchCounts { packs: vec![0; self.coll.packs.len()], sets: vec![] };
+        for (pi, p) in self.coll.packs.iter().enumerate() {
+            let mut terms = query::parse(&self.search);
+            query::resolve_terms(&mut terms, &p.sets);
+            let keys: Vec<SlotKey> = if p.is_cards {
+                (0..p.card_list.len()).map(|i| p.key_of(pi, i)).collect()
+            } else {
+                (0..p.tiers.len()).flat_map(|t| (0..p.chars.len()).map(move |c| SlotKey::legacy(pi, c, t))).collect()
+            };
+            if pi == self.pack {
+                out.sets = vec![0; p.sets.len() + 1];
+            }
+            for k in keys {
+                if self.own_ok(k) && self.term_ok(&terms, k) {
+                    out.packs[pi] += 1;
+                    if pi == self.pack {
+                        out.sets[0] += 1;
+                        if let Some(si) = p.set_of(k.card) {
+                            out.sets[si + 1] += 1;
+                        }
+                    }
+                }
+            }
+        }
+        let c = Rc::new(out);
+        self.memo().counts = Some((key, c.clone()));
+        Some(c)
+    }
+
+    fn here(&self) -> Before {
+        let pi = self.pack;
+        Before { pack: pi, sel: self.sel[pi], set: self.set_sel[pi], view: self.views[pi], own: self.own, focus: self.dex_focus[pi], hist: self.hist }
+    }
+
+    /// Back to where you were before the search (the search itself is left as it is).
+    fn go_back(&mut self, b: &Before) {
+        self.pack = b.pack;
+        self.set_sel[b.pack] = b.set;
+        self.views[b.pack] = b.view;
+        self.own = b.own;
+        self.dex_focus[b.pack] = b.focus;
+        self.sel[b.pack] = b.sel;
+        self.hist = b.hist;
+        self.dirty = true;
+    }
+
+    /// Esc on a search: clear it and go back to where you were before it.
+    fn clear_search(&mut self) {
+        self.searching = false;
+        self.cursor = 0;
+        match self.before.take() {
+            Some(b) => {
+                self.search.clear();
+                self.go_back(&b);
+            }
+            None => self.keeping_selection(|a| a.search.clear()),
+        }
+    }
+
+    /// Enter (or a click on the selected card) during a search: clear it and show the card on its real binder page,
+    /// the unfiltered one with its neighbours, selected and glowing for a moment.
+    pub fn open_result(&mut self) {
+        let Some(k) = self.selected() else {
+            self.searching = false;
+            return;
+        };
+        self.search.clear();
+        self.cursor = 0;
+        self.searching = false;
+        self.before = None;
+        self.own = Own::All;
+        self.jump_to(k, None);
+        self.flash = Some((k, Instant::now()));
+        self.focus = Focus::Binder;
+        self.dirty = true;
+    }
+
+    /// The glow of an opened result (1 fading to 0), if this slot has it.
+    pub fn flash_level(&self, k: SlotKey) -> f32 {
+        match self.flash {
+            Some((f, t0)) if f == k => (1.0 - t0.elapsed().as_secs_f32() / FLASH_SECS).max(0.0),
+            _ => 0.0,
+        }
+    }
+
+    /// The event loop's tick: true while the glow needs frames (and once more when it ends).
+    pub fn flash_tick(&mut self) -> bool {
+        match self.flash {
+            Some((_, t0)) if t0.elapsed().as_secs_f32() >= FLASH_SECS => {
+                self.flash = None;
+                true
+            }
+            Some(_) => true,
+            None => false,
+        }
     }
 
     fn compute_slots(&self) -> Vec<SlotKey> {
@@ -588,7 +751,7 @@ impl App {
         let Some(p) = self.coll.packs.get(pi) else { return vec![] };
         let terms = self.terms();
         let shiny = self.shiny_only;
-        let term_ok = |k: SlotKey| terms.is_empty() || query::matches(&terms, &p.slot_tags(k), self.slot_flags(k));
+        let term_ok = |k: SlotKey| self.term_ok(&terms, k);
         let st = |k: SlotKey| self.coll.slot_state(k, shiny);
         let mut out = Vec::new();
         match self.views[pi] {
@@ -996,21 +1159,26 @@ impl App {
     }
 
     /// The set picker's rows: every set first, then the pack's sets, the ones you collect most first (then the
-    /// biggest). With a filter typed: the sets it names (query::set_score), best first.
+    /// biggest). With a filter typed: the sets it names (query::set_score), best first. With a search on: only the
+    /// sets with matching cards, with their counts.
     pub fn set_rows(&self) -> Vec<SetRow> {
         let Some(p) = self.coll.packs.get(self.pack) else { return vec![] };
         let f = self.picker.as_ref().map(|p| p.filter.trim().to_string()).unwrap_or_default();
+        let counts = self.search_counts();
         let mut rows: Vec<(i32, SetRow)> = p
             .sets
             .iter()
             .enumerate()
-            .map(|(i, s)| (if f.is_empty() { 1 } else { query::set_score(s, &f) }, SetRow { ix: i + 1, id: s.id.clone(), name: s.name.clone(), done: self.completion(self.pack, i + 1, false, false) }))
-            .filter(|r| r.0 > 0)
+            .map(|(i, s)| {
+                let hits = counts.as_ref().map(|c| c.sets.get(i + 1).copied().unwrap_or(0));
+                (if f.is_empty() { 1 } else { query::set_score(s, &f) }, SetRow { ix: i + 1, id: s.id.clone(), name: s.name.clone(), done: self.completion(self.pack, i + 1, false, false), hits })
+            })
+            .filter(|r| r.0 > 0 && r.1.hits != Some(0))
             .collect();
         rows.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.done.owned.cmp(&a.1.done.owned)).then(b.1.done.total.cmp(&a.1.done.total)).then(a.1.ix.cmp(&b.1.ix)));
         let mut out: Vec<SetRow> = Vec::new();
         if f.is_empty() || "all sets".starts_with(&query::fold(&f)) {
-            out.push(SetRow { ix: 0, id: String::new(), name: "every set".into(), done: self.completion(self.pack, 0, false, false) });
+            out.push(SetRow { ix: 0, id: String::new(), name: "every set".into(), done: self.completion(self.pack, 0, false, false), hits: counts.as_ref().map(|c| c.sets[0]) });
         }
         out.extend(rows.into_iter().map(|r| r.1));
         out
@@ -1211,10 +1379,7 @@ impl App {
             KeyCode::Char('q') => self.quit = true,
             KeyCode::Esc => {
                 if !self.search.is_empty() {
-                    self.keeping_selection(|a| {
-                        a.search.clear();
-                        a.cursor = 0;
-                    });
+                    self.clear_search();
                 } else {
                     self.quit = true;
                 }
@@ -1224,6 +1389,9 @@ impl App {
                 self.help_scroll = 0;
             }
             KeyCode::Char('/') => {
+                if self.search.is_empty() && !self.coll.packs.is_empty() {
+                    self.before = Some(self.here());
+                }
                 self.searching = true;
                 self.cursor = self.search.chars().count();
                 self.focus = Focus::Binder;
@@ -1297,6 +1465,7 @@ impl App {
                     KeyCode::Right | KeyCode::Char('l') => self.move_grid(1, 0),
                     KeyCode::Up | KeyCode::Char('k') => self.move_grid(0, -1),
                     KeyCode::Down | KeyCode::Char('j') => self.move_grid(0, 1),
+                    KeyCode::Enter if !self.search.is_empty() => self.open_result(),
                     KeyCode::Enter => {
                         self.focus = Focus::Card;
                         self.compact_right = Focus::Card;
@@ -1377,9 +1546,12 @@ impl App {
         let before = self.search.clone();
         match k.code {
             KeyCode::Esc => {
-                self.searching = false;
-                cs.clear();
-                self.cursor = 0;
+                self.clear_search();
+                return;
+            }
+            KeyCode::Enter if !self.search.trim().is_empty() => {
+                self.open_result();
+                return;
             }
             KeyCode::Enter => self.searching = false,
             KeyCode::Backspace if cur > 0 => {
@@ -1431,7 +1603,12 @@ impl App {
         if now != before {
             self.search = now;
             self.hist = None;
-            if !self.coll.packs.is_empty() {
+            if self.search.trim().is_empty() {
+                // cleared by editing: back where the search started (still typing; the next word starts afresh)
+                if let Some(b) = self.before.clone() {
+                    self.go_back(&b);
+                }
+            } else if !self.coll.packs.is_empty() {
                 self.sel[self.pack] = 0;
             }
         }
@@ -1537,8 +1714,13 @@ impl App {
             return;
         }
         if let Some(&(_, i)) = self.hits.slots.iter().find(|(r, _)| r.contains(pos)) {
+            // during a search, a click on the selected card opens it on its real page (like Enter)
+            let again = self.sel[self.pack] == i;
             self.sel[self.pack] = i;
             self.focus = Focus::Binder;
+            if again && !self.search.is_empty() {
+                self.open_result();
+            }
             return;
         }
         if let Some(&(_, pi)) = self.hits.best.iter().find(|(r, _)| r.contains(pos)) {
@@ -1735,6 +1917,56 @@ mod tests {
         let pr = rows.iter().find(|r| a.coll.packs[0].tiers[r.tier].id == "pikachu-rare").unwrap();
         assert_eq!((pr.caught, pr.pending, pr.of, pr.pulls), (1, 1, 3, 2), "the tiers panel follows the set");
         assert!(rows.iter().all(|r| a.coll.packs[0].tiers[r.tier].id != "rare-holo-v"), "only the set's rarities");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn search_opens_the_real_page() {
+        // the search shows only the matching cards; Enter opens the selected one on its real, unfiltered page (its
+        // neighbours around it), selected and glowing; Esc instead goes back to where you were before searching
+        let d = fixture_pack("open");
+        write_log(&d, &["2026-09-29T08:00:00	p	lycanroc	rare-holo-vmax	swsh7-92		0	", "2026-09-29T08:01:00	p	pikachu	pikachu-rare	me55-28		0	"]);
+        let key = |c: KeyCode| Event::Key(KeyEvent::new(c, KeyModifiers::NONE));
+        let ids = |a: &mut App| a.slots().to_vec().iter().map(|k| a.coll.packs[0].card_list[k.card as usize].id.clone()).collect::<Vec<_>>();
+        let mut a = app(&d, "", "", Start::Latest);
+        let all = ids(&mut a);
+        assert_eq!(all.len(), 8);
+        assert_eq!(sel_id(&mut a), "me55-28");
+        a.on_event(key(KeyCode::Char('/')));
+        for c in "lyc vmax".chars() {
+            a.on_event(key(KeyCode::Char(c)));
+        }
+        assert_eq!(ids(&mut a), vec!["swsh7-92"], "the binder shows only the match (not Lycanroc V)");
+        let c = a.search_counts().unwrap();
+        assert_eq!((c.packs[0], c.sets[0]), (1, 1));
+        let sets: Vec<(String, Option<usize>)> = a.set_rows().iter().map(|r| (r.id.clone(), r.hits)).collect();
+        assert_eq!(sets, vec![(String::new(), Some(1)), ("swsh7".into(), Some(1))], "the picker keeps the sets with matches");
+        a.on_event(key(KeyCode::Enter));
+        assert!(a.search.is_empty() && !a.searching);
+        assert_eq!(ids(&mut a), all, "the real page: every card");
+        assert_eq!(sel_id(&mut a), "swsh7-92");
+        let k = a.selected().unwrap();
+        assert!(a.flash_level(k) > 0.5, "it glows");
+        let at = all.iter().position(|x| x == "swsh7-92").unwrap();
+        assert_eq!(a.sel_ix(), at);
+        // Esc: back where the search started
+        a.on_event(key(KeyCode::Char('/')));
+        for c in "pikchu".chars() {
+            a.on_event(key(KeyCode::Char(c)));
+        }
+        assert!(ids(&mut a).iter().all(|x| a.coll.packs[0].card(x).unwrap().name == "Pikachu") && a.slots().len() == 4, "pikchu: the four Pikachu cards");
+        a.on_event(key(KeyCode::Right));
+        a.on_event(key(KeyCode::Esc));
+        assert!(a.search.is_empty());
+        assert_eq!(sel_id(&mut a), "swsh7-92", "Esc: where you were");
+        // clearing the search by editing goes back too; so does Esc in the binder after arrowing through results
+        a.on_event(key(KeyCode::Char('/')));
+        a.on_event(key(KeyCode::Char('p')));
+        a.on_event(key(KeyCode::Char('i')));
+        a.on_event(key(KeyCode::Down));
+        a.on_event(key(KeyCode::Esc));
+        assert!(a.search.is_empty());
+        assert_eq!(sel_id(&mut a), "swsh7-92");
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -306,6 +306,8 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
         } else {
             to_minute
         };
+        // an opened search result glows on its real page: redraw it as it fades
+        let timeout = if app.flash.is_some() { timeout.min(Duration::from_millis(50)) } else { timeout };
         if event::poll(timeout)? {
             // drain everything queued (wheel bursts, resize storms) before drawing once
             loop {
@@ -316,6 +318,9 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
                 }
             }
         } else {
+            if app.flash_tick() {
+                app.dirty = true;
+            }
             let n = data::now_local();
             if app.poll_reload() {
                 app.now = n;
