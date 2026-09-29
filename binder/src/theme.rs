@@ -29,9 +29,12 @@ pub struct Theme {
     pub graph: [Rgb; 3],
     /// Inside of a card (behind transparent art pixels).
     pub card_bg: Rgb,
-    /// Empty binder slots: dashed outline and silhouette fill.
+    /// Empty binder slots: the dashed outline (and the faint fill of the old empty-slot silhouette).
     pub slot_line: Rgb,
     pub silhouette: Rgb,
+    /// Seen cards: the card stock behind the shadow, and the shadow (the Pokédex "seen" silhouette).
+    pub seen_bg: Rgb,
+    pub shadow: Rgb,
 }
 
 pub const THEMES: &[Theme] = &[
@@ -57,6 +60,8 @@ pub const THEMES: &[Theme] = &[
         card_bg: rgb(0x141826),
         slot_line: rgb(0x2c3149),
         silhouette: rgb(0x1d2133),
+        seen_bg: rgb(0x2b3149),
+        shadow: rgb(0x07080e),
     },
     Theme {
         name: "btop",
@@ -80,6 +85,8 @@ pub const THEMES: &[Theme] = &[
         card_bg: rgb(0x0c0c0c),
         slot_line: rgb(0x2a2a2a),
         silhouette: rgb(0x181818),
+        seen_bg: rgb(0x262626),
+        shadow: rgb(0x000000),
     },
     Theme {
         name: "gameboy",
@@ -103,6 +110,8 @@ pub const THEMES: &[Theme] = &[
         card_bg: rgb(0x142214),
         slot_line: rgb(0x243a22),
         silhouette: rgb(0x1a2c1a),
+        seen_bg: rgb(0x2f4a2c),
+        shadow: rgb(0x0a120a),
     },
     Theme {
         name: "term",
@@ -126,6 +135,8 @@ pub const THEMES: &[Theme] = &[
         card_bg: rgb(0x121212),
         slot_line: rgb(0x303030),
         silhouette: rgb(0x1e1e1e),
+        seen_bg: rgb(0x2a2a2a),
+        shadow: rgb(0x050505),
     },
 ];
 

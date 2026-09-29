@@ -2,7 +2,7 @@
 //! the pokedex colorscripts). Loaded lazily per card and cached, thumbnails cached per size.
 
 use crate::color::{Rgb, hex};
-use crate::data::Pack;
+use crate::data::{Pack, SlotKey};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -328,6 +328,58 @@ impl ArtStore {
         Some(t)
     }
 
+    /// The shape of a seen card (docs/BINDER_SPEC.md "Empty, seen, caught"): an image whose opaque pixels are the
+    /// silhouette (their colours don't matter: the card draws them in the theme's flat shadow colour). The sprite's
+    /// alpha, never a scene's background, found in this order:
+    ///   1. packs without real cards: the character's base (tier 0) art;
+    ///   2. a real card whose art is the plain sprite (it has transparent pixels, is_sprite: the commons): its own art;
+    ///   3. a scene card: the character's plain sprite, from one of its commons in the pack (the shipped art);
+    ///   4. else the colorscripts sprite itself: vendor/pokemon-colorscripts (or $POKESHELL_VENDOR), then the pokedex
+    ///      pack's dist/pokedex/<character>-common.ans (checkouts that build the art have these);
+    ///   5. else the card art's sprite layer: the pixels its shiny art recolours (the sprite sits pixel-exact over the
+    ///      scene, docs/ART_METHOD.md, and only it changes with shiny), plus the dark outline around them, holes filled.
+    /// None when nothing gives a shape (the seen card then shows a "?").
+    pub fn silhouette(&self, pack: &Pack, k: SlotKey) -> Option<Rc<Img>> {
+        let key = format!("sil/{}/{}/{}/{}", pack.id, k.ch, k.tier, k.card);
+        if let Some(i) = self.imgs.borrow().get(&key) {
+            return i.clone();
+        }
+        let ch = &pack.chars[k.ch];
+        let img = match pack.card_at(k.card) {
+            None => self.get(pack, ch, &pack.tiers[0].art, false),
+            Some(c) => {
+                let own = self.get(pack, ch, &c.id, false);
+                if own.as_deref().is_some_and(is_sprite) {
+                    own
+                } else {
+                    pack.char_cards[k.ch]
+                        .iter()
+                        .filter_map(|&i| self.get(pack, ch, &pack.card_list[i].id, false))
+                        .find(|i| is_sprite(i))
+                        .or_else(|| sprite_file(pack, ch).map(Rc::new))
+                        .or_else(|| {
+                            let b = self.get(pack, ch, &c.id, true)?;
+                            sprite_layer(own.as_deref()?, &b).map(Rc::new)
+                        })
+                }
+            }
+        };
+        self.imgs.borrow_mut().insert(key, img.clone());
+        img
+    }
+
+    /// The silhouette fitted to a box (cached per size): a thumbnail is trimmed first, like the art.
+    pub fn silhouette_fit(&self, pack: &Pack, k: SlotKey, w: usize, h: usize, thumb: bool) -> Option<Rc<Img>> {
+        let key = (format!("sil/{}/{}/{}/{}/{}", pack.id, k.ch, k.tier, k.card, thumb as u8), w, h);
+        if let Some(t) = self.thumbs.borrow().get(&key) {
+            return Some(t.clone());
+        }
+        let full = self.silhouette(pack, k)?;
+        let t = Rc::new(if thumb { full.frame_for(w, h * 2).fit(w, h) } else { full.fit(w, h) });
+        self.thumbs.borrow_mut().insert(key, t.clone());
+        Some(t)
+    }
+
     /// Thumbnail: trimmed / cropped toward the box, then downscaled (cached per size).
     pub fn thumb(&self, pack: &Pack, ch: &str, art: &str, shiny: bool, w: usize, h: usize) -> Option<Rc<Img>> {
         let key = (format!("t/{}/{}/{}/{}", pack.id, ch, art, shiny as u8), w, h);
@@ -340,4 +392,110 @@ impl ArtStore {
         Some(t)
     }
 
+}
+
+// ---------------------------------------------------------------- silhouettes
+
+/// Is this card art a plain sprite (a common)? It has transparent pixels around the Pokemon; a scene is full-bleed.
+pub fn is_sprite(img: &Img) -> bool {
+    img.px.iter().filter(|p| p.is_none()).count() * 10 >= img.px.len().max(1)
+}
+
+/// The character's plain colorscripts sprite, when this checkout has it: vendor/pokemon-colorscripts (large, the
+/// size the commons are built at; $POKESHELL_VENDOR points at another vendor folder), else the pokedex pack's art.
+fn sprite_file(pack: &Pack, ch: &str) -> Option<Img> {
+    let root = pack.dir.parent()?.parent()?;
+    let vendor = std::env::var_os("POKESHELL_VENDOR").map(std::path::PathBuf::from).unwrap_or_else(|| root.join("vendor"));
+    [vendor.join("pokemon-colorscripts").join("colorscripts").join("large").join("regular").join(ch), root.join("dist").join("pokedex").join(format!("{ch}-common.ans"))]
+        .iter()
+        .find_map(|f| std::fs::read_to_string(f).ok())
+        .map(|t| from_ansi(&t))
+        .filter(|i| i.px.iter().any(|p| p.is_some()))
+}
+
+/// A scene card's sprite layer from its normal and shiny art: the pixels that differ, grown twice into the dark
+/// pixels touching them (8 neighbours) (the black outline and eyes, the same in both), then with enclosed holes filled. None when the
+/// two don't line up or too little differs to be a sprite.
+pub fn sprite_layer(a: &Img, b: &Img) -> Option<Img> {
+    if a.w != b.w || a.h != b.h || a.w == 0 {
+        return None;
+    }
+    let (w, h) = (a.w, a.h);
+    let mut m: Vec<bool> = (0..w * h).map(|i| a.px[i].is_some() && a.px[i] != b.px[i]).collect();
+    if m.iter().filter(|&&x| x).count() * 100 < w * h {
+        return None;
+    }
+    let dark = |i: usize| a.px[i].is_some_and(|c| crate::color::luma(c) < 0.16);
+    for _ in 0..2 {
+        let prev = m.clone();
+        for y in 0..h {
+            for x in 0..w {
+                let i = y * w + x;
+                if prev[i] || !dark(i) {
+                    continue;
+                }
+                // 8 neighbours: the outline's corners too
+                let near = (y.saturating_sub(1)..(y + 2).min(h)).any(|yy| (x.saturating_sub(1)..(x + 2).min(w)).any(|xx| prev[yy * w + xx]));
+                if near {
+                    m[i] = true;
+                }
+            }
+        }
+    }
+    // holes: what the border can't reach without crossing the mask
+    let mut out = vec![false; w * h];
+    let mut stack: Vec<usize> = (0..w).flat_map(|x| [x, (h - 1) * w + x]).chain((0..h).flat_map(|y| [y * w, y * w + w - 1])).filter(|&i| !m[i]).collect();
+    while let Some(i) = stack.pop() {
+        if out[i] || m[i] {
+            continue;
+        }
+        out[i] = true;
+        let (x, y) = (i % w, i / w);
+        if x > 0 {
+            stack.push(i - 1);
+        }
+        if x + 1 < w {
+            stack.push(i + 1);
+        }
+        if y > 0 {
+            stack.push(i - w);
+        }
+        if y + 1 < h {
+            stack.push(i + w);
+        }
+    }
+    Some(Img { w, h, px: (0..w * h).map(|i| if out[i] { None } else { Some([0, 0, 0]) }).collect() })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sprite_layer_fills_the_outline() {
+        // a 8x6 scene; the "sprite" is a 4x4 block with a dark outline and a light eye that shiny doesn't change
+        let (w, h) = (8, 6);
+        let scene = [90u8, 140, 60];
+        let mut a = Img { w, h, px: vec![Some(scene); w * h] };
+        for y in 1..5 {
+            for x in 2..6 {
+                let edge = x == 2 || x == 5 || y == 1 || y == 4;
+                a.px[y * w + x] = Some(if edge { [5, 5, 5] } else { [200, 60, 60] });
+            }
+        }
+        a.px[2 * w + 3] = Some([250, 250, 250]); // the eye: the same in both
+        let mut b = a.clone();
+        for y in 2..4 {
+            for x in 3..5 {
+                if (x, y) != (3, 2) {
+                    b.px[y * w + x] = Some([60, 60, 200]);
+                }
+            }
+        }
+        let m = sprite_layer(&a, &b).unwrap();
+        let on = |x: usize, y: usize| m.get(x, y).is_some();
+        assert!((2..6).all(|x| (1..5).all(|y| on(x, y))), "outline, body and eye");
+        assert!(!on(0, 0) && !on(7, 5) && !on(1, 2) && !on(6, 3), "the scene stays out");
+        assert!(sprite_layer(&a, &a).is_none(), "nothing differs: no sprite layer");
+    }
 }

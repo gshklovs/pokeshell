@@ -20,7 +20,8 @@ Reads
 Writes (into --out, default <state>/web; every file is written to a temp name and swapped in)
   data.json                               everything the page needs
   img/<pack>/<character>/<tier or card id>[-shiny].png   1 px per art pixel: every built card, shiny forms that were pulled
-  img/pokedex/_silhouettes.png            atlas of all 905 pokedex silhouettes (alpha only), for empty slots
+  img/<pack>/<character>/_seen.png, <card id>-seen.png   a seen card's silhouette, when no exported art gives it (below)
+  img/pokedex/_silhouettes.png            atlas of all 905 pokedex silhouettes (alpha only): the dex characters' tints
   img/.cache.json                         decoded-art cache (source mtime + size -> PNG size, tint): reruns skip decoding
   binder.html                             tools/binder-web/index.html with data.json inlined (with the img/ folder)
 PNGs that no current card needs are pruned from img/ (not with --no-art, which leaves img/ alone).
@@ -30,10 +31,17 @@ instead of rendered.
 
 The earned rule (docs/BINDER_SPEC.md, the same as Pokeshell.cs ReadPulls): a pull line with an id and the
 "pending" flag is pending until an `earned:<id>` line; it expires on an `expired:<id>` line, after 24 h, or when its
-boot session (boot=) is over. Pending pulls export as status "pending" (shown greyed, not counted); expired ones are
-dropped; earned ones are "collected", with "new" when viewed.txt doesn't list them. Lines without an id are earned.
-Pulls that don't resolve to a current card (unknown or `retired` in pack.json) are left out; pulls.log is never
-rewritten.
+boot session (boot=) is over. Earned pulls export as status "collected" (caught), with "new" when viewed.txt doesn't
+list them; the others as "pending" (its tab can still catch it) or "expired": both are seen, never counted, and the
+page shows a seen card as its silhouette. Lines without an id are earned. Pulls that don't resolve to a current card
+(unknown or `retired` in pack.json) are left out; pulls.log is never rewritten.
+
+A seen card's silhouette (docs/BINDER_SPEC.md "Empty, seen, caught"; the same order as the app's
+ArtStore::silhouette): a real card whose art is the plain sprite (it has transparent pixels, the commons; "sprite" on
+the card) is its own; a scene card takes one of its character's commons ("seen" on the character: that image), else the
+colorscripts sprite (vendor/pokemon-colorscripts large, or dist/pokedex/<character>-common.ans: _seen.png), else its
+own art's sprite layer (the pixels its shiny art recolours, plus the dark outline, holes filled: <card id>-seen.png).
+Other packs use their base art (grid) or the pulled sprite (dex). The page draws any of them as a flat shadow.
 """
 import argparse
 import datetime as dt
@@ -168,12 +176,11 @@ def read_pulls(log, viewed=frozenset(), now=None, boot=None, bad=None):
         if not pid or not pending or pid in earned:
             status = "collected"
         elif pid in expired:
-            continue
+            status = "expired"                      # seen, not caught (docs/BINDER_SPEC.md "Empty, seen, caught")
         else:
             t = ulid_secs(pid)
-            if (t is not None and now - t > EXPIRE_SECS) or (pboot and boot and abs(pboot - boot) > BOOT_SLACK_SECS):
-                continue                            # expired: the tab was never used
-            status = "pending"
+            expired_now = (t is not None and now - t > EXPIRE_SECS) or (pboot and boot and abs(pboot - boot) > BOOT_SLACK_SECS)
+            status = "expired" if expired_now else "pending"   # expired: the tab was never used
         pulls.append({
             "id": n + 1, "pull": pid or None, "card": card or None,
             "time": f[0].strip().replace(" ", "T"), "pack": f[1], "char": f[2], "tier": f[3], "art": f[4],
@@ -610,8 +617,9 @@ def art_json_path(pack, char):
 class ArtCache:
     """decoded art, cached by source file: img/.cache.json maps each PNG (relative to img/) to the source it was
     made from (path, mtime, size) plus its pixel size and tint. A PNG whose source is unchanged isn't decoded again.
-    kept collects every PNG this export uses; prune() removes the rest (retired / renamed cards, old shiny forms)."""
-    VERSION = 2
+    kept collects every PNG this export uses; prune() removes the rest (retired / renamed cards, old shiny forms).
+    Each entry also keeps the art's transparent share ("clear"): a card's plain sprite has one, a scene none."""
+    VERSION = 3
 
     def __init__(self, img, do_art):
         self.img, self.do_art, self.kept = img, do_art, set()
@@ -630,11 +638,12 @@ class ArtCache:
         st = src.stat()
         return [str(src), st.st_mtime_ns, st.st_size]
 
-    def get(self, rel, src, decode):
-        """(size [w, h] or None, tint or None) of the PNG img/<rel> made from src by decode() -> pixel grid.
-        --no-art: nothing is decoded or written; a cached entry still gives the size and tint."""
+    def get(self, rel, src, decode, also=None):
+        """(size [w, h] or None, tint or None) of the PNG img/<rel> made from src (and `also`, a second source it
+        depends on) by decode() -> pixel grid. --no-art: nothing is decoded or written; a cached entry still gives the
+        size and tint."""
         ov = OVERRIDE / rel
-        stamp = self.stamp(src)
+        stamp = self.stamp(src) + (self.stamp(also) if also else [])
         if ov.exists():
             stamp[0] += "|" + str(ov)
             stamp[1] = max(stamp[1], ov.stat().st_mtime_ns)
@@ -649,6 +658,8 @@ class ArtCache:
         grid = decode()
         self.decoded += 1
         tint = tint_of(grid)
+        n = sum(len(r) for r in grid)
+        clear = round(sum(1 for r in grid for x in r if x is None) / n, 3) if n else 0
         if ov.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             write_atomic(dst, ov.read_bytes())
@@ -656,9 +667,13 @@ class ArtCache:
                 size = list(im.size)
         else:
             size = list(save_grid(grid, dst))
-        self.entries[rel] = {"src": stamp, "size": size, "tint": tint}
+        self.entries[rel] = {"src": stamp, "size": size, "tint": tint, "clear": clear}
         self.kept.add(rel)
         return size, tint
+
+    def clear(self, rel):
+        """the transparent share of img/<rel>'s art (None when it isn't known)"""
+        return (self.entries.get(rel) or {}).get("clear")
 
     def save(self):
         if not self.do_art:
@@ -683,6 +698,47 @@ class ArtCache:
             except OSError:
                 pass
         return n
+
+
+def sprite_layer(a, b):
+    """a scene card's sprite layer from its normal and shiny art (pixel grids): the pixels that differ, grown twice into
+    the dark pixels touching them (8 neighbours: the outline and eyes, the same in both), with enclosed holes filled.
+    None when they don't line up or too little differs (the app's art::sprite_layer)"""
+    h, w = len(a), len(a[0]) if a else 0
+    if not w or len(b) != h or any(len(r) != w for r in b) or any(len(r) != w for r in a):
+        return None
+    m = [[a[y][x] is not None and a[y][x] != b[y][x] for x in range(w)] for y in range(h)]
+    if sum(map(sum, m)) * 100 < w * h:
+        return None
+    dark = lambda c: c is not None and (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 < 0.16
+    for _ in range(2):
+        prev = [r[:] for r in m]
+        for y in range(h):
+            for x in range(w):
+                if not prev[y][x] and dark(a[y][x]) and any(prev[yy][xx] for yy in range(max(0, y - 1), min(h, y + 2)) for xx in range(max(0, x - 1), min(w, x + 2))):
+                    m[y][x] = True
+    out = [[False] * w for _ in range(h)]
+    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    while stack:
+        x, y = stack.pop()
+        if out[y][x] or m[y][x]:
+            continue
+        out[y][x] = True
+        stack += [(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)) if 0 <= x + dx < w and 0 <= y + dy < h]
+    return [[None if out[y][x] else (0, 0, 0) for x in range(w)] for y in range(h)]
+
+
+SPRITE_CLEAR = 0.1   # a card art with at least this share of transparent pixels is a plain sprite (a scene has none)
+
+
+def sprite_source(ch):
+    """the character's plain colorscripts sprite in this checkout (vendor/ or $POKESHELL_VENDOR, else the pokedex
+    pack's art), or None"""
+    vendor = Path(os.environ["POKESHELL_VENDOR"]) if os.environ.get("POKESHELL_VENDOR") else ROOT / "vendor"
+    for f in (vendor / "pokemon-colorscripts" / "colorscripts" / "large" / "regular" / ch, ROOT / "dist" / "pokedex" / f"{ch}-common.ans"):
+        if f.is_file():
+            return f
+    return None
 
 
 def export_art(packs, pulls, cache):
@@ -752,8 +808,9 @@ def export_art(packs, pulls, cache):
         if pk.get("layout") == "cards":
             # real cards: one image per card, from its prebuilt art dist/<pack>/<character>-<card id>.ans converted
             # back to pixels; keyed by card id (img/<pack>/<character>/<card id>[-shiny].png). Every card's normal
-            # form (a deep link or search can open any card), shiny forms only once pulled.
+            # form (a deep link or search can open any card), shiny forms only once pulled (caught or seen).
             card_tints[pid] = {}
+            seen_cards = {p["card"] for p in pulls if p["pack"] == pid and p["status"] != "collected" and p["card"]}
             for ch in pk["characters"]:
                 c = ch["id"]
                 entry = {"tint": None, "img": {}}
@@ -775,6 +832,34 @@ def export_art(packs, pulls, cache):
                             card_tints[pid][cid] = tint
                             entry["tint"] = entry["tint"] or tint
                 entry["tint"] = entry["tint"] or "#9aa4b0"
+                # a seen card's silhouette (the module doc). A card whose art has transparent pixels is the plain
+                # sprite (a common; a scene is full-bleed): its own image is its shape, and a scene card of the same
+                # character takes it; else the colorscripts sprite; else the scene card's own sprite layer
+                mine = [cd for cd in pk["cards"] if cd["character"] == c]
+                for cd in mine:
+                    if (cache.clear(f"{pid}/{c}/{cd['id']}.png") or 0) >= SPRITE_CLEAR:
+                        cd["sprite"] = True
+                scenes = [cd for cd in mine if cd["id"] in seen_cards and not cd.get("sprite")]
+                if scenes:
+                    common = next((cd["id"] for cd in mine if cd.get("sprite")), None)
+                    src = None if common else sprite_source(c)
+                    if common:
+                        entry["seen"] = common
+                    elif src:
+                        size, _ = cache.get(f"{pid}/{c}/_seen.png", src, lambda s=src: ansi_grid(s.read_text(encoding="utf-8", errors="replace")))
+                        if size:
+                            entry["img"]["_seen"] = size
+                            entry["seen"] = "_seen"
+                    else:
+                        for cd in scenes:
+                            a, b = (ROOT / "dist" / pid / f"{c}-{cd['id']}{x}.ans" for x in ("", "-shiny"))
+                            if not (a.exists() and b.exists()):
+                                continue
+                            dec = lambda a=a, b=b: sprite_layer(*(ansi_grid(f.read_text(encoding="utf-8", errors="replace")) for f in (a, b))) or [[None]]
+                            size, _ = cache.get(f"{pid}/{c}/{cd['id']}-seen.png", a, dec, also=b)
+                            if size and size != [1, 1]:
+                                entry["img"][f"{cd['id']}-seen"] = size
+                                cd["seen"] = f"{cd['id']}-seen"
                 art[pid][c] = entry
             continue
         for ch in pk["characters"]:
@@ -857,6 +942,8 @@ def main():
             e = art.get(pk["id"], {}).get(ch["id"], {})
             ch["tint"] = e.get("tint")
             ch["img"] = e.get("img", {})
+            if e.get("seen"):
+                ch["seen"] = e["seen"]          # a seen card's silhouette: this image key (the module doc)
         for c in pk.get("cards") or []:
             c["tint"] = card_tints.get(pk["id"], {}).get(c["id"])
         if pk["layout"] == "dex":
@@ -864,16 +951,22 @@ def main():
     cache.save()
     pruned = cache.prune()
 
+    # slots (the page's: a real card, a character in a tier, or a pokedex character), caught vs only seen
+    layout = {pk["id"]: pk["layout"] for pk in packs}
+    slot = lambda p: (p["pack"], p["card"] if layout.get(p["pack"]) == "cards" else p["char"], None if layout.get(p["pack"]) in ("cards", "dex") else p["tier"])
+    caught_slots = {slot(p) for p in pulls if p["status"] == "collected"}
+    seen_slots = {slot(p) for p in pulls} - caught_slots
     data = {
         "owner": a.owner,
         "generated": dt.datetime.now().isoformat(timespec="seconds"),
         "source": {"log": str(log).replace(os.environ.get("USERPROFILE", "~"), "~"), "pack_setting": cfg.get("pack", "all")},
         "earned": {"enforced": True,
-                   "note": "A card only counts once you use the tab it was pulled in: its first command earns it "
-                           "(docs/BINDER_SPEC.md). Pending cards show greyed until then."},
-        # what the header counts: pending pulls are shown but never counted (kept = earned)
-        "counts": {"kept": sum(1 for p in pulls if p["status"] == "collected"),
-                   "pending": sum(1 for p in pulls if p["status"] == "pending"),
+                   "note": "A card is caught once you use the tab it was pulled in: its first command earns it "
+                           "(docs/BINDER_SPEC.md). Until then (or if the tab closed unused) it is only seen: its silhouette."},
+        # what the header counts: caught pulls and cards; seen cards (pulled, never caught) apart, never counted
+        "counts": {"pulls": sum(1 for p in pulls if p["status"] == "collected"),
+                   "caught": len(caught_slots),
+                   "seen": len(seen_slots),
                    "shiny": sum(1 for p in pulls if p["status"] == "collected" and p["shiny"]),
                    "new": sum(1 for p in pulls if p["new"])},
         "hidden": hidden,   # pulls that no longer resolve to a current built card (retired art, unbuilt; still in pulls.log)
@@ -892,11 +985,11 @@ def main():
     write_atomic(out / "binder.html", page.replace(marker, blob.replace("</", "<\\/"), 1))
 
     n_img = len(cache.kept)
-    n_pend = sum(1 for p in pulls if p["status"] == "pending")
+    n_got = sum(1 for p in pulls if p["status"] == "collected")
     n_new = sum(1 for p in pulls if p["new"])
     art_note = (f"{n_img} images ({cache.decoded} decoded, {cache.reused} cached{f', {pruned} stale removed' if pruned else ''})"
                 if not a.no_art else "art skipped (--no-art)")
-    print(f"{len(pulls) - n_pend} earned, {n_pend} pending, {n_new} new{f', {hidden} retired (not shown)' if hidden else ''}; "
+    print(f"{n_got} pulls caught ({len(caught_slots)} cards), {len(seen_slots)} seen, {n_new} new{f', {hidden} retired (not shown)' if hidden else ''}; "
           f"{len(packs)} packs, {len(skins)} skins, {art_note} -> {out} ({time.perf_counter() - t0:.1f} s)")
 
 

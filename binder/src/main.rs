@@ -1,10 +1,10 @@
 //! pokeshell binder: a btop-style TUI for your card pulls.
 //!
-//!   binder                     run it (reads the real pulls.log + packs/*/pack.json); opens on the newest pull
-//!   binder --pull <id>         open on that pull (its id is the tab's POKESHELL_PULL)
+//!   binder                     run it (reads the real pulls.log + packs/*/pack.json); opens on the last card you caught
+//!   binder --pull <id>         open on that pull (its id is the tab's POKESHELL_PULL; not caught yet: its silhouette)
 //!   binder --card <pack/character/tier>   open on that card
 //!   binder --url pokeshell://binder?pull=<id>   what the pokeshell:// link handler runs (also ?card=...)
-//!   binder --search <query>    open with a search: words and tag filters (set:evolving rarity:"rare rainbow" type:water owned)
+//!   binder --search <query>    open with a search: words and tag filters (set:evolving rarity:"rare rainbow" type:water caught)
 //!   binder --set <set>         open on a set's checklist: its id or name, fuzzy (swsh7, evolving, "30th")
 //!   binder --state <dir>       the state folder (default: $POKESHELL_HOME, else %LOCALAPPDATA%\pokeshell)
 //!   binder --root <dir>        the pokeshell checkout (default: $POKESHELL_ROOT, else found from the exe / cwd)
@@ -13,7 +13,7 @@
 //!   binder --bench             time cold load + first full frame + redraw costs (in-memory backend)
 //!   binder --first-frame       load, paint + encode one frame, exit (for wall-clock startup timing)
 //!   binder --selftest          fuzz keys/mouse/resizes through the event handler, rendering each
-//!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending
+//!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending (seen, not caught)
 
 mod app;
 mod art;

@@ -30,6 +30,7 @@
   --sil: rgba(70, 55, 45, .16);
   --ghost-line: rgba(90, 72, 60, .28);
   --ghost-ink: #74655c;
+  --seen-bg: #e2dccf; --seen-line: rgba(80, 62, 50, .42); --seen-ink: #5a4e48;   /* a seen card: stock, edge, label */
   --cover: #d23a3f;
   --cover-2: #9c2027;
   --cover-stitch: rgba(255, 230, 200, .55);
@@ -52,6 +53,7 @@
     --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
     --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
     --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .2); --ghost-ink: #aaa0c4; --accent-ink: #ff8a66;
+    --seen-bg: #3b3749; --seen-line: rgba(215, 205, 255, .3); --seen-ink: #b7aecb;
     --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
     --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
     --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
@@ -66,6 +68,7 @@
   --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
   --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
   --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .2); --ghost-ink: #aaa0c4; --accent-ink: #ff8a66;
+  --seen-bg: #3b3749; --seen-line: rgba(215, 205, 255, .3); --seen-ink: #b7aecb;
   --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
   --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
   --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
@@ -250,6 +253,23 @@ header.top {
   font: 700 13cqi/1.05 var(--ff-hand); padding: 0 6%;
 }
 .ghost__label small { display: block; font: 700 7.5cqi/1.2 var(--ff-pix); }
+
+/* ---------------------------------------------------------------- seen: the Pokédex shadow (pulled, never caught) */
+.seen {
+  container-type: inline-size;
+  position: relative; width: 100%; aspect-ratio: 63 / 88; border-radius: 6% / 4.3%; max-height: 100%; overflow: hidden;
+  background: var(--seen-bg); border: 1.5px solid var(--seen-line); color: var(--seen-ink); cursor: pointer; padding: 0; font: inherit; display: block;
+}
+button.seen:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.seen__sil { position: absolute; left: 10%; right: 10%; top: 14%; height: 50%; display: grid; place-items: center; }
+/* the sprite's shape in one flat dark colour: any art with alpha, blacked out (no colours, scene or foil) */
+.seen__sil img { max-width: 100%; max-height: 100%; width: auto; height: 100%; object-fit: contain; image-rendering: pixelated; filter: brightness(0); opacity: .86; }
+.seen__q { position: absolute; top: 26%; left: 0; right: 0; text-align: center; font: 700 30cqi/1 var(--ff-round); color: rgba(0, 0, 0, .7); }
+.seen__label { position: absolute; left: 0; right: 0; bottom: 5%; text-align: center; font: 700 12cqi/1.05 var(--ff-hand); padding: 0 6%; }
+.seen__label b { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seen__label small { display: block; font: 700 7.5cqi/1.3 var(--ff-pix); }
+.seen__name { position: absolute; top: 3.5%; left: 7%; right: 7%; font: 700 10cqi/1.1 var(--ff-round); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail__stage .seen { width: min(100%, 360px); cursor: default; box-shadow: 0 2px 3px rgba(0,0,0,.25), 0 30px 50px -18px rgba(0,0,0,.45); }
 
 /* ================================================================ cards */
 .card {
@@ -785,13 +805,6 @@ header.top {
   font: 700 clamp(8px, 9cqi, 14px)/1.2 var(--ff-pix); letter-spacing: .06em; transform: rotate(8deg);
   box-shadow: 0 1px 3px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.4);
 }
-.card.pending .card__inner { filter: grayscale(.85) contrast(.9) brightness(1.05); opacity: .78; }
-.card.pending::after {
-  content: "pending"; position: absolute; top: 39%; left: -8%; right: -8%; z-index: 6; text-align: center;
-  font: 700 clamp(9px, 11cqi, 17px)/1.5 var(--ff-hand); color: #5b3f00;
-  background: repeating-linear-gradient(90deg, rgba(255, 214, 102, .92) 0 6px, rgba(255, 226, 140, .92) 6px 12px);
-  transform: rotate(-9deg); box-shadow: 0 1px 2px rgba(0,0,0,.2); pointer-events: none;
-}
 
 /* ================================================================ title page (the divider sheet) */
 .page--title { padding-top: 5%; }
@@ -1020,7 +1033,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 .d-kicker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 700 11px/1.3 var(--ff-pix); color: var(--ink-soft); letter-spacing: .5px; padding-right: 44px; }
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font: 700 12px/1 var(--ff-round); letter-spacing: 0; }
 .pill--ok { background: color-mix(in oklab, #1fa35a 18%, transparent); color: color-mix(in oklab, #137a40 90%, var(--ink)); }
-.pill--pending { background: color-mix(in oklab, #e0a100 22%, transparent); color: color-mix(in oklab, #7a5500 90%, var(--ink)); }
+.pill--seen { background: color-mix(in oklab, var(--ink) 14%, transparent); color: var(--ink); }
 .pill--none { background: color-mix(in oklab, var(--ink) 8%, transparent); color: var(--ink-soft); }
 .d-name { font: 700 34px/1.05 var(--ff-round); margin: 10px 0 2px; letter-spacing: -.5px; text-wrap: balance; }
 .d-sub { color: var(--ink-soft); font-size: 15px; }
@@ -1044,10 +1057,10 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 .d-pulls { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 190px; overflow: auto; }
 .d-pulls li { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 5px 10px; border-radius: 9px; background: color-mix(in oklab, var(--ink) 4%, transparent); }
 .d-pulls li.hl { outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent); }
-.d-pulls li.is-pending { opacity: .8; }
 .d-pulls time { font-variant-numeric: tabular-nums; }
 .d-pulls span { color: var(--ink-soft); text-align: right; }
 .d-foot { font-size: 12.5px; color: var(--ink-soft); margin-top: 14px; }
+.d-catch { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; font-size: 14.5px; line-height: 1.4; background: color-mix(in oklab, var(--ink) 6%, transparent); border: 1px solid var(--panel-line); }
 
 /* ================================================================ responsive */
 @media (max-width: 760px) {
@@ -1217,10 +1230,11 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   const packTitle = pk => pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name;
   const pulls = DATA.pulls.filter(p => packById[p.pack]?.charById[p.char] && packById[p.pack].tierIdx[p.tier] != null)
     .sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : a.id - b.id);
-  // preview the earned rule: ?pending=N marks the N newest pulls pending
+  // preview the earned rule: ?pending=N marks the N newest pulls pending (seen, not caught)
   const demoPending = Math.max(0, parseInt(params.get('pending') || '0', 10) || 0);
-  if (demoPending) pulls.slice(-demoPending).forEach(p => p.status = 'pending');
-  // pending pulls are shown (greyed) but never counted: pulls, shinies, foils, duplicates and best pulls count kept ones
+  if (demoPending) pulls.slice(-demoPending).forEach(p => { p.status = 'pending'; p.new = false; });
+  // every slot is empty (never pulled), seen (pulled, never caught: every pull pending or expired; its silhouette) or
+  // caught (earned at least once: the real card). Pulls, shinies, foils, duplicates and best pulls count caught ones
   const kept = p => p.status === 'collected';
 
   const slotKey = (pack, char, tier) => packById[pack]?.layout === 'dex' ? `${pack}|${char}` : `${pack}|${char}|${tier}`;
@@ -1244,15 +1258,14 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   function summarize(slot) {
     const pk = packById[slot.pack];
     const got = slot.pulls.filter(kept);
-    const pend = slot.pulls.filter(p => p.status === 'pending');
-    const pool = got.length ? got : pend;
+    const pool = got.length ? got : slot.pulls;
     let tier = slot.tier;
     if (pk.layout === 'dex' && pool.length) tier = pool.reduce((best, p) => pk.tierIdx[p.tier] > pk.tierIdx[best] ? p.tier : best, pool[0].tier);
-    const inTier = pool.filter(p => p.tier === tier);
+    const inTier = got.filter(p => p.tier === tier);
     const shinyOne = [...inTier].reverse().find(p => p.shiny);
     const show = shinyOne || inTier[inTier.length - 1] || null;
-    return { owned: got.length > 0, pending: !got.length && pend.length > 0, count: got.length, pendingCount: pend.length, isNew: got.some(p => p.new),
-             shiny: pool.some(p => p.shiny), tier, show, all: slot.pulls };
+    return { caught: got.length > 0, seen: !got.length && slot.pulls.length > 0, count: got.length, isNew: got.some(p => p.new),
+             shiny: got.some(p => p.shiny), tier, show, all: slot.pulls };
   }
 
   // o: { caughtOnly, set, query } (pagesFor passes the view's; stats pass only a set)
@@ -1278,16 +1291,16 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (statCache.has(key)) return statCache.get(key);
     const all = packSlots(pk, { set });
     const sums = all.map(summarize);
-    const filled = sums.filter(s => s.owned).length;
+    const filled = sums.filter(s => s.caught).length;
     const inSet = p => !set || pk.cardById?.[p.card]?.set_id === set;
     const pk_pulls = pulls.filter(p => p.pack === pk.id && inSet(p));
     const got = pk_pulls.filter(kept);
     const tierFilled = pk.tiers.map(t => pk.layout === 'dex'
       ? new Set(got.filter(p => p.tier === t.id).map(p => p.char)).size
-      : all.filter((s, i) => s.tier === t.id && sums[i].owned).length);
+      : all.filter((s, i) => s.tier === t.id && sums[i].caught).length);
     const tierTotal = pk.tiers.map(t => pk.layout === 'cards' ? all.filter(s => s.tier === t.id).length : pk.characters.length);
     const st = { total: all.length, filled, pct: all.length ? filled / all.length : 0, collected: got.length,
-                 pending: pk_pulls.length - got.length, shinies: got.filter(p => p.shiny).length, tierFilled, tierTotal };
+                 seen: sums.filter(s => s.seen).length, shinies: got.filter(p => p.shiny).length, tierFilled, tierTotal };
     statCache.set(key, st);
     return st;
   }
@@ -1299,9 +1312,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
      under 3 letters, the start of a word (ex). key:value matches that key's tags the same way; quotes only keep
      spaces. set: names the best-matching sets (its id or name: set:swsh1 is not swsh10, set:30th), number: the
      printed number's numerator (17 is 17/203), id: the whole card id. -term leaves out. Every term must match.
-     shiny foil new pending owned missing test the card. Case and accents don't matter. */
+     caught seen missing (not caught) shiny foil new test the card (owned / pending: old words for caught / seen).
+     Case and accents don't matter. */
   /* search:begin */
-  const STATES = ['shiny', 'foil', 'new', 'pending', 'owned', 'missing'];
+  const STATES = ['shiny', 'foil', 'new', 'seen', 'caught', 'missing', 'owned', 'pending'];
   const KEYS = ['set', 'rarity', 'type', 'subtype', 'name', 'number', 'artist', 'char', 'tier', 'pack', 'id', 'attack', 'ability'];
   const KEYMAP = { sub: 'subtype', subtypes: 'subtype', stage: 'subtype', character: 'char', pokemon: 'char', chars: 'char', types: 'type', energy: 'type',
                    card: 'id', no: 'number', num: 'number', '#': 'number', setname: 'set', series: 'set', sets: 'set', rare: 'rarity', rarities: 'rarity',
@@ -1455,7 +1469,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (!KEYS.includes(t.key)) return false;
     return vals.some(f => wordScore(t.v, t.vc, f) != null);
   }
-  // hay: [[key, field]]; flags: () => { shiny, foil, new, pending, owned, missing } (only asked for by state words)
+  // hay: [[key, field]]; flags: () => { shiny, foil, new, seen, caught, missing, owned, pending } (only asked for by state words)
   const matchHay = (terms, hay, flags) => terms.every(t => termOk(t, hay, flags) !== t.neg);
   /* search:end */
   const hayCache = new Map();
@@ -1496,7 +1510,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
   function slotFlags(slot) {
     const s = summarize(slot), pk = packById[slot.pack];
-    return { owned: s.owned, pending: s.pending, new: s.isNew, shiny: s.shiny, foil: isFoil(pk, s.tier || slot.tier), missing: !s.owned && !s.pending };
+    return { caught: s.caught, owned: s.caught, seen: s.seen, pending: s.seen, new: s.isNew, shiny: s.shiny, foil: isFoil(pk, s.tier || slot.tier), missing: !s.caught };
   }
 
   /* -------------------------------------------------------------- formatting */
@@ -1683,7 +1697,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
 
   /**
-   * One card. o = { pack, char, tier, card, shiny, skin, count, pending, isNew, static, label }
+   * One card (a caught one). o = { pack, char, tier, card, shiny, skin, count, isNew, static, label }
    */
   function cardEl(o) {
     const pk = packById[o.pack], c = pk.charById[o.char], t = pk.tiers[pk.tierIdx[o.tier]] || pk.tiers[0];
@@ -1697,10 +1711,9 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const cls = ['card', `tier-${t.id}`];
     if (foil) cls.push('foil');
     if (o.skin) cls.push(`skin-${o.skin}`);
-    if (o.pending) cls.push('pending');
     let face, fitKey = null;
     const name = cd ? cd.name : c.name;
-    const label = `${name}, ${cd?.rarity || t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}${o.isNew && !o.pending ? ', new' : ''}`;
+    const label = `${name}, ${cd?.rarity || t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.isNew ? ', new' : ''}`;
 
     if (t.frame.style === 'wanted') {
       const pal = t.frame.palette;
@@ -1760,7 +1773,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (o.static) card.setAttribute('aria-label', label);
     if (o.shiny) card.append(h('span', { class: 'badge-shiny', html: sparkle() }));
     if (o.count > 1) card.append(h('span', { class: 'badge-count', 'aria-hidden': 'true' }, '×' + o.count));
-    if (o.isNew && !o.pending) card.append(h('span', { class: 'badge-new', title: 'new: not viewed in the binder yet', 'aria-hidden': 'true' }, 'NEW'));
+    if (o.isNew) card.append(h('span', { class: 'badge-new', title: 'new: not viewed in the binder yet', 'aria-hidden': 'true' }, 'NEW'));
     if (fitKey) fitCard(card, fitKey);
     if (!o.static) attachTilt(card);
     return card;
@@ -1795,30 +1808,48 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const pk = packById[slot.pack], c = pk.charById[slot.char];
     const cd = slot.card ? pk.cardById[slot.card] : null;
     const t = pk.tiers[pk.tierIdx[cd ? cd.tier : slot.tier]];
+    // never pulled: the empty pocket, "?" (no silhouette: that is what a seen card shows)
     const g = h('div', { class: 'ghost', role: 'img', 'aria-label': `Empty pocket: ${cd ? `${cd.name}, ${cd.number}` : c.name}${t ? ', ' + (cd?.rarity || t.label) : ''}` });
-    if (pk.layout === 'dex' && pk.atlas) {
-      const a = pk.atlas, i = pk.characters.indexOf(c);
-      g.append(h('div', { class: 'ghost__sil atlas', style: {
-        '--m': `url("${a.file}")`, '--ms': `${a.cols * 100}% ${a.rows * 100}%`,
-        '--mp': `${(i % a.cols) / (a.cols - 1) * 100}% ${Math.floor(i / a.cols) / (a.rows - 1) * 100}%` } }));
-      g.append(h('div', { class: 'ghost__label' }, h('small', {}, c.tag || '')));
-    } else if (cd) {
-      g.append(h('div', { class: 'ghost__q', 'aria-hidden': 'true' }, '?'));
-      g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, rar(slot.pack, cd.tier) + ' ' + cd.number), h('b', {}, cd.name), t ? t.label : ''));
-    } else {
-      const info = imgInfo(slot.pack, slot.char, pk.tiers[0].id, false, false);
-      if (info) g.append(h('div', { class: 'ghost__sil', style: { '--m': `url("${info.src}")` } }));
-      g.append(h('div', { class: 'ghost__q', 'aria-hidden': 'true' }, '?'));
-      g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, `${rar(slot.pack, t.id)} ${c.tag || ''}`), t.label));
-    }
+    g.append(h('div', { class: 'ghost__q', 'aria-hidden': 'true' }, '?'));
+    if (pk.layout === 'dex') g.append(h('div', { class: 'ghost__label' }, h('small', {}, c.tag || '#' + String(c.no).padStart(3, '0'))));
+    else if (cd) g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, rar(slot.pack, cd.tier) + ' ' + cd.number), h('b', {}, cd.name), t ? t.label : ''));
+    else g.append(h('div', { class: 'ghost__label', 'aria-hidden': 'true' }, h('small', {}, `${rar(slot.pack, t.id)} ${c.tag || ''}`), t.label));
     return g;
+  }
+
+  // a seen card's silhouette image (binder_web.py's module doc): real cards the image the exporter names (a common of
+  // the character, its sprite, or the card's sprite layer), else the base art (grid) or the pulled sprite (dex)
+  function seenImg(slot) {
+    const pk = packById[slot.pack], c = pk.charById[slot.char], map = c?.img || {};
+    const cd = slot.card ? pk.cardById?.[slot.card] : null;
+    const src = k => k && k in map ? { src: `img/${slot.pack}/${slot.char}/${k}.png`, size: map[k] } : null;
+    if (cd) return src(cd.sprite ? cd.id : null) || src(cd.seen) || src(c.seen);
+    if (pk.layout === 'dex') return src(Object.keys(map).find(k => !k.endsWith('-shiny')));
+    return src(pk.tiers[0].id);
+  }
+  // seen: pulled, never caught. The Pokédex shadow: the sprite's shape in one flat dark colour on plain card stock,
+  // the name and number, the rarity hint; no colours, scene, foil, shimmer, shiny, NEW or text half
+  function seenEl(slot, o = {}) {
+    const pk = packById[slot.pack], c = pk.charById[slot.char];
+    const cd = slot.card ? pk.cardById?.[slot.card] : null;
+    const tierId = cd ? cd.tier : (slot.tier || summarize(slot).tier || pk.tiers[0].id);
+    const t = pk.tiers[pk.tierIdx[tierId]] || pk.tiers[0];
+    const name = cd ? cd.name : c.name, num = cd ? cd.number : (c.tag || '#' + String(c.no).padStart(3, '0'));
+    const label = `Seen: ${name}, ${num}, ${cd?.rarity || t.label} (not caught yet)`;
+    const info = seenImg(slot);
+    const el = h(o.static ? 'div' : 'button', { class: 'seen', type: o.static ? null : 'button', role: o.static ? 'img' : null, 'aria-label': label, title: o.static ? null : label },
+      h('div', { class: 'seen__name', 'aria-hidden': 'true' }, name),
+      info ? h('div', { class: 'seen__sil', 'aria-hidden': 'true' }, h('img', { src: info.src, alt: '', draggable: 'false', decoding: 'async' }))
+        : h('div', { class: 'seen__q', 'aria-hidden': 'true' }, '?'),
+      h('div', { class: 'seen__label', 'aria-hidden': 'true' }, h('small', {}, `${rar(slot.pack, t.id)} ${num}`), h('b', {}, 'seen'), cd?.rarity || t.label));
+    return el;
   }
 
   function slotCard(slot, extra = {}) {
     const s = summarize(slot);
-    if (!s.owned && !s.pending) return null;
+    if (!s.caught) return null;
     return cardEl({ pack: slot.pack, char: slot.char, tier: s.tier, card: slot.card, shiny: s.show?.shiny || false, skin: s.show?.skin,
-                    count: s.count || s.pendingCount, pending: s.pending, isNew: s.isNew, ...extra });
+                    count: s.count, isNew: s.isNew, ...extra });
   }
 
   /* -------------------------------------------------------------- pages */
@@ -1861,7 +1892,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         const slot = pg.slots[i];
         const pocket = h('div', { class: 'pocket' + (slot && slot.key === state.flash ? ' pocket--flash' : '') });
         if (slot) {
-          const card = slotCard(slot);
+          const card = slotCard(slot) || (summarize(slot).seen ? seenEl(slot) : null);
           // during a search a click opens the card on its real page (then its details); otherwise its details
           if (card) { card.addEventListener('click', () => state.query ? openResult(slot) : openDetail(slot)); pocket.append(card); }
           else {
@@ -1910,8 +1941,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     tp.append(h('div', { class: 'tp__hero' },
       h('div', { class: 'ring', style: { '--p': Math.max(st.pct * 100, st.filled ? 1.5 : 0) }, role: 'img', 'aria-label': `${pctv}% complete` }, h('span', { 'aria-hidden': 'true' }, `${pctv}`, h('small', {}, '%'))),
       h('div', { class: 'tp__facts' },
-        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : set ? `cards you can pull from this set${set.printed && set.printed !== st.total ? ` (${set.printed} printed)` : ''}` : 'card slots filled')),
-        h('div', { class: 'fact' }, h('b', {}, st.collected.toLocaleString()), h('span', {}, `pulls kept${st.pending ? ` · ${st.pending} pending` : ''}`)),
+        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, (isDex ? 'Pokémon caught' : set ? `caught of the cards you can pull from this set${set.printed && set.printed !== st.total ? ` (${set.printed} printed)` : ''}` : 'cards caught') + (st.seen ? ` · seen ${st.seen}` : ''))),
+        h('div', { class: 'fact' }, h('b', {}, st.collected.toLocaleString()), h('span', {}, 'pulls caught')),
         h('div', { class: 'fact' }, h('b', {}, Math.max(0, st.collected - st.filled).toLocaleString()), h('span', {}, 'duplicates')),
         h('div', { class: 'fact' }, h('b', {}, pk.shiny_chance > 0 ? '✦ ' + st.shinies : '—'), h('span', {}, pk.shiny_chance > 0 ? 'shinies' : 'no shinies here')))));
     // rarity table: the tiers that can drop (the exporter leaves the others out), with the game's odds
@@ -1947,9 +1978,9 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (!set && pk.unbuilt) notes.push(`${plural(pk.unbuilt, 'card')} of the pack have no art built yet and can't drop.`);
     if (notes.length) tp.append(h('div', { class: 'note' }, notes.join(' ')));
     tp.append(h('div', { class: 'legend' },
-      h('span', {}, h('i', { style: { background: 'linear-gradient(135deg,#c9a93a,#f4dc6a)' } }), 'kept'),
-      h('span', {}, h('i', { style: { background: 'repeating-linear-gradient(90deg,#ffd666 0 3px,#ffe28c 3px 6px)' } }), 'pending (tab not used yet)'),
-      h('span', {}, h('i', { style: { border: '1.5px dashed var(--ghost-line)' } }), 'empty'),
+      h('span', {}, h('i', { style: { background: 'linear-gradient(135deg,#c9a93a,#f4dc6a)' } }), 'caught'),
+      h('span', {}, h('i', { style: { background: 'radial-gradient(circle at 50% 55%, #111 0 45%, var(--seen-bg) 47%)', border: '1.5px solid var(--seen-line)' } }), 'seen (a shadow until you catch it)'),
+      h('span', {}, h('i', { style: { border: '1.5px dashed var(--ghost-line)' } }), 'never pulled'),
       h('span', {}, '✦ shiny'), h('span', {}, '×2 duplicates')));
     tp.dataset.fit = [pk.id, set?.id || '', best.length, notes.length, state.single ? 1 : 0].join('|');
     if (tpFit.has(tp.dataset.fit)) { const f = tpFit.get(tp.dataset.fit); tp.style.setProperty('--tps', f.k); if (f.scroll) { tp.classList.add('scroll'); tp.tabIndex = 0; } }
@@ -2228,7 +2259,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     state.flash = slot.key;
     clearTimeout(flashT); flashT = setTimeout(() => { state.flash = null; }, 1700);
     render();
-    if (summarize(slot).owned || summarize(slot).pending) openDetail(slot);
+    if (slot.pulls.length) openDetail(slot);
   }
   function applyQuery(q, pack) {
     if (!state.before && q.trim()) state.before = here();
@@ -2252,22 +2283,22 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
 
   /* -------------------------------------------------------------- header, recent */
   const got = pulls.filter(kept);
-  const nPend = pulls.length - got.length;
-  const uniq = [...slots.values()].filter(s => summarize(s).owned).length;
+  const uniq = [...slots.values()].filter(s => summarize(s).caught).length;
+  const nSeen = [...slots.values()].filter(s => summarize(s).seen).length;
   const shinies = got.filter(p => p.shiny).length;
   const foils = got.filter(p => isFoil(packById[p.pack], p.tier)).length;
   const hiddenN = (DATA.hidden || 0) + (DATA.bad_lines || 0);
   $('#chips').append(
-    h('span', { class: 'chip', title: 'pulls kept (a pending pull counts once its tab is used)' }, h('b', {}, got.length.toLocaleString()), got.length === 1 ? 'pull' : 'pulls'),
-    h('span', { class: 'chip' }, h('b', {}, uniq), 'cards'),
+    h('span', { class: 'chip', title: 'pulls caught (a pull is caught once you use the tab it was pulled in)' }, h('b', {}, got.length.toLocaleString()), got.length === 1 ? 'pull' : 'pulls'),
+    h('span', { class: 'chip', title: 'cards caught' }, 'caught', h('b', {}, uniq)),
+    h('span', { class: 'chip', title: 'cards seen but not caught: pulled in a tab that was never used (a silhouette in the binder)' }, 'seen', h('b', {}, nSeen)),
     h('span', { class: 'chip' }, h('b', {}, foils), 'foils'),
     h('span', { class: 'chip' }, h('b', {}, '✦ ' + shinies), 'shiny'),
-    nPend ? h('span', { class: 'chip', title: 'pulled in a tab you have not used yet: kept on its first command' }, h('b', {}, nPend), 'pending') : '',
     hiddenN ? h('span', { class: 'chip', title: `${DATA.hidden || 0} pulls of retired art or of cards not built yet${DATA.bad_lines ? `, ${DATA.bad_lines} unreadable lines` : ''}; still in pulls.log` }, h('b', {}, hiddenN), 'hidden') : '');
   const firstDay = got.length ? fmtDate(got[0].time) : pulls.length ? fmtDate(pulls[0].time) : '';
   $('#subtitle').textContent = pulls.length ? `Trainer binder · pulling since ${firstDay}` : 'Trainer binder · open a new tab to pull a card';
   $('#coverLabel').firstChild.textContent = (DATA.owner ? DATA.owner + "'s" : 'My') + ' cards';
-  $('#coverLabel small').textContent = `${plural(got.length, 'pull')} · ${plural(uniq, 'card')}`;
+  $('#coverLabel small').textContent = `${plural(got.length, 'pull')} · caught ${uniq} · seen ${nSeen}`;
   $('#snapshot').textContent = `A snapshot of pulls.log from ${fmtDate(DATA.generated)} · pokeshell binder --web rebuilds it`
     + (hiddenN ? ` · ${plural(hiddenN, 'older pull')} not shown (retired art or cards not built yet)` : '');
   if (packs.length > 1) $('#packKeys').append(h('span', { class: 'kbd' }, '1'), '–', h('span', { class: 'kbd' }, String(Math.min(9, packs.length))), ' packs · ');
@@ -2280,17 +2311,18 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
 
   const rail = $('#recent');
-  const recent = pulls.slice().reverse().slice(0, 18);
+  // fresh pulls: caught ones only (a seen card isn't in the binder yet)
+  const recent = got.slice().reverse().slice(0, 18);
   function renderRecent() {
     rail.replaceChildren();
     recent.forEach((p, i) => {
-      const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, card: p.card, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
+      const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, card: p.card, shiny: p.shiny, skin: p.skin, isNew: p.new });
       card.addEventListener('click', () => openDetail(slotOf(p), p));
       const isNew = p.new || Date.now() - when(p.time).getTime() < 3600e3;
       rail.append(h('div', { class: 'recent__item' + (isNew ? ' is-new' : ''), style: { '--r': ((hash(p.time + i) - .5) * 9).toFixed(1) + 'deg' } }, card,
         h('time', { class: 'recent__when', datetime: p.time, title: fmtDate(p.time) }, ago(p.time))));
     });
-    if (!recent.length) rail.append(h('p', { class: 'note' }, 'No pulls yet. Open a new Windows Terminal tab!'));
+    if (!recent.length) rail.append(h('p', { class: 'note' }, pulls.length ? 'Nothing caught yet: use the tab a card was pulled in to catch it.' : 'No pulls yet. Open a new Windows Terminal tab!'));
   }
   renderRecent();
   // a font that arrives late (slow network) changes every measurement: fit everything again
@@ -2309,7 +2341,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const s = summarize(slot);
     const tierId = focusPull?.tier || s.tier || slot.tier || packById[slot.pack].tiers[0].id;
     const inTier = slot.pulls.filter(p => p.tier === tierId);
-    const ctx = { slot, tierId, focusPull, showShiny: focusPull ? focusPull.shiny : (inTier.filter(kept).some(p => p.shiny) || (!inTier.some(kept) && s.show?.shiny) || false) };
+    const ctx = { slot, tierId, focusPull, showShiny: focusPull ? kept(focusPull) && focusPull.shiny : inTier.filter(kept).some(p => p.shiny) };
     renderDetail(ctx);
     if (!dlg.open) dlg.showModal();
     dlg.querySelector('.detail__box').focus({ preventScroll: true });
@@ -2324,19 +2356,22 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const cd = slot.card ? pk.cardById[slot.card] : null;
     const t = pk.tiers[pk.tierIdx[tierId]];
     const inTier = slot.pulls.filter(p => p.tier === tierId);
-    const hasShiny = inTier.some(p => p.shiny), hasPlain = inTier.some(p => !p.shiny);
-    const showShiny = ctx.showShiny;
-    const variant = inTier.filter(p => p.shiny === showShiny);
-    const gotAll = inTier.filter(kept), gotV = variant.filter(kept);
-    const pendAll = inTier.length - gotAll.length;
-    const fp = ctx.focusPull && ctx.focusPull.shiny === showShiny ? ctx.focusPull : null;
-    const skinPull = fp || [...gotV].reverse()[0] || [...variant].reverse()[0] || null;
+    // caught pulls only: the shiny toggle, copies, skins and the history (a seen pull is none of those)
+    const gotAll = inTier.filter(kept);
+    const hasShiny = gotAll.some(p => p.shiny), hasPlain = gotAll.some(p => !p.shiny);
+    const showShiny = ctx.showShiny && hasShiny;
+    const gotV = gotAll.filter(p => p.shiny === showShiny);
+    const seenAll = inTier.filter(p => !kept(p));
+    const fp = ctx.focusPull && kept(ctx.focusPull) && ctx.focusPull.shiny === showShiny ? ctx.focusPull : null;
+    const skinPull = fp || [...gotV].reverse()[0] || null;
     const skin = skinPull?.skin;
-    const status = gotV.length ? 'collected' : variant.length ? 'pending' : inTier.length ? (gotAll.length ? 'collected' : 'pending') : 'none';
+    const status = gotAll.length ? 'caught' : seenAll.length ? 'seen' : 'none';
+    const pend = [...seenAll].reverse().find(p => p.status === 'pending');   // its tab can still catch it
     const nameTxt = cd ? cd.name : pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
 
     const stage = h('div', { class: 'detail__stage' });
-    const big = cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: gotV.length, pending: status === 'pending', isNew: gotV.some(p => p.new), static: true });
+    const big = status === 'seen' ? seenEl(slot, { static: true })
+      : cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: gotV.length, isNew: gotV.some(p => p.new), static: true });
     stage.append(big);
     if (hasShiny && hasPlain) {
       const sw = h('div', { class: 'detail__swap', role: 'group', 'aria-label': 'Show the card' });
@@ -2352,19 +2387,23 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const info = h('div', { class: 'detail__info' });
     info.append(h('div', { class: 'd-kicker' },
       h('span', {}, cd ? `${(cd.set_name || cd.set_id).toUpperCase()} · ${cd.number}` : packTitle(pk).toUpperCase() + ` · ${c.tag || '#' + c.no}`),
-      status === 'collected' ? h('span', { class: 'pill pill--ok' }, '✓ kept')
-        : status === 'pending' ? h('span', { class: 'pill pill--pending' }, '⏳ pending: use that tab to keep it')
+      status === 'caught' ? h('span', { class: 'pill pill--ok' }, '✓ caught')
+        : status === 'seen' ? h('span', { class: 'pill pill--seen' }, '◐ seen')
         : h('span', { class: 'pill pill--none' }, 'not pulled yet')));
     info.append(h('h2', { class: 'd-name', id: 'dName' }, showShiny ? h('span', { 'aria-label': 'shiny' }, '✦ ') : '', nameTxt));
     info.append(h('div', { class: 'd-sub' }, rarEl(pk.id, t.id), ` ${cd?.rarity || titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : '',
-      cd?.artist ? ` · illus. ${cd.artist}` : ''));
+      cd?.artist && status !== 'seen' ? ` · illus. ${cd.artist}` : ''));
+    // a seen card: how to catch it
+    if (status === 'seen') info.append(h('p', { class: 'd-catch' }, pend
+      ? `Seen, not caught yet. Use the tab it was pulled in (${ago(pend.time)}) to catch it: its first command does.`
+      : 'Seen, not caught: the tab it was pulled in closed unused. Pull it again to catch it.'));
 
     // tags: one readable chip per tag; a click searches every card with it (in this card's pack, all sets)
     const chips = h('div', { class: 'd-tags' });
     const chip = (key, text, q, title) => chips.append(h('button', { class: 'tagchip', type: 'button', title: title || `search ${q}`,
       onclick: () => { dlg.close(); applyQuery(q, slot.pack); searchBox.focus({ preventScroll: true }); } }, h('small', {}, key), text));
     const fl = slotFlags(slot);
-    for (const w of ['owned', 'shiny', 'foil', 'new', 'pending']) if (fl[w]) chip('is', w, w, `every ${w} card`);
+    for (const w of ['caught', 'seen', 'shiny', 'foil', 'new']) if (fl[w]) chip('is', w, w, `every ${w} card`);
     chip(pk.layout === 'dex' || pk.id === 'pokemon' ? 'Pokémon' : 'character', c.name, termFor('char', slot.char));
     if (cd) {
       if (cd.set_id) chip('set', cd.set_name || cd.set_id, termFor('set', cd.set_id));
@@ -2375,13 +2414,16 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     } else chip('rarity', t.label, termFor('tier', t.id));
     info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'TAGS'), chips));
 
-    const firstGot = gotAll[0] || inTier[0];
+    const firstGot = gotAll[0];
+    const lastSeen = seenAll[seenAll.length - 1];
     const exact = t.card_odds * (showShiny ? pk.shiny_chance : 1);
     const nShinyGot = gotAll.filter(p => p.shiny).length;
     info.append(h('div', { class: 'd-grid' },
       h('div', { class: 'd-stat' }, h('b', {}, '×' + gotAll.length), h('span', {},
-        (gotAll.length === 1 ? 'copy kept' : 'copies kept') + (hasShiny && hasPlain && nShinyGot ? ` · ${nShinyGot} ✦` : '') + (pendAll ? ` · ${pendAll} pending` : ''))),
-      h('div', { class: 'd-stat' }, h('b', { title: firstGot ? fmtDate(firstGot.time) : '' }, firstGot ? ago(firstGot.time) : '—'), h('span', {}, gotAll.length ? 'first kept' : 'first pulled')),
+        (gotAll.length === 1 ? 'copy caught' : 'copies caught') + (hasShiny && hasPlain && nShinyGot ? ` · ${nShinyGot} ✦` : ''))),
+      status === 'seen'
+        ? h('div', { class: 'd-stat' }, h('b', { title: fmtDate(lastSeen.time) }, ago(lastSeen.time)), h('span', {}, 'last seen'))
+        : h('div', { class: 'd-stat' }, h('b', { title: firstGot ? fmtDate(firstGot.time) : '' }, firstGot ? ago(firstGot.time) : '—'), h('span', {}, 'first caught')),
       h('div', { class: 'd-stat' }, h('b', { title: oneIn(exact) + ' pulls' }, oneIn(exact)), h('span', {}, showShiny ? 'odds of this card, shiny' : 'odds of this exact card'))));
 
     // skin
@@ -2394,7 +2436,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         sk.desc ? h('p', {}, 'Imitates ' + sk.desc) : null)));
     } else if (!isFoil(pk, t.id)) {
       skinSec.append(h('div', { class: 'd-skin' }, h('div', { class: 'd-swatch', style: { background: 'linear-gradient(135deg,#3a3a44,#1c1c22)' }, 'aria-hidden': 'true' }), h('div', {}, h('b', {}, 'Plain tab'), h('p', {}, `${titleCase(t.label)} cards print into your normal terminal colours; foil rarities swap in a holo pixel shader for that tab.`))));
-    } else skinSec.append(h('p', { class: 'd-foot' }, inTier.length ? 'No skin recorded for this pull (the foil was blocked, or the skin isn\'t installed).' : `Pulled as a foil, this card gets one of: ${t.skins.map(x => skinName(x.id)).join(', ') || 'no skin yet'}.`));
+    } else skinSec.append(h('p', { class: 'd-foot' }, gotAll.length ? 'No skin recorded for this pull (the foil was blocked, or the skin isn\'t installed).' : `Pulled as a foil, this card gets one of: ${t.skins.map(x => skinName(x.id)).join(', ') || 'no skin yet'}.`));
     info.append(skinSec);
 
     // odds: the game's (tools/binder_web.py mirrors `pokeshell odds`)
@@ -2406,20 +2448,19 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const cap = pk.layout === 'cards' ? `A pull picks a rarity by its weight among the rarities that can drop, then one of its ${t.cards ?? ''} cards.` : '';
     info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'PULL ODDS'), h('table', { class: 'd-odds' }, cap ? h('caption', {}, cap) : null, tb)));
 
-    // pulls
-    if (inTier.length) {
+    // pulls: the caught ones
+    if (gotAll.length) {
       const ul = h('ul', { class: 'd-pulls' });
-      for (const p of [...inTier].reverse()) {
+      for (const p of [...gotAll].reverse()) {
         const bits = [p.skin ? skinName(p.skin) : 'plain tab'];
         if (p.shiny) bits.push('✦ shiny');
-        if (p.status === 'pending') bits.push('pending');
         for (const f of p.flags) if (f.startsWith('denied:')) bits.push(`foil blocked (${f.slice(7)} gate)`);
-        ul.append(h('li', { class: [ctx.focusPull && p.id === ctx.focusPull.id ? 'hl' : '', p.status === 'pending' ? 'is-pending' : ''].join(' ').trim() || null },
+        ul.append(h('li', { class: ctx.focusPull && p.id === ctx.focusPull.id ? 'hl' : null },
           h('time', { datetime: p.time }, fmtDate(p.time)), h('span', {}, bits.join(' · '))));
       }
-      info.append(h('div', { class: 'd-sec' }, h('h3', {}, `PULL HISTORY · ${gotAll.length} KEPT${pendAll ? ` · ${pendAll} PENDING` : ''}`), ul));
+      info.append(h('div', { class: 'd-sec' }, h('h3', {}, `PULL HISTORY · ${gotAll.length} CAUGHT`), ul));
     }
-    const otherTiers = pk.layout === 'dex' ? [...new Set(slot.pulls.map(p => p.tier))].filter(x => x !== tierId) : [];
+    const otherTiers = pk.layout === 'dex' ? [...new Set(slot.pulls.filter(kept).map(p => p.tier))].filter(x => x !== tierId) : [];
     if (otherTiers.length) info.append(h('p', { class: 'd-foot' }, `Also pulled as: ${otherTiers.map(x => pk.tiers[pk.tierIdx[x]].label).join(', ')}.`));
     if (!DATA.earned?.enforced) info.append(h('p', { class: 'd-foot' }, DATA.earned?.note || ''));
 

@@ -118,7 +118,7 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
     app.help = true;
     save(dir, "help-120x40", &frame(&mut app, 120, 40))?;
 
-    // extras: one piece wanted posters, the pokedex, pending preview, big terminal, themes
+    // extras: one piece wanted posters, the pokedex, seen preview (the newest pulls not caught), big terminal, themes
     let mut app = mk(0);
     if let Some(k) = find(&app, "onepiece", "zoro", "manga-rare") {
         app.jump_to(k, None);
@@ -127,7 +127,7 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
     save(dir, "onepiece-120x40", &frame(&mut app, 120, 40))?;
 
     let mut app = mk(3);
-    save(dir, "pending-120x40", &frame(&mut app, 120, 40))?;
+    save(dir, "seen-120x40", &frame(&mut app, 120, 40))?;
 
     let mut app = mk(0);
     if let Some(k) = find(&app, "pokemon", "charmander", "secret-rare") {
@@ -189,7 +189,7 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
         ("picker", opts.clone(), |app| app.on_event(key('S'))),
         ("search", Opts { search: "pikachu".into(), ..opts.clone() }, |_| {}),
         ("search-page1", Opts { search: "pikachu".into(), ..opts.clone() }, |app| app.on_event(key('g'))),
-        ("search-owned", Opts { search: "pikachu owned".into(), ..opts.clone() }, |_| {}),
+        ("search-owned", Opts { search: "pikachu caught".into(), ..opts.clone() }, |_| {}),
         ("search-tags", Opts { search: "set:30th rarity:\"pikachu rare\"".into(), ..opts.clone() }, |_| {}),
         ("search-typing", opts.clone(), |app| {
             for c in "/set:evo".chars() {
@@ -219,6 +219,14 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
             app.on_event(crossterm::event::Event::Key(crossterm::event::KeyEvent::new(crossterm::event::KeyCode::Enter, crossterm::event::KeyModifiers::NONE)));
         }),
         ("help", opts.clone(), |app| app.on_event(key('?'))),
+        // a seen card (pulled, never caught): its silhouette among its caught and empty neighbours, then its card panel
+        ("seen", opts.clone(), |app| {
+            select_first_seen(app);
+        }),
+        ("seen-card", opts.clone(), |app| {
+            select_first_seen(app);
+            app.focus = crate::app::Focus::Card;
+        }),
     ];
     for (name, o, setup) in scenes {
         for &(w, h) in &sizes {
@@ -243,6 +251,31 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
         save(dir, &format!("qa-small-{w}x{h}"), &frame(&mut app, w, h))?;
     }
     Ok(())
+}
+
+/// Select the first seen card (in binder order) of the first pack that has one: the one with the most caught cards
+/// on its page, so the page shows empty, seen and caught side by side.
+fn select_first_seen(app: &mut App) {
+    use crate::data::SlotState;
+    for pi in 0..app.coll.packs.len() {
+        app.set_pack(pi);
+        let slots = app.slots().to_vec();
+        let st = |a: &App, k: &SlotKey| a.coll.slot_state(*k, false);
+        let best = slots
+            .iter()
+            .enumerate()
+            .filter(|(_, k)| st(app, k) == SlotState::Seen)
+            .max_by_key(|(i, _)| {
+                let page = &slots[i / crate::app::PER_PAGE * crate::app::PER_PAGE..((i / crate::app::PER_PAGE + 1) * crate::app::PER_PAGE).min(slots.len())];
+                let has = |s: SlotState| page.iter().any(|k| st(app, k) == s);
+                (has(SlotState::Caught) && has(SlotState::Empty), page.iter().filter(|k| st(app, k) == SlotState::Caught).count(), std::cmp::Reverse(*i))
+            })
+            .map(|(_, k)| *k);
+        if let Some(k) = best {
+            app.jump_to(k, None);
+            return;
+        }
+    }
 }
 
 fn key(c: char) -> crossterm::event::Event {

@@ -373,8 +373,8 @@ pub fn braille(buf: &mut Buffer, r: Rect, vals: &[f32], stops: &[Rgb], base: Opt
     }
 }
 
-/// Paint a pixel image with half-blocks at (x, y). `map` can recolor each pixel (silhouettes,
-/// pending desaturation). Transparent pixels show `bg`.
+/// Paint a pixel image with half-blocks at (x, y). `map` can recolor each pixel (a seen card's shadow, the
+/// wanted poster's tone). Transparent pixels show `bg`.
 pub fn image(buf: &mut Buffer, x: i32, y: i32, img: &Img, bg: Rgb, map: &dyn Fn(Rgb) -> Rgb) {
     for row in 0..img.rows() {
         for cx in 0..img.w {

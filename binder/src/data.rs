@@ -123,8 +123,18 @@ pub fn ago(secs: i64) -> String {
 pub enum Status {
     /// Earned: its tab was used (or an older log line without an id).
     Collected,
-    /// Pulled, but its tab has not been used yet (docs/BINDER_SPEC.md "Earning a card").
+    /// Pulled, but its tab has not been used yet (docs/BINDER_SPEC.md "Earning a card"): seen, still catchable.
     Pending,
+    /// Pulled, never earned: an `expired:` line, pending for over 24 h, or from an earlier boot session. Seen, and
+    /// no longer catchable (its tab is gone).
+    Expired,
+}
+
+impl Status {
+    /// Earned: the card is in the binder (caught).
+    pub fn caught(self) -> bool {
+        self == Status::Collected
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -233,8 +243,9 @@ pub struct ReadCtx<'a> {
 /// Parse pulls.log (docs/BINDER_SPEC.md; the same rules as Pokeshell.cs ReadPulls):
 ///   pull   time pack character tier art skin shiny flags [id=<ulid> boot=<s> card=<id> ...]
 ///   event  time earned:<id> | time expired:<id>
-/// Dry runs are skipped; so are expired pulls (an `expired:` line, or pending for over 24 h, or from an earlier
-/// boot session). A line without an id is earned. `demo_pending` marks the N most recent pulls pending (preview).
+/// Dry runs are skipped. Expired pulls (an `expired:` line, or pending for over 24 h, or from an earlier boot
+/// session) are kept as Status::Expired: the card was seen, not caught. A line without an id is earned.
+/// `demo_pending` marks the N most recent pulls pending (preview).
 /// The file is decoded lossily (read_lossy); a line whose pack / character / tier / art columns hold an invalid byte
 /// is skipped (it can't name a card). A pull whose time doesn't parse is kept, as the C# reader keeps it, at the time
 /// of the line before it (the log is append-only, so that is when it was written, give or take).
@@ -292,14 +303,11 @@ pub fn read_pulls(path: &Path, demo_pending: usize, ctx: &ReadCtx) -> Vec<Pull> 
         let status = if id.is_empty() || !pending_flag || earned.contains(&id) {
             Status::Collected
         } else if expired.contains(&id) {
-            continue;
+            Status::Expired
         } else {
             let old = ulid_ms(&id).is_some_and(|ms| ctx.now_utc - ms / 1000 > EXPIRE_SECS);
             let other_boot = boot != 0 && ctx.boot != 0 && (boot - ctx.boot).abs() > BOOT_SLACK_SECS;
-            if old || other_boot {
-                continue;
-            }
-            Status::Pending
+            if old || other_boot { Status::Expired } else { Status::Pending }
         };
         let new = status == Status::Collected && !id.is_empty() && !ctx.viewed.contains(&id);
         out.push(Pull {
@@ -787,7 +795,7 @@ impl Pack {
     }
 
     /// Every tag of a slot (search, the card panel): (key, value). Keys: pack, char, name, tier, rarity, set, setname,
-    /// subtype, type, artist, number, id. The state tags (shiny, foil, new, pending, owned) come from the collection.
+    /// subtype, type, artist, number, id. The state words (shiny, foil, new, seen, caught) come from the collection.
     pub fn slot_tags(&self, k: SlotKey) -> Vec<(&'static str, String)> {
         let mut v: Vec<(&'static str, String)> = vec![
             ("pack", self.id.clone()),
@@ -996,23 +1004,39 @@ impl Collection {
         self.by_slot.get(&k).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
-    /// Owned = at least one collected pull (optionally shiny only). Pending-only slots are "pending".
+    /// Caught = at least one earned pull (optionally shiny only); seen = pulled, but every pull is pending or
+    /// expired; empty = never pulled (docs/BINDER_SPEC.md "Empty, seen, caught").
     pub fn slot_state(&self, k: SlotKey, shiny_only: bool) -> SlotState {
-        let mut pend = false;
+        let mut seen = false;
         for &i in self.slot_pulls(k) {
             let p = &self.pulls[i];
             if shiny_only && !p.shiny {
                 continue;
             }
-            match p.status {
-                Status::Collected => return SlotState::Owned,
-                Status::Pending => pend = true,
+            if p.status.caught() {
+                return SlotState::Caught;
             }
+            seen = true;
         }
-        if pend { SlotState::Pending } else { SlotState::Empty }
+        if seen { SlotState::Seen } else { SlotState::Empty }
     }
 
-    /// The highest-tier slot this character is owned (or pending) in (the dex view picks in App::compute_slots).
+    /// A slot's earned pulls (its duplicates, its history in the card panel).
+    pub fn caught_pulls(&self, k: SlotKey) -> impl Iterator<Item = usize> + '_ {
+        self.slot_pulls(k).iter().copied().filter(|&i| self.pulls[i].status.caught())
+    }
+
+    /// The newest pull of a seen slot that is still pending (its tab can still catch it).
+    pub fn pending_pull(&self, k: SlotKey) -> Option<usize> {
+        self.slot_pulls(k).iter().rev().copied().find(|&i| self.pulls[i].status == Status::Pending)
+    }
+
+    /// The newest earned pull and its slot (where the binder opens): never a seen one.
+    pub fn last_caught(&self) -> Option<(usize, SlotKey)> {
+        (0..self.pulls.len()).rev().find_map(|i| self.slot_of[i].filter(|_| self.pulls[i].status.caught()).map(|k| (i, k)))
+    }
+
+    /// The highest-tier slot this character is caught (or seen) in (the dex view picks in App::compute_slots).
     #[cfg(test)]
     pub fn best_slot(&self, pack: usize, ch: usize, shiny_only: bool) -> Option<SlotKey> {
         self.by_slot
@@ -1025,8 +1049,11 @@ impl Collection {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SlotState {
-    Owned,
-    Pending,
+    /// earned at least once: the real card
+    Caught,
+    /// pulled, never earned (pending or expired): a silhouette
+    Seen,
+    /// never pulled: the empty pocket
     Empty,
 }
 
@@ -1176,10 +1203,18 @@ pub(crate) mod tests {
                 ("squirtle", Status::Collected, false), // no id: earned, never NEW
                 ("pikachu", Status::Collected, true),   // earned, not viewed
                 ("pikachu", Status::Pending, false),    // pending, fresh, this boot
+                ("bulbasaur", Status::Expired, false),  // pending over 24 h: expired, still seen
+                ("bulbasaur", Status::Expired, false),  // from an earlier boot session: expired, still seen
                 ("charmander", Status::Collected, false),
             ]
         );
-        assert_eq!(pulls[3].card, "base1-46");
+        assert_eq!(pulls[5].card, "base1-46");
+        assert!(pulls[0].status.caught() && !pulls[2].status.caught() && !pulls[3].status.caught());
+        // an expired:<id> line: expired too (seen), never dropped
+        let log2 = format!("{}\r\n{t}\texpired:{p}", log.join("\r\n"));
+        std::fs::write(d.join("pulls.log"), log2).unwrap();
+        let pulls = read_pulls(&d.join("pulls.log"), 0, &ReadCtx { now_utc: now, boot, viewed: &viewed });
+        assert_eq!(pulls[2].status, Status::Expired);
         let _ = std::fs::remove_dir_all(&d);
     }
 

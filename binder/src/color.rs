@@ -71,12 +71,6 @@ pub fn luma(c: Rgb) -> f32 {
     (0.2126 * c[0] as f32 + 0.7152 * c[1] as f32 + 0.0722 * c[2] as f32) / 255.0
 }
 
-/// Desaturate toward grey by t.
-pub fn desat(c: Rgb, t: f32) -> Rgb {
-    let l = (luma(c) * 255.0) as u8;
-    mix(c, [l, l, l], t)
-}
-
 /// Hue rotation-ish rainbow for iridescent sheens (t wraps).
 pub fn rainbow(t: f32) -> Rgb {
     const R: [Rgb; 7] = [

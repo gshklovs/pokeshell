@@ -1,7 +1,7 @@
 //! App state: which pack/page/card is selected, filters, focus, and input handling.
 
 use crate::art::ArtStore;
-use crate::data::{Collection, NO_CARD, Pull, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
+use crate::data::{Collection, NO_CARD, Pull, ReadCtx, SlotKey, SlotState, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
 use crate::query;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Position, Rect};
@@ -30,11 +30,11 @@ pub enum View {
     Dex,
 }
 
-/// `o` / `m`: every slot, the earned ones, or the ones not pulled yet.
+/// `o` / `m`: every slot, the caught ones, or the ones not caught yet (empty or seen).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Own {
     All,
-    Owned,
+    Caught,
     Missing,
 }
 
@@ -70,7 +70,8 @@ pub struct Hits {
     pub help_more: usize,
 }
 
-/// Where the binder opens: the newest pull (default), a pull id (--pull, the card's link) or a card (--card).
+/// Where the binder opens: the last card you caught (default; never a seen one), a pull id (--pull, the card's link)
+/// or a card (--card): those two land on their slot even when it is only seen (it shows its silhouette).
 #[derive(Clone, Debug, PartialEq)]
 pub enum Start {
     Latest,
@@ -134,38 +135,39 @@ pub struct SearchCounts {
 /// How long an opened search result glows on its real page.
 pub const FLASH_SECS: f32 = 1.6;
 
-/// Completion of a checklist: earned, pending (pulled, not earned yet: not counted as done), total.
+/// Completion of a checklist: caught, seen (pulled, never earned: not counted as done), total.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Completion {
-    pub owned: usize,
-    pub pending: usize,
+    pub caught: usize,
+    pub seen: usize,
     pub total: usize,
 }
 
 impl Completion {
     pub fn frac(&self) -> f32 {
-        self.owned as f32 / self.total.max(1) as f32
+        self.caught as f32 / self.total.max(1) as f32
     }
 }
 
-/// One row of the tiers panel: a rarity, its cards caught (earned) / pending / in the checklist, and its pulls.
+/// One row of the tiers panel: a rarity, its cards caught / seen / in the checklist, and its (caught) pulls.
 #[derive(Clone, Debug)]
 pub struct TierRow {
     pub tier: usize,
     pub caught: usize,
-    pub pending: usize,
+    pub seen: usize,
     pub of: usize,
     pub pulls: usize,
 }
 
-/// The header's totals (docs/BINDER_SPEC.md): pulls are every roll shown; cards, foils and shinies are earned ones.
+/// The header's totals (docs/BINDER_SPEC.md): everything counts caught pulls only (pulls, cards caught, foils,
+/// shinies, the last pull, streak, drought); `seen` is the slots seen but not caught.
 #[derive(Clone, Default)]
 pub struct Stats {
     pub total: usize,
     pub foils: usize,
     pub shinies: usize,
     pub unique: usize,
-    pub pending: usize,
+    pub seen: usize,
     pub last: Option<usize>,
     pub streak: i64,
     pub drought: usize,
@@ -336,17 +338,17 @@ impl App {
         }
         app.search = app.opts.search.clone();
         app.cursor = app.search.chars().count();
-        // where to land: the pull / card asked for (it clears filters that hide it), else the newest pull that the
-        // set and search show, else the newest pull
+        // where to land: the pull / card asked for (it clears filters that hide it; a seen one shows its silhouette),
+        // else the last caught card that the set and search show, else the last caught card (never a seen one)
         let start = app.opts.start.clone();
         let landed = match &start {
             Start::Latest => false,
             Start::Pull(id) => app.select_pull(id) || {
-                app.notice = Some(format!("pull {id} isn't in the binder (hidden or not in pulls.log): showing the newest pull"));
+                app.notice = Some(format!("pull {id} isn't in the binder (hidden or not in pulls.log): showing the last card you caught"));
                 false
             },
             Start::Card(c) => app.select_card(c) || {
-                app.notice = Some(format!("no card {c}: showing the newest pull"));
+                app.notice = Some(format!("no card {c}: showing the last card you caught"));
                 false
             },
         };
@@ -477,19 +479,22 @@ impl App {
         self.sticky.extend(ids);
     }
 
-    /// Start on the card you pulled most recently (the exact card, in any view).
+    /// Start on the card you caught most recently (the exact card, in any view). Never a seen card: a pull that is
+    /// pending or expired isn't in the binder yet. Nothing caught: the selection stays where it is.
     pub fn select_latest(&mut self) {
-        let last = (0..self.coll.pulls.len()).rev().find_map(|i| self.coll.slot_of[i].map(|k| (i, k)));
-        if let Some((i, k)) = last {
+        if let Some((i, k)) = self.coll.last_caught() {
             self.jump_to(k, Some(i));
         }
     }
 
-    /// Land on the newest pull the current filters (set, search, owned/missing) show, without clearing them. False
-    /// if they show none (the selection stays on the first slot).
+    /// Land on the last caught card the current filters (set, search, caught/missing) show, without clearing them.
+    /// False if they show none (the selection stays on the first slot).
     pub fn select_latest_visible(&mut self) -> bool {
         let terms = self.terms();
-        let hit = (0..self.coll.pulls.len()).rev().find_map(|i| self.coll.slot_of[i].filter(|k| self.visible_with(&terms, *k)).map(|k| (i, k)));
+        let hit = (0..self.coll.pulls.len())
+            .rev()
+            .filter(|&i| self.coll.pulls[i].status.caught())
+            .find_map(|i| self.coll.slot_of[i].filter(|k| self.visible_with(&terms, *k)).map(|k| (i, k)));
         match hit {
             Some((i, k)) => {
                 self.select_key(k);
@@ -591,23 +596,23 @@ impl App {
     pub fn slot_flags(&self, k: SlotKey) -> query::Flags {
         let st = self.coll.slot_state(k, false);
         query::Flags {
-            shiny: self.coll.slot_pulls(k).iter().any(|&i| self.coll.pulls[i].shiny && self.coll.pulls[i].status == Status::Collected),
+            shiny: self.coll.caught_pulls(k).any(|i| self.coll.pulls[i].shiny),
             foil: self.coll.packs[k.pack].foil_tier(k.tier),
             new: self.coll.slot_new(k, false),
-            pending: st == SlotState::Pending,
-            owned: st == SlotState::Owned,
+            seen: st == SlotState::Seen,
+            caught: st == SlotState::Caught,
         }
     }
 
     fn own_ok(&self, k: SlotKey) -> bool {
         match self.own {
             Own::All => true,
-            Own::Owned => self.coll.slot_state(k, self.shiny_only) == SlotState::Owned,
-            Own::Missing => self.coll.slot_state(k, self.shiny_only) == SlotState::Empty,
+            Own::Caught => self.coll.slot_state(k, self.shiny_only) == SlotState::Caught,
+            Own::Missing => self.coll.slot_state(k, self.shiny_only) != SlotState::Caught,
         }
     }
 
-    /// Would this card be in the binder with the current set, search and owned/missing filters (in the dex view: if its
+    /// Would this card be in the binder with the current set, search and caught/missing filters (in the dex view: if its
     /// character's slot showed it)?
     pub fn visible(&self, k: SlotKey) -> bool {
         self.visible_with(&self.terms(), k)
@@ -638,7 +643,7 @@ impl App {
     }
 
     /// With a search on: how many cards match in each pack (every set) and in each set of the current pack (with the
-    /// owned / missing / shiny filters). None without a search.
+    /// caught / missing / shiny filters). None without a search.
     pub fn search_counts(&self) -> Option<Rc<SearchCounts>> {
         if query::parse(&self.search).is_empty() || self.coll.packs.is_empty() {
             return None;
@@ -776,8 +781,8 @@ impl App {
                 }
             }
             // one slot per character. A character is in if any of its cards (in the selected set) passes the search
-            // and the owned/missing filter, and its slot shows the card you jumped to (dex_focus) if that one
-            // passes, else its best earned card, else a pending one, else its first card
+            // and the caught/missing filter, and its slot shows the card you jumped to (dex_focus) if that one
+            // passes, else its best caught card, else a seen one, else its first card
             View::Dex => {
                 let focus = self.dex_focus[pi].filter(|k| k.pack == pi);
                 for ch in 0..p.chars.len() {
@@ -792,9 +797,9 @@ impl App {
                     let matching: Vec<SlotKey> = cands.iter().copied().filter(|&k| term_ok(k)).collect();
                     let pool: Vec<SlotKey> = match self.own {
                         Own::All => matching,
-                        Own::Owned => matching.into_iter().filter(|&k| st(k) == SlotState::Owned).collect(),
-                        // missing: characters with none of these cards pulled
-                        Own::Missing if matching.iter().any(|&k| st(k) != SlotState::Empty) => continue,
+                        Own::Caught => matching.into_iter().filter(|&k| st(k) == SlotState::Caught).collect(),
+                        // missing: characters with none of these cards caught
+                        Own::Missing if matching.iter().any(|&k| st(k) == SlotState::Caught) => continue,
                         Own::Missing => matching,
                     };
                     if pool.is_empty() {
@@ -803,8 +808,8 @@ impl App {
                     let rank = |k: &SlotKey| (k.tier, self.coll.slot_pulls(*k).last().copied());
                     let pick = focus
                         .filter(|f| f.ch == ch && pool.contains(f))
-                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Owned).max_by_key(rank))
-                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Pending).max_by_key(rank))
+                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Caught).max_by_key(rank))
+                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Seen).max_by_key(rank))
                         .unwrap_or(pool[0]);
                     out.push(pick);
                 }
@@ -997,7 +1002,7 @@ impl App {
             .filter_map(|i| {
                 let k = self.coll.slot_of[i]?;
                 let p = &self.coll.pulls[i];
-                if p.status != Status::Collected || self.best_since.is_some_and(|t| p.ts < t) {
+                if !p.status.caught() || self.best_since.is_some_and(|t| p.ts < t) {
                     return None;
                 }
                 if !self.coll.packs[k.pack].foil_tier(k.tier) && !p.shiny {
@@ -1021,10 +1026,18 @@ impl App {
             }
         }
         let c = &self.coll;
-        let earned = |i: usize| c.pulls[i].status == Status::Collected;
         let foil = |i: usize| c.slot_of[i].is_some_and(|k| c.packs[k.pack].foil_tier(k.tier));
-        let unique = c.by_slot.keys().filter(|k| c.slot_state(**k, false) == SlotState::Owned).count();
-        let days: std::collections::BTreeSet<i64> = c.pulls.iter().map(|p| p.ts.div_euclid(86400)).collect();
+        // caught pulls only (a seen card isn't in the binder yet)
+        let got: Vec<usize> = (0..c.pulls.len()).filter(|&i| c.pulls[i].status.caught()).collect();
+        let (mut unique, mut seen) = (0, 0);
+        for k in c.by_slot.keys() {
+            match c.slot_state(*k, false) {
+                SlotState::Caught => unique += 1,
+                SlotState::Seen => seen += 1,
+                SlotState::Empty => {}
+            }
+        }
+        let days: std::collections::BTreeSet<i64> = got.iter().map(|&i| c.pulls[i].ts.div_euclid(86400)).collect();
         let today = self.now.div_euclid(86400);
         let mut d = if days.contains(&today) { today } else { today - 1 };
         let mut streak = 0;
@@ -1033,22 +1046,22 @@ impl App {
             d -= 1;
         }
         let s = Rc::new(Stats {
-            total: c.pulls.len(),
-            foils: (0..c.pulls.len()).filter(|&i| earned(i) && foil(i)).count(),
-            shinies: (0..c.pulls.len()).filter(|&i| earned(i) && c.pulls[i].shiny).count(),
+            total: got.len(),
+            foils: got.iter().filter(|&&i| foil(i)).count(),
+            shinies: got.iter().filter(|&&i| c.pulls[i].shiny).count(),
             unique,
-            pending: c.pulls.iter().filter(|p| p.status == Status::Pending).count(),
-            last: c.pulls.len().checked_sub(1),
+            seen,
+            last: got.last().copied(),
             streak,
-            drought: (0..c.pulls.len()).rev().take_while(|&i| !foil(i)).count(),
-            first_ts: c.pulls.iter().map(|p| p.ts).min(),
+            drought: got.iter().rev().take_while(|&&i| !foil(i)).count(),
+            first_ts: got.iter().map(|&i| c.pulls[i].ts).min(),
         });
         self.memo().stats = Some((minute, s.clone()));
         s
     }
 
     /// Completion of a pack's checklist: `set` 0 = every set, else pack.sets[set - 1]; `dex`: characters caught
-    /// instead of cards (slots). Earned only: a pending card is counted apart (S-06).
+    /// instead of cards (slots). Caught only: a seen card is counted apart (S-06).
     pub fn completion(&self, pi: usize, set: usize, shiny: bool, dex: bool) -> Completion {
         if let Some(c) = self.memo().done.get(&(pi, set, shiny, dex)) {
             return *c;
@@ -1059,18 +1072,18 @@ impl App {
         let mut out = Completion::default();
         let mut add = |states: &mut dyn Iterator<Item = SlotState>| {
             let mut any = false;
-            let (mut own, mut pend) = (false, false);
+            let (mut caught, mut seen) = (false, false);
             for s in states {
                 any = true;
-                own |= s == SlotState::Owned;
-                pend |= s == SlotState::Pending;
+                caught |= s == SlotState::Caught;
+                seen |= s == SlotState::Seen;
             }
             if any {
                 out.total += 1;
-                if own {
-                    out.owned += 1;
-                } else if pend {
-                    out.pending += 1;
+                if caught {
+                    out.caught += 1;
+                } else if seen {
+                    out.seen += 1;
                 }
             }
         };
@@ -1122,13 +1135,13 @@ impl App {
         let c = &self.coll;
         let Some(p) = c.packs.get(pi) else { return Rc::new(vec![]) };
         let in_set = |k: SlotKey| set == 0 || p.set_of(k.card) == Some(set - 1);
-        let mut rows: Vec<TierRow> = (0..p.tiers.len()).map(|tier| TierRow { tier, caught: 0, pending: 0, of: 0, pulls: 0 }).collect();
+        let mut rows: Vec<TierRow> = (0..p.tiers.len()).map(|tier| TierRow { tier, caught: 0, seen: 0, of: 0, pulls: 0 }).collect();
         let mut count = |k: SlotKey| {
             let r = &mut rows[k.tier];
             r.of += 1;
             match c.slot_state(k, shiny) {
-                SlotState::Owned => r.caught += 1,
-                SlotState::Pending => r.pending += 1,
+                SlotState::Caught => r.caught += 1,
+                SlotState::Seen => r.seen += 1,
                 SlotState::Empty => {}
             }
         };
@@ -1146,8 +1159,8 @@ impl App {
                 }
             }
         }
-        for k in c.slot_of.iter().flatten() {
-            if k.pack == pi && in_set(*k) {
+        for (i, k) in c.slot_of.iter().enumerate() {
+            if let Some(k) = k.filter(|k| k.pack == pi && in_set(*k) && c.pulls[i].status.caught()) {
                 rows[k.tier].pulls += 1;
             }
         }
@@ -1175,7 +1188,7 @@ impl App {
             })
             .filter(|r| r.0 > 0 && r.1.hits != Some(0))
             .collect();
-        rows.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.done.owned.cmp(&a.1.done.owned)).then(b.1.done.total.cmp(&a.1.done.total)).then(a.1.ix.cmp(&b.1.ix)));
+        rows.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.done.caught.cmp(&a.1.done.caught)).then(b.1.done.total.cmp(&a.1.done.total)).then(a.1.ix.cmp(&b.1.ix)));
         let mut out: Vec<SetRow> = Vec::new();
         if f.is_empty() || "all sets".starts_with(&query::fold(&f)) {
             out.push(SetRow { ix: 0, id: String::new(), name: "every set".into(), done: self.completion(self.pack, 0, false, false), hits: counts.as_ref().map(|c| c.sets[0]) });
@@ -1185,7 +1198,7 @@ impl App {
     }
 
     /// Show a set's checklist (0: every set). A picked set is always the checklist (the card view); the selection
-    /// stays on the card you are on if the set has it, else goes to the newest pull in the set, else its first card.
+    /// stays on the card you are on if the set has it, else goes to the last caught card in the set, else its first card.
     pub fn choose_set(&mut self, ix: usize) {
         let pi = self.pack;
         let Some(p) = self.coll.packs.get(pi) else { return };
@@ -1250,11 +1263,11 @@ impl App {
         }
     }
 
-    /// Which pulls of a slot the card panel steps through (shiny-only: its shinies) and which one it shows: the
-    /// history cursor if it belongs to this slot, else the newest.
+    /// Which pulls of a slot the card panel steps through (its caught ones; shiny-only: its caught shinies) and which
+    /// one it shows: the history cursor if it belongs to this slot, else the newest. A seen card has none.
     pub fn shown_pull(&self, k: SlotKey) -> (Vec<usize>, Option<usize>) {
         let shiny = self.shiny_only;
-        let list: Vec<usize> = self.coll.slot_pulls(k).iter().copied().filter(|&i| !shiny || self.coll.pulls[i].shiny).collect();
+        let list: Vec<usize> = self.coll.caught_pulls(k).filter(|&i| !shiny || self.coll.pulls[i].shiny).collect();
         if list.is_empty() {
             return (list, None);
         }
@@ -1295,7 +1308,7 @@ impl App {
         let Some(k) = self.selected() else { return false };
         let shiny = self.shiny_only;
         let st = self.coll.slot_state(k, shiny);
-        st == SlotState::Owned && crate::card::is_foil(&self.coll.packs[k.pack], k.tier, shiny)
+        st == SlotState::Caught && crate::card::is_foil(&self.coll.packs[k.pack], k.tier, shiny)
     }
 
     /// Keep the text half's scroll for the card it was scrolled on.
@@ -1398,7 +1411,7 @@ impl App {
             }
             KeyCode::Char('#') => self.number = Some(String::new()),
             KeyCode::Char('s') => self.toggle_shiny(),
-            KeyCode::Char('o') => self.keeping_selection(|a| a.own = if a.own == Own::Owned { Own::All } else { Own::Owned }),
+            KeyCode::Char('o') => self.keeping_selection(|a| a.own = if a.own == Own::Caught { Own::All } else { Own::Caught }),
             KeyCode::Char('m') => self.keeping_selection(|a| a.own = if a.own == Own::Missing { Own::All } else { Own::Missing }),
             KeyCode::Char('v') => self.show_text = !self.show_text,
             KeyCode::Char('S') => self.open_picker(),
@@ -1739,7 +1752,7 @@ impl App {
         }
     }
 
-    /// Shiny-only on/off; landing on an owned shiny when there is one.
+    /// Shiny-only on/off; landing on a caught shiny when there is one.
     pub fn toggle_shiny(&mut self) {
         if self.coll.packs.is_empty() {
             return;
@@ -1747,9 +1760,9 @@ impl App {
         self.keeping_selection(|a| a.shiny_only = !a.shiny_only);
         if self.shiny_only {
             let cur = self.selected();
-            if cur.is_none_or(|k| self.coll.slot_state(k, true) == SlotState::Empty) {
+            if cur.is_none_or(|k| self.coll.slot_state(k, true) != SlotState::Caught) {
                 let list = self.slots().to_vec();
-                if let Some(i) = list.iter().position(|k| self.coll.slot_state(*k, true) != SlotState::Empty) {
+                if let Some(i) = list.iter().position(|k| self.coll.slot_state(*k, true) == SlotState::Caught) {
                     self.sel[self.pack] = i;
                 }
             }
@@ -1825,8 +1838,9 @@ mod tests {
     }
 
     #[test]
-    fn search_lists_every_card_and_owned_excludes_pending() {
-        // the user's /pikachu: 3 earned Pikachu cards and 1 pending one; every one is listed, `owned` lists the 3
+    fn search_lists_every_card_and_caught_excludes_seen() {
+        // the user's /pikachu: 3 earned Pikachu cards and 1 pending (seen) one; every one is listed, `caught` (and its
+        // old word `owned`) lists the 3, `seen` (and `pending`) the other
         let d = fixture_pack("pika");
         let (e1, e2, e3, p1) = (ulid_now("EEEEEEEEEEEEEEE1"), ulid_now("EEEEEEEEEEEEEEE2"), ulid_now("EEEEEEEEEEEEEEE3"), ulid_now("PPPPPPPPPPPPPPP1"));
         let now_boot = crate::data::boot_id();
@@ -1854,7 +1868,7 @@ mod tests {
                     let i = a.coll.packs[0].card_list.iter().position(|c| c.id == *id).unwrap();
                     a.coll.slot_state(a.coll.packs[0].key_of(0, i), false)
                 }).collect();
-                assert_eq!(st, vec![SlotState::Owned, SlotState::Pending]);
+                assert_eq!(st, vec![SlotState::Caught, SlotState::Seen]);
             } else {
                 assert_eq!(ids.len(), 1, "one pikachu slot in the dex view: {ids:?}");
                 // S-02: a character matches if any of its cards does, and its slot shows a matching card (its
@@ -1864,13 +1878,24 @@ mod tests {
                 assert_eq!(k.len(), 1);
                 let c = &a.coll.packs[0].card_list[k[0].card as usize];
                 assert_eq!((c.set_id.as_str(), a.coll.packs[0].tiers[c.tier].id.as_str()), ("me55", "pikachu-rare"));
-                assert_eq!(a.coll.slot_state(k[0], false), SlotState::Owned, "an earned one first");
+                assert_eq!(a.coll.slot_state(k[0], false), SlotState::Caught, "a caught one first");
                 a.search = "lycanroc missing".into();
                 assert_eq!(a.slots().len(), 1, "a character never pulled: missing, on its first card");
             }
-            a.search = "pikachu owned".into();
-            let n = a.slots().len();
-            assert_eq!(n, if view == View::Set { 3 } else { 1 }, "{view:?}");
+            for q in ["pikachu owned", "pikachu caught", "pikachu is:caught"] {
+                a.search = q.into();
+                let n = a.slots().len();
+                assert_eq!(n, if view == View::Set { 3 } else { 1 }, "{q} {view:?}");
+            }
+            if view == View::Set {
+                for q in ["pikachu seen", "pikachu pending"] {
+                    a.search = q.into();
+                    let ids: Vec<String> = a.slots().to_vec().iter().map(|k| a.coll.packs[0].card_list[k.card as usize].id.clone()).collect();
+                    assert_eq!(ids, vec!["swsh7-49".to_string()], "{q}");
+                }
+                a.search = "pikachu missing".into();
+                assert_eq!(a.slots().len(), 1, "missing = not caught: the seen one");
+            }
         }
         let _ = std::fs::remove_dir_all(&d);
     }
@@ -1899,7 +1924,7 @@ mod tests {
     }
 
     #[test]
-    fn completion_excludes_pending() {
+    fn completion_excludes_seen() {
         let d = fixture_pack("done");
         let now_boot = crate::data::boot_id();
         let p1 = ulid_now("PPPPPPPPPPPPPPP1");
@@ -1912,11 +1937,141 @@ mod tests {
         );
         let a = app(&d, "me55", "", Start::Latest);
         let c = a.view_completion();
-        assert_eq!((c.owned, c.pending, c.total), (1, 1, 4));
+        assert_eq!((c.caught, c.seen, c.total), (1, 1, 4));
         let rows = a.tier_rows();
         let pr = rows.iter().find(|r| a.coll.packs[0].tiers[r.tier].id == "pikachu-rare").unwrap();
-        assert_eq!((pr.caught, pr.pending, pr.of, pr.pulls), (1, 1, 3, 2), "the tiers panel follows the set");
+        assert_eq!((pr.caught, pr.seen, pr.of, pr.pulls), (1, 1, 3, 1), "the tiers panel follows the set; pulls are caught ones");
         assert!(rows.iter().all(|r| a.coll.packs[0].tiers[r.tier].id != "rare-holo-v"), "only the set's rarities");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// Empty, seen (pending, expired by age, expired by an event) and caught slots; the newest pull is a seen one.
+    fn seen_log(d: &std::path::Path) -> (String, String) {
+        let now_boot = crate::data::boot_id();
+        let p = ulid_now("PPPPPPPPPPPPPPP1");
+        let old = {
+            // a ULID 30 h old: expired by age
+            let ms = (crate::data::now_utc() - 30 * 3600) * 1000;
+            let mut v = ms;
+            let mut s = vec![b'0'; 10];
+            for i in (0..10).rev() {
+                s[i] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(v % 32) as usize];
+                v /= 32;
+            }
+            String::from_utf8(s).unwrap() + "XXXXXXXXXXXXXXX1"
+        };
+        let e = ulid_now("EEEEEEEEEEEEEEE1");
+        let lines = vec![
+            "2026-09-29T08:00:00\tp\tlycanroc\trare-holo-v\tswsh7-91\t\t0\t".to_string(),
+            format!("2026-09-29T08:01:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\tpending\tid={p}\tboot={now_boot}"),
+            format!("2026-09-29T08:02:00\tp\tbulbasaur\tillustration-rare\tme55-B\t\t0\tpending\tid={old}\tboot={now_boot}"),
+            format!("2026-09-29T08:03:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\tv-beam\t1\tpending\tid={e}\tboot={now_boot}"),
+            format!("2026-09-29T08:03:30\texpired:{e}"),
+        ];
+        write_log(d, &lines.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        (p, e)
+    }
+
+    fn state_of(a: &App, id: &str) -> SlotState {
+        let i = a.coll.packs[0].card_list.iter().position(|c| c.id == id).unwrap();
+        a.coll.slot_state(a.coll.packs[0].key_of(0, i), false)
+    }
+
+    #[test]
+    fn empty_seen_caught() {
+        // every slot is empty, seen (pulled, never earned: pending or expired) or caught; expired pulls count as seen
+        let d = fixture_pack("seen");
+        let (p, e) = seen_log(&d);
+        let mut a = app(&d, "", "", Start::Latest);
+        assert_eq!(state_of(&a, "swsh7-91"), SlotState::Caught);
+        assert_eq!(state_of(&a, "me55-28"), SlotState::Seen, "pending: seen");
+        assert_eq!(state_of(&a, "me55-B"), SlotState::Seen, "expired after 24 h: seen");
+        assert_eq!(state_of(&a, "swsh7-92"), SlotState::Seen, "an expired:<id> line: seen");
+        assert_eq!(state_of(&a, "swsh7-49"), SlotState::Empty);
+        // opening lands on the last caught card, never the newer seen ones
+        assert_eq!(sel_id(&mut a), "swsh7-91");
+        a.views[0] = View::Dex;
+        a.select_latest();
+        assert_eq!(sel_id(&mut a), "swsh7-91", "dex view: the caught Lycanroc, not the seen VMAX");
+        // stats and completion: caught only; seen apart
+        let st = a.stats();
+        assert_eq!((st.total, st.unique, st.seen, st.shinies), (1, 1, 3, 0), "the seen VMAX was shiny: not counted");
+        let li = st.last.unwrap();
+        assert_eq!(a.coll.pulls[li].card, "swsh7-91", "the header's last pull is the last caught");
+        a.views[0] = View::Set;
+        let c = a.view_completion();
+        assert_eq!((c.caught, c.seen, c.total), (1, 3, 8));
+        let best: Vec<String> = a.best_pulls().iter().map(|&(i, _)| a.coll.pulls[i].card.clone()).collect();
+        assert_eq!(best, vec!["swsh7-91".to_string()], "best pulls: the caught holo; the seen shiny VMAX is none");
+        // a seen card: no pulls to step through, no NEW, and how to catch it
+        let k28 = a.coll.packs[0].key_of(0, a.coll.packs[0].card_list.iter().position(|c| c.id == "me55-28").unwrap());
+        assert_eq!(a.shown_pull(k28), (vec![], None));
+        assert!(a.coll.pending_pull(k28).is_some(), "its tab can still catch it");
+        let kb = a.coll.packs[0].key_of(0, a.coll.packs[0].card_list.iter().position(|c| c.id == "me55-B").unwrap());
+        assert!(a.coll.pending_pull(kb).is_none(), "expired: pull it again");
+        // an explicit pull or card lands on its slot, seen or not
+        let mut a = app(&d, "", "", Start::Pull(p.clone()));
+        assert_eq!(sel_id(&mut a), "me55-28");
+        assert!(a.notice.is_none());
+        let mut a = app(&d, "", "", Start::Pull(e.clone()));
+        assert_eq!(sel_id(&mut a), "swsh7-92", "an expired pull still opens its (seen) slot");
+        let mut a = app(&d, "", "", Start::Card("p/me55-B".into()));
+        assert_eq!(sel_id(&mut a), "me55-B");
+        // L: the last caught card again
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('L'), KeyModifiers::SHIFT)));
+        assert_eq!(sel_id(&mut a), "swsh7-91");
+        // a set: lands on its last caught card, else its first card (not a seen one)
+        let mut a = app(&d, "30th", "", Start::Latest);
+        assert_eq!(sel_id(&mut a), "me55-28", "the set's first card (none caught there): it happens to be seen");
+        assert_eq!(a.sel_ix(), 0);
+        // o: caught only; m: missing = not caught (empty and seen)
+        let mut a = app(&d, "", "", Start::Latest);
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)));
+        assert_eq!(a.slots().len(), 1);
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('m'), KeyModifiers::NONE)));
+        assert_eq!(a.slots().len(), 7);
+        // the search words
+        for (q, n) in [("seen", 3), ("pending", 3), ("is:seen", 3), ("caught", 1), ("owned", 1), ("missing", 7), ("lyc seen", 1), ("-seen", 5)] {
+            let mut a = app(&d, "", q, Start::Latest);
+            assert_eq!(a.slots().len(), n, "/{q}");
+        }
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn nothing_caught_lands_on_the_first_card() {
+        // only seen pulls: the binder opens on its first card, not on the seen one
+        let d = fixture_pack("seenonly");
+        let now_boot = crate::data::boot_id();
+        let p = ulid_now("PPPPPPPPPPPPPPP2");
+        write_log(&d, &[&format!("2026-09-29T08:01:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\t\t0\tpending\tid={p}\tboot={now_boot}")]);
+        let mut a = app(&d, "", "", Start::Latest);
+        assert_eq!(a.sel_ix(), 0);
+        assert_eq!(sel_id(&mut a), "swsh7-49");
+        assert_eq!(a.stats().last, None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn seen_cards_render_as_silhouettes() {
+        // the binder page and the card panel of a seen card: its name and number, "seen" and how to catch it; no
+        // "pending" anywhere, no NEW, no shiny mark
+        let d = fixture_pack("seenui");
+        let (p, _) = seen_log(&d);
+        // the silhouette comes from the character's plain sprite: Pikachu's common (its art has transparent pixels),
+        // while the seen card's own art is a full-bleed scene
+        std::fs::write(d.join("dist/p/pikachu-swsh7-49.ans"), "\x1b[38;2;250;200;0m\u{2588}\u{2588}\x1b[0m  \n\x1b[38;2;250;200;0m \u{2588}\u{2588}\x1b[0m\n").unwrap();
+        std::fs::write(d.join("dist/p/pikachu-me55-28.ans"), "\x1b[38;2;9;9;9;48;2;90;140;60m\u{2580}\u{2580}\u{2580}\x1b[0m\n".repeat(2)).unwrap();
+        let mut a = app(&d, "", "", Start::Pull(p));
+        let k = a.selected().unwrap();
+        let sil = a.art.silhouette(&a.coll.packs[0], k).expect("a silhouette from Pikachu's sprite card");
+        assert!(crate::art::is_sprite(&sil) && sil.px.iter().any(|p| p.is_some()), "the common's shape, not the scene: {sil:?}");
+        let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(140, 44)).unwrap();
+        let buf = t.draw(|f| crate::ui::render(&mut a, f.buffer_mut())).unwrap().buffer.clone();
+        let text: String = (0..buf.area.height).map(|y| (0..buf.area.width).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>() + "\n").collect();
+        assert!(text.contains("seen") && (text.contains("use its tab") || text.contains("use the tab")), "{text}");
+        assert!(!text.to_lowercase().contains("pending"), "{text}");
+        assert!(text.contains("caught 1") && text.contains("seen 3"), "header counts: {text}");
         let _ = std::fs::remove_dir_all(&d);
     }
 

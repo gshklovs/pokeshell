@@ -10,7 +10,8 @@
 //!   rarity:"rare rainbow"     other keys: the value matches that key's tags like a word; quotes keep spaces and
 //!                             mean nothing else (the web binder matches the same way)
 //!   -holo  -set:swsh7         leave out what matches
-//!   shiny  foil  new  pending owned  missing     state words: bare, or as is:shiny
+//!   caught  seen  missing     state words, bare or as is:seen: caught (owned too), seen (pulled, not caught; pending
+//!   shiny  foil  new          too), missing (not caught)
 //!
 //! Every term must match (AND). Case and accents don't matter (flabebe finds Flabébé). Keys: set (id or name),
 //! rarity, tier, type, subtype (sub), char (character), artist, pack, name, number, id (card).
@@ -33,8 +34,9 @@ const BONUS_DELIM: i32 = BONUS_BOUNDARY + 1;
 /// a set named whole (its id or name) beats every partial match
 const EXACT_BONUS: i32 = 100_000;
 
-/// The state words: they test the slot, not its tags.
-pub const STATES: &[&str] = &["shiny", "foil", "new", "pending", "owned", "missing"];
+/// The state words: they test the slot, not its tags. `owned` is an old word for `caught` and `pending` for `seen`
+/// (both still work; the help shows the new ones).
+pub const STATES: &[&str] = &["shiny", "foil", "new", "seen", "caught", "missing", "owned", "pending"];
 /// The tag keys a slot has (Pack::slot_tags).
 pub const KEYS: &[&str] = &["set", "rarity", "type", "subtype", "name", "number", "artist", "char", "tier", "pack", "id"];
 
@@ -454,8 +456,10 @@ pub struct Flags {
     pub shiny: bool,
     pub foil: bool,
     pub new: bool,
-    pub pending: bool,
-    pub owned: bool,
+    /// pulled, never earned (docs/BINDER_SPEC.md "Empty, seen, caught")
+    pub seen: bool,
+    /// earned at least once
+    pub caught: bool,
 }
 
 impl Flags {
@@ -464,9 +468,9 @@ impl Flags {
             "shiny" => self.shiny,
             "foil" => self.foil,
             "new" => self.new,
-            "pending" => self.pending,
-            "owned" => self.owned,
-            "missing" => !self.owned && !self.pending,
+            "seen" | "pending" => self.seen,
+            "caught" | "owned" => self.caught,
+            "missing" => !self.caught,
             _ => false,
         }
     }
@@ -609,7 +613,7 @@ mod tests {
     #[test]
     fn match_terms() {
         let tg = tags();
-        let f = Flags { owned: true, foil: true, ..Default::default() };
+        let f = Flags { caught: true, foil: true, ..Default::default() };
         let m = |q: &str| {
             let mut t = parse(q);
             resolve_terms(&mut t, &sets());
@@ -623,12 +627,25 @@ mod tests {
         assert!(m(r#"rarity:"rare rainbow""#) && m("rarity:rainbow") && m("rarity:rare") && !m("rarity:holo"));
         assert!(m("type:dark vmax") && m("type:drkness"));
         assert!(m(r#"artist:"keiichiro ito""#) && m("artist:ito"));
-        assert!(m("foil owned") && !m("shiny") && !m("type:water") && !m("set:swsh8") && !m("missing"));
+        assert!(m("foil owned") && m("caught") && m("is:caught") && !m("seen") && !m("pending") && !m("shiny") && !m("type:water") && !m("set:swsh8") && !m("missing"));
         assert!(m("number:215") && !m("number:15") && !m("number:21"));
         assert!(m("number:215/203") && !m("number:215/204"));
         assert!(m("id:swsh7-215") && !m("id:swsh7-21") && !m(r#"id:"swsh7-21""#), "quotes change nothing");
         assert!(m("-holo") && !m("-rainbow") && m("-set:30th") && !m("-set:evolving") && m("-shiny") && !m("-owned"), "- leaves out");
         assert!(!m("foo:bar"), "an unknown key matches nothing");
+    }
+
+    #[test]
+    fn state_words() {
+        // seen = pulled, not caught (pending is its old name); caught = earned (owned); missing = not caught
+        let tg = tags();
+        let m = |q: &str, f: Flags| matches(&parse(q), &tg, f);
+        let seen = Flags { seen: true, ..Default::default() };
+        let caught = Flags { caught: true, ..Default::default() };
+        let empty = Flags::default();
+        assert!(m("seen", seen) && m("pending", seen) && m("is:seen", seen) && m("missing", seen) && !m("caught", seen) && !m("owned", seen));
+        assert!(m("caught", caught) && m("owned", caught) && !m("seen", caught) && !m("missing", caught) && m("-seen", caught));
+        assert!(m("missing", empty) && !m("seen", empty) && !m("caught", empty));
     }
 
     #[test]

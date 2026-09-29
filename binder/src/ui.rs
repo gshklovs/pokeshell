@@ -5,7 +5,7 @@ use crate::app::{App, Completion, Focus, Own, PER_PAGE, Tab, View};
 use crate::card::{self, Card, short_label};
 use crate::cardtext;
 use crate::color::{Rgb, darken, grad, lighten, mix, rgb};
-use crate::data::{self, SlotKey, SlotState, Status};
+use crate::data::{self, SlotKey, SlotState};
 use crate::draw::{Seg, Titles, braille, fill, groups_w, meter, meter_segs, panel, panel_ex, put, puts, seg, segb, trunc, width};
 use crate::query;
 use crate::theme::{THEMES, Theme};
@@ -163,7 +163,7 @@ fn group(n: u64) -> String {
 fn pct(c: &Completion) -> String {
     let p = c.frac() * 100.0;
     // 0% only when nothing is caught, 100% only when everything is
-    let p = if c.owned > 0 && p < 1.0 { 1.0 } else if c.owned < c.total && p > 99.0 { 99.0 } else { p.round() };
+    let p = if c.caught > 0 && p < 1.0 { 1.0 } else if c.caught < c.total && p > 99.0 { 99.0 } else { p.round() };
     format!("{p:.0}%")
 }
 
@@ -253,14 +253,14 @@ fn header(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
     if (x - x0) as usize + 7 + right_w + 1 <= w {
         x += puts(buf, x, y0, " binder", t.dim, None, false, 10) as i32 + 3;
     }
-    let pend_c = if st.pending > 0 { t.warn } else { t.dim };
     let new_n = app.coll.new_count();
+    // Pokédex counts: cards caught, and seen (pulled, never caught) apart
     let mut chips: Vec<Vec<(String, Rgb, bool)>> = vec![
         vec![(st.total.to_string(), t.title, true), (" pulls".into(), t.dim, false)],
-        vec![(st.unique.to_string(), t.title, true), (" cards".into(), t.dim, false)],
+        vec![("caught ".into(), t.dim, false), (st.unique.to_string(), t.title, true)],
+        vec![("seen ".into(), t.dim, false), (st.seen.to_string(), if st.seen > 0 { t.fg } else { t.dim }, true)],
         vec![(st.foils.to_string(), t.accent, true), (" foils".into(), t.dim, false)],
         vec![("✦ ".into(), t.hi, false), (st.shinies.to_string(), t.hi, true), (" shiny".into(), t.dim, false)],
-        vec![("◌ ".into(), pend_c, false), (st.pending.to_string(), pend_c, true), (" pending".into(), t.dim, false)],
         vec![(new_n.to_string(), if new_n > 0 { NEW_PINK } else { t.dim }, true), (" new".into(), t.dim, false)],
         vec![("streak ".into(), t.dim, false), (format!("{}d", st.streak), t.good, true)],
         vec![("drought ".into(), t.dim, false), (st.drought.to_string(), if st.drought > 10 { t.warn } else { t.title }, true)],
@@ -319,9 +319,6 @@ fn header(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
             (format!(" {tier}"), tc, false),
             (format!(" {}", data::ago(app.now - p.ts)), t.dim, false),
         ];
-        if p.status == Status::Pending {
-            last_segs.push((" ◌".into(), t.warn, false));
-        }
     }
     let last_w: usize = last_segs.iter().map(|s| width(&s.0)).sum();
     let avail = (hint_x - x0 - 1).max(0) as usize;
@@ -413,21 +410,21 @@ fn binder_tabs(app: &App, t: &Theme, level: u8) -> (Vec<Vec<Seg>>, Vec<Tab>) {
     (groups, ids)
 }
 
-/// The completion line on the binder's bottom border: "87/193 ■■■■□□ 45% +3 pending" (earned only; pending apart).
+/// The completion line on the binder's bottom border: "87/193 ■■■■□□ 45% · seen 3" (caught only; seen apart).
 fn completion_group(app: &App, t: &Theme, room: usize) -> Vec<Seg> {
     let c = app.view_completion();
     let dex = app.views[app.pack] == View::Dex;
     let what = if dex { " caught" } else { "" };
-    let mut full = vec![segb(c.owned.to_string(), t.title), seg(format!("/{}{what}", c.total), t.dim)];
+    let mut full = vec![segb(c.caught.to_string(), t.title), seg(format!("/{}{what}", c.total), t.dim)];
     let bar = meter_segs(8, c.frac(), &t.meter, t.meter_bg);
     let mut g = full.clone();
     g.push(seg(" ", t.dim));
     g.extend(bar.clone());
     g.push(seg(format!(" {}", pct(&c)), t.fg));
-    if c.pending > 0 {
-        g.push(seg(format!(" +{} pending", c.pending), t.warn));
+    if c.seen > 0 {
+        g.push(seg(format!(" · seen {}", c.seen), t.dim));
     }
-    for cand in [g.clone(), g.iter().take(g.len() - usize::from(c.pending > 0)).cloned().collect::<Vec<_>>()] {
+    for cand in [g.clone(), g.iter().take(g.len() - usize::from(c.seen > 0)).cloned().collect::<Vec<_>>()] {
         if crate::draw::segs_w(&cand) + 2 <= room {
             return cand;
         }
@@ -436,7 +433,7 @@ fn completion_group(app: &App, t: &Theme, room: usize) -> Vec<Seg> {
     if crate::draw::segs_w(&full) + 2 <= room {
         return full;
     }
-    vec![segb(c.owned.to_string(), t.title), seg(format!("/{}", c.total), t.dim)]
+    vec![segb(c.caught.to_string(), t.title), seg(format!("/{}", c.total), t.dim)]
 }
 
 /// The search box on the bottom border: "/set:evo▏lving 12" (the cursor where it is).
@@ -469,7 +466,7 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
         tr.push(segb(" ✦shiny", t.hi));
     }
     match app.own {
-        Own::Owned => tr.push(seg(" owned", t.good)),
+        Own::Caught => tr.push(seg(" caught", t.good)),
         Own::Missing => tr.push(seg(" missing", t.warn)),
         Own::All => {}
     }
@@ -553,31 +550,30 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
         app.hits.slots.push((sr, idx));
         let pack = &app.coll.packs[k.pack];
         let state = app.coll.slot_state(*k, app.shiny_only);
-        let count = app.coll.slot_pulls(*k).iter().filter(|&&pi| !app.shiny_only || app.coll.pulls[pi].shiny).count();
-        let shiny_owned = app.shiny_only || app.coll.slot_pulls(*k).iter().any(|&pi| app.coll.pulls[pi].shiny);
-        let tier = &pack.tiers[k.tier];
-        let (fw, fh) = match (&tier.frame, state) {
-            (_, SlotState::Empty) => (sw.saturating_sub(4), sh.saturating_sub(2)),
-            _ => (sw.saturating_sub(2), sh.saturating_sub(2)),
+        // duplicates and shinies are caught pulls only
+        let count = app.coll.caught_pulls(*k).filter(|&pi| !app.shiny_only || app.coll.pulls[pi].shiny).count();
+        let caught = state == SlotState::Caught;
+        let shiny_owned = caught && (app.shiny_only || app.coll.caught_pulls(*k).any(|pi| app.coll.pulls[pi].shiny));
+        let (fw, fh) = match state {
+            SlotState::Caught => (sw.saturating_sub(2), sh.saturating_sub(2)),
+            _ => (sw.saturating_sub(4), sh.saturating_sub(2)),
         };
-        // empty slots show a silhouette: the base art (legacy packs; full-art tiers would be solid) or "?" (a real
-        // card's art is a whole scene, whose silhouette would be a solid block)
-        let art = if state == SlotState::Empty && !pack.is_cards { pack.tiers[0].art.clone() } else { pack.art_at(*k) };
-        let img = if state == SlotState::Empty && pack.is_cards {
-            None
-        } else {
-            app.art.thumb(pack, &pack.chars[k.ch], &art, shiny_owned && state != SlotState::Empty, fw as usize, fh as usize)
+        // empty: the pocket ("?"); seen: the sprite's silhouette (ArtStore::silhouette); caught: the card's art
+        let img = match state {
+            SlotState::Empty => None,
+            SlotState::Seen => app.art.silhouette_fit(pack, *k, fw as usize, fh as usize, true),
+            SlotState::Caught => app.art.thumb(pack, &pack.chars[k.ch], &pack.art_at(*k), shiny_owned, fw as usize, fh as usize),
         };
         let c = Card {
             pack,
             ch: k.ch,
             tier: k.tier,
-            shiny: shiny_owned && state != SlotState::Empty,
+            shiny: shiny_owned,
             state,
             selected: idx == sel,
             count,
             thumb: true,
-            new: app.coll.slot_new(*k, app.shiny_only),
+            new: caught && app.coll.slot_new(*k, app.shiny_only),
             card: k.card,
         };
         card::draw(buf, sr, &c, img.as_deref(), &theme);
@@ -615,8 +611,8 @@ fn list_page(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, slots: &[SlotK
         let pack = &app.coll.packs[k.pack];
         let st = app.coll.slot_state(*k, app.shiny_only);
         let (mark, mc) = match st {
-            SlotState::Owned => ("●", t.good),
-            SlotState::Pending => ("◌", t.warn),
+            SlotState::Caught => ("●", t.good),
+            SlotState::Seen => ("◐", t.dim),
             SlotState::Empty => ("○", t.faint),
         };
         let w = r.width as usize;
@@ -632,7 +628,7 @@ fn list_page(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, slots: &[SlotK
         let fg = if st == SlotState::Empty { t.dim } else { t.title };
         puts(buf, x, y as i32, &trunc(&pack.name_for(k.ch, k.card), name_room), fg, bg, on, name_room);
         puts(buf, r.x as i32 + w as i32 - width(&lab) as i32, y as i32, &lab, pack.tiers[k.tier].color, bg, false, 12);
-        if app.coll.slot_new(*k, app.shiny_only) && w >= 30 {
+        if st == SlotState::Caught && app.coll.slot_new(*k, app.shiny_only) && w >= 30 {
             puts(buf, r.x as i32 + w as i32 - width(&lab) as i32 - 5, y as i32, "NEW", rgb(0x1a1020), Some(NEW_PINK), true, 3);
         }
         app.hits.slots.push((Rect::new(r.x, y, r.width, 1), idx));
@@ -666,7 +662,7 @@ fn empty_message(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
         lines.push(("no shinies in this pack".into(), t.dim));
     } else {
         let what = match app.own {
-            Own::Owned => "no cards earned here yet · o shows all",
+            Own::Caught => "nothing caught here yet · o shows all",
             Own::Missing => "nothing missing here · m shows all",
             Own::All => "no cards",
         };
@@ -734,7 +730,7 @@ fn search_hint(app: &App, buf: &mut Buffer, r: Rect, t: &Theme) {
             for (s, c) in [
                 ("set: rarity: type: name: number: artist:", t.fg),
                 ("  ·  ", t.faint),
-                ("owned missing pending new shiny foil", t.accent),
+                ("caught seen missing new shiny foil", t.accent),
                 ("  ·  ", t.faint),
                 ("⏎ open on its page  esc back", t.dim),
             ] {
@@ -805,25 +801,31 @@ fn card_panel(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
 fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, below: u16) -> (Rect, u16) {
     let state = app.coll.slot_state(k, app.shiny_only);
     let (_, shown) = app.shown_pull(k);
-    let shiny = shown.is_some_and(|i| app.coll.pulls[i].shiny) || (app.shiny_only && state != SlotState::Empty);
+    let caught = state == SlotState::Caught;
+    let shiny = caught && (shown.is_some_and(|i| app.coll.pulls[i].shiny) || app.shiny_only);
     let count = app.shown_pull(k).0.len();
-    // (the text half shows for any card with card data, pulled or not: a set checklist can be read too)
-    let text = if app.show_text { app.card_text(k) } else { None };
+    // the text half shows for a caught card, and for one never pulled (a set checklist can be read too); a seen card
+    // keeps it hidden until it is caught
+    let seen = state == SlotState::Seen;
+    let text = if app.show_text && !seen { app.card_text(k) } else { None };
     let scroll = app.text_scroll_for(k);
-    let new = app.coll.slot_new(k, app.shiny_only);
+    let new = caught && app.coll.slot_new(k, app.shiny_only);
     let pack = &app.coll.packs[k.pack];
     let tier = &pack.tiers[k.tier];
     let art = pack.art_at(k);
     let (pw, ph) = card::frame_pad(&tier.frame, false);
     let aw = area.width.saturating_sub(2) as usize;
     let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count, thumb: false, new, card: k.card };
-    let empty_real = state == SlotState::Empty && pack.is_cards;
     // the art as big as fits over `reserve` rows kept free under the card
     let place = |reserve: u16| {
         let ah = area.height.saturating_sub(reserve) as usize;
         let fit = (aw.saturating_sub(pw), ah.saturating_sub(ph).max(2));
-        // (an empty real-card slot shows "?": its scene's silhouette would be a solid block)
-        let img = if empty_real { None } else { app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1) };
+        // empty: "?"; seen: the silhouette; caught: the art
+        let img = match state {
+            SlotState::Empty => None,
+            SlotState::Seen => app.art.silhouette_fit(pack, k, fit.0, fit.1, false),
+            SlotState::Caught => app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1),
+        };
         // the "?" placeholder: small when the text half wants the room
         let ph_rows = if text.is_some() { 3 } else { 8 };
         let (iw, ir) = img.as_ref().map(|i| (i.w, i.rows())).unwrap_or((16.min(fit.0.max(4)), ph_rows.min(fit.1)));
@@ -846,7 +848,7 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
         }
         th = th.min(area.height.saturating_sub(ch));
     } else if app.show_text && area.height > ch {
-        th = 1; // "no card text" note
+        th = 1; // "no card text" / "catch it to read it" note
     }
     // center the card (and its text half) together with the info block under it
     let slack = (area.height + below).saturating_sub(ch + th + below);
@@ -855,7 +857,7 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     // clear the region (animation repaints land here)
     fill(buf, area, t.bg);
     card::draw(buf, cr, &c, img.as_deref(), t);
-    if state == SlotState::Owned && card::is_foil(pack, k.tier, shiny) {
+    if caught && card::is_foil(pack, k.tier, shiny) {
         let phase = app.anim_phase();
         card::shimmer(buf, cr, &tier.frame, shiny, phase);
     }
@@ -864,14 +866,14 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
         if th >= 3 {
             let tw = text_w(cw);
             let tr = Rect::new(area.x + (area.width - tw) / 2, cy + ch, tw, th);
-            let line = if state == SlotState::Pending { t.faint } else { tier.color };
+            let line = tier.color;
             let (s, below_rows) = cardtext::draw(buf, tr, v, line, t, scroll);
             app.text_scroll = s;
             hidden = below_rows;
             app.hits.text = tr;
         }
     } else if th == 1 {
-        let note = "no card text for this card (v)";
+        let note = if seen { "seen: catch it to read its text (v)" } else { "no card text for this card (v)" };
         puts(buf, area.x as i32 + (area.width as i32 - width(note) as i32).max(0) / 2, (cy + ch) as i32, note, t.faint, None, false, area.width as usize);
     }
     app.hits.text_more = hidden;
@@ -890,16 +892,21 @@ pub fn render_card(app: &mut App, buf: &mut Buffer) {
     // the card area is centered in its region; repaint just the card rect (same size every frame)
     let state = app.coll.slot_state(k, app.shiny_only);
     let (list, shown) = app.shown_pull(k);
-    let shiny = shown.is_some_and(|i| app.coll.pulls[i].shiny) || (app.shiny_only && state != SlotState::Empty);
-    let new = app.coll.slot_new(k, app.shiny_only);
+    let caught = state == SlotState::Caught;
+    let shiny = caught && (shown.is_some_and(|i| app.coll.pulls[i].shiny) || app.shiny_only);
+    let new = caught && app.coll.slot_new(k, app.shiny_only);
     let pack = &app.coll.packs[k.pack];
     let tier = &pack.tiers[k.tier];
     let fit = app.hits.card_fit;
     let art = pack.art_at(k);
-    let img = if state == SlotState::Empty && pack.is_cards { None } else { app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1) };
+    let img = match state {
+        SlotState::Empty => None,
+        SlotState::Seen => app.art.silhouette_fit(pack, k, fit.0, fit.1, false),
+        SlotState::Caught => app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1),
+    };
     let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count: list.len(), thumb: false, new, card: k.card };
     card::draw(buf, r, &c, img.as_deref(), &t);
-    if state == SlotState::Owned && card::is_foil(pack, k.tier, shiny) {
+    if caught && card::is_foil(pack, k.tier, shiny) {
         card::shimmer(buf, r, &tier.frame, shiny, app.anim_phase());
     }
 }
@@ -911,16 +918,23 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
     let pack = &app.coll.packs[k.pack];
     let tier = &pack.tiers[k.tier];
     let shown = shown_i.map(|i| &app.coll.pulls[i]);
-    let shiny = shown.is_some_and(|p| p.shiny) || app.shiny_only;
+    let shiny = state == SlotState::Caught && (shown.is_some_and(|p| p.shiny) || app.shiny_only);
     let (x0, y0, w) = (r.x as i32, r.y as i32, r.width as usize);
     if w < 4 || r.height == 0 {
         return;
     }
-    let is_new = state == SlotState::Owned && app.coll.slot_new(k, app.shiny_only);
+    let is_new = state == SlotState::Caught && app.coll.slot_new(k, app.shiny_only);
+    // a seen card: how to catch it (its tab, while a pull of it is still pending; else pull it again)
+    let pend = app.coll.pending_pull(k);
+    let last_seen = app.coll.slot_pulls(k).last().map(|&i| data::when(app.coll.pulls[i].ts, app.now));
+    let catch = match pend {
+        Some(i) => format!("use the tab it was pulled in to catch it ({})", data::ago(app.now - app.coll.pulls[i].ts)),
+        None => "pull it again to catch it".to_string(),
+    };
     let (badge, bc): (String, Rgb) = match state {
-        SlotState::Owned if is_new && side => ("● collected · NEW".into(), t.good),
-        SlotState::Owned => ("● collected".into(), t.good),
-        SlotState::Pending => ("◌ pending · use its tab to earn it".into(), t.warn),
+        SlotState::Caught if is_new && side => ("● caught · NEW".into(), t.good),
+        SlotState::Caught => ("● caught".into(), t.good),
+        SlotState::Seen => ("◐ seen".into(), t.fg),
         SlotState::Empty => ("○ not pulled yet".into(), t.dim),
     };
     let first = list.first().map(|&i| data::when(app.coll.pulls[i].ts, app.now));
@@ -947,22 +961,37 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
                 tag_rows.push(("artist", c.artist.clone(), t.dim, false));
             }
         }
-        let rows: Vec<(&str, String, Rgb, bool)> = vec![
+        let mut rows: Vec<(&str, String, Rgb, bool)> = vec![
             ("", pack.name_for(k.ch, k.card), t.title, true),
             ("", format!("{} {}", pack.tag_for(k.ch, k.card), if shiny { "✦ shiny" } else { "" }), t.dim, false),
             ("", String::new(), t.fg, false),
             ("status", badge.clone(), bc, true),
-            ("tier", tier.label.clone(), tier.color, true),
         ];
-        let rows: Vec<(&str, String, Rgb, bool)> = rows
-            .into_iter()
-            .chain(tag_rows)
-            .chain(vec![
+        if state == SlotState::Seen {
+            rows.push(("catch", if pend.is_some() { "use its tab".into() } else { "pull it again".into() }, t.fg, false));
+            if let Some(i) = pend {
+                rows.push(("", format!("       pulled {}", data::ago(app.now - app.coll.pulls[i].ts)), t.dim, false));
+            }
+            rows.push(("seen", last_seen.clone().unwrap_or("-".into()), t.dim, false));
+        }
+        rows.push(("tier", tier.label.clone(), tier.color, true));
+        // a seen card has no caught pulls to list (its pulls, first / last and skins stay caught-only)
+        let pull_rows: Vec<(&str, String, Rgb, bool)> = if state == SlotState::Seen {
+            vec![]
+        } else {
+            vec![
                 ("pulls", if list.is_empty() { "-".into() } else { format!("×{}", list.len()) }, t.title, true),
                 ("first", first.clone().unwrap_or("-".into()), t.fg, false),
                 ("last", last.clone().unwrap_or("-".into()), t.fg, false),
                 ("skin", shown.map(|p| if p.skin.is_empty() { "—".to_string() } else { p.skin.clone() }).unwrap_or("-".into()), t.accent, false),
-                ("seen", if skins.is_empty() { "-".into() } else { skins.join(", ") }, t.dim, false),
+                ("skins", if skins.is_empty() { "-".into() } else { skins.join(", ") }, t.dim, false),
+            ]
+        };
+        let rows: Vec<(&str, String, Rgb, bool)> = rows
+            .into_iter()
+            .chain(tag_rows)
+            .chain(pull_rows)
+            .chain(vec![
                 ("", String::new(), t.fg, false),
                 ("odds", odds(cp), t.hi, true),
                 ("tier", odds(tp), t.fg, false),
@@ -1003,6 +1032,9 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
         let span = if first == last { first.clone().unwrap_or_default() } else { format!("{} → {}", first.clone().unwrap_or_default(), last.clone().unwrap_or_default()) };
         l1.push((format!("  {span}"), t.dim, false));
     }
+    if state == SlotState::Seen {
+        l1.push((format!("  last seen {}", last_seen.clone().unwrap_or_default()), t.dim, false));
+    }
     lines.push((l1, vec![("odds ".into(), t.dim, false), (odds(cp), t.hi, true)]));
     if let Some(c) = &card {
         let mut l: Vec<(String, Rgb, bool)> = vec![(if c.set_name.is_empty() { c.set_id.clone() } else { c.set_name.clone() }, t.fg, false)];
@@ -1014,6 +1046,10 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
             l.push((format!(" · {kinds}"), t.dim, false));
         }
         lines.push((l, if c.artist.is_empty() { vec![] } else { vec![(c.artist.clone(), t.faint, false)] }));
+    }
+    // a seen card: how to catch it, where a caught one lists its skins
+    if state == SlotState::Seen {
+        lines.push((vec![(catch.clone(), t.fg, false)], vec![]));
     }
     // skins of this tier: the one on the shown pull highlighted, seen ones lit, the rest dim
     let mut l2: Vec<(String, Rgb, bool)> = vec![("skins".into(), t.dim, false)];
@@ -1029,7 +1065,9 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
         l2.push((format!(" {mark}"), c, false));
         l2.push((sk.clone(), c, b));
     }
-    lines.push((l2, vec![]));
+    if state != SlotState::Seen {
+        lines.push((l2, vec![]));
+    }
     let mut l3: Vec<(String, Rgb, bool)> = vec![];
     if let (Some(p), Some((h, n))) = (shown, hp) {
         if n > 1 {
@@ -1323,7 +1361,7 @@ fn picker(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
     let sel = pk.sel.min(rows.len() - 1);
     let off = if sel >= list_h { sel + 1 - list_h } else { 0 };
     // columns (right to left): pct 4 | bar 10 | counts 9 | id 8 | name (the rest); narrow: the id, then the bar go
-    let counts_w = rows.iter().map(|r| format!("{}/{}", r.done.owned, r.done.total).len()).max().unwrap_or(5);
+    let counts_w = rows.iter().map(|r| format!("{}/{}", r.done.caught, r.done.total).len()).max().unwrap_or(5);
     let id_w = rows.iter().map(|r| width(&r.id)).max().unwrap_or(0).min(10);
     let show_bar = iw >= 44;
     let show_id = iw >= 56 && id_w > 0;
@@ -1353,14 +1391,14 @@ fn picker(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
             puts(buf, x, y, &trunc(&sr.id, id_w), t.dim, bg, false, id_w);
             x += id_w as i32 + 3;
         }
-        let cnt = format!("{}/{}", sr.done.owned, sr.done.total);
-        puts(buf, x + (counts_w - cnt.len()) as i32, y, &cnt, if sr.done.owned > 0 { t.fg } else { t.dim }, bg, false, counts_w);
+        let cnt = format!("{}/{}", sr.done.caught, sr.done.total);
+        puts(buf, x + (counts_w - cnt.len()) as i32, y, &cnt, if sr.done.caught > 0 { t.fg } else { t.dim }, bg, false, counts_w);
         x += counts_w as i32 + 2;
         if show_bar {
             meter(buf, x, y, bar_w, sr.done.frac(), &t.meter, t.meter_bg);
             x += bar_w as i32;
         }
-        puts(buf, x, y, &format!("{:>4}", pct(&sr.done)), if sr.done.owned > 0 { t.title } else { t.faint }, bg, sr.done.owned > 0, 4);
+        puts(buf, x, y, &format!("{:>4}", pct(&sr.done)), if sr.done.caught > 0 { t.title } else { t.faint }, bg, sr.done.caught > 0, 4);
         app.hits.picker_rows.push((Rect::new(inner.x, y as u16, inner.width, 1), i));
     }
     if rows.len() > list_h {
@@ -1389,13 +1427,13 @@ fn help(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
         ("  pikchu  lyc vmax", "  forgiving: letters in order (evs rainbow), every word must match"),
         ("  set:evolving set:swsh7", "  a set by name or id  ·  number:17  id:swsh7-17  -holo leaves out"),
         ("  rarity:\"rare rainbow\"", "  type:water  subtype:vmax  artist:…  name:…"),
-        ("  owned missing pending", "  state words (also new shiny foil); tab completes; esc goes back"),
-        ("o   m", "owned only (earned) · missing only"),
+        ("  caught seen missing", "  state words (also new shiny foil); tab completes; esc goes back"),
+        ("o   m", "caught only · missing only (not caught: empty or seen)"),
         ("s", "shiny-only binder"),
         ("v", "the card's text half (moves, HP, weakness) under the art"),
         ("d", "view: every card / one slot per character (dex)"),
         ("t", "cycle theme"),
-        ("L", "jump to the latest pull"),
+        ("L", "jump to the last card you caught"),
         ("r", "reload pulls.log (it also reloads by itself)"),
         ("? F1", "this help (↑ ↓ scroll)"),
         ("esc", "clear the search, then quit"),
@@ -1430,7 +1468,7 @@ fn help(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
             puts(buf, x0, y, &trunc(k, kw - 1), t.hi, None, true, kw - 1);
             puts(buf, x0 + kw as i32, y, &trunc(d, dw), t.fg, None, false, dw);
         } else if i == keys.len() + 1 {
-            let legend: Vec<(&str, Rgb, &str)> = vec![("● ", t.good, "earned  "), ("◌ ", t.warn, "pending: use its tab  "), ("NEW ", NEW_PINK, "not viewed  "), ("┆ ", t.slot_line, "not pulled")];
+            let legend: Vec<(&str, Rgb, &str)> = vec![("● ", t.good, "caught  "), ("◐ ", t.fg, "seen: a shadow until you catch it  "), ("NEW ", NEW_PINK, "not viewed  "), ("┆ ", t.slot_line, "never pulled")];
             let mut x = x0;
             let end = (inner.x + inner.width) as i32 - 1;
             for (s, c, d) in legend {
@@ -1467,9 +1505,9 @@ mod tests {
 
     #[test]
     fn pct_never_lies() {
-        assert_eq!(pct(&Completion { owned: 1, pending: 0, total: 342 }), "1%");
-        assert_eq!(pct(&Completion { owned: 341, pending: 0, total: 342 }), "99%");
-        assert_eq!(pct(&Completion { owned: 0, pending: 3, total: 342 }), "0%");
-        assert_eq!(pct(&Completion { owned: 5, pending: 0, total: 5 }), "100%");
+        assert_eq!(pct(&Completion { caught: 1, seen: 0, total: 342 }), "1%");
+        assert_eq!(pct(&Completion { caught: 341, seen: 0, total: 342 }), "99%");
+        assert_eq!(pct(&Completion { caught: 0, seen: 3, total: 342 }), "0%");
+        assert_eq!(pct(&Completion { caught: 5, seen: 0, total: 5 }), "100%");
     }
 }

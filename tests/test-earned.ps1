@@ -2,7 +2,8 @@
 The earned rule and the binder entry points (docs/BINDER_SPEC.md), against throwaway state dirs and settings copies:
 pull ids + pending in pulls.log, the tab's first command earning it (the prompt / OnIdle hook, in child processes),
 expiry (24 h, another boot session), viewed.txt / NEW, the earn setting, the binder footer link, `binder` (app,
-text fallback, --web), the Windows Terminal hotkey on settings.json COPIES, and the pokeshell:// handler as a dry run.
+text fallback, --web; empty / seen / caught cards), the Windows Terminal hotkey on settings.json COPIES, and the
+pokeshell:// handler as a dry run.
 Never opens a tab, a window or a browser; never touches the real settings.json, registry, $PROFILE or state.
   powershell -NoProfile -File tests\test-earned.ps1
 #>
@@ -160,10 +161,13 @@ Copy-Item -Recurse (Join-Path $RepoRoot 'scripts') $fx
 Copy-Item (Join-Path $RepoRoot 'tools\binder_web.py') (Join-Path $fx 'tools')
 Copy-Item (Join-Path $RepoRoot 'tools\binder-web\index.html') (Join-Path $fx 'tools\binder-web')
 Copy-Item (Join-Path $RepoRoot 'packs\pokemon\pack.json') (Join-Path $fx 'packs\pokemon')
-$fxArt = "$e[0;38;2;10;20;30m" + [char]0x2580 + "$e[0m`n"
+# fake art: a common is the plain sprite (transparent around it), every other card a full-bleed scene (the silhouette
+# rule, docs/BINDER_SPEC.md "Empty, seen, caught")
+$fxSprite = "$e[0;38;2;10;20;30m" + [char]0x2580 + "$e[0m `n"
+$fxArt = "$e[0;38;2;10;20;30m" + [char]0x2588 + [char]0x2588 + "$e[0m`n"
 $fxBuilt = 'bulbasaur-base1-44', 'charmander-base1-46', 'pikachu-base1-58', 'squirtle-base1-63', 'bulbasaur-sv3pt5-166', 'charmander-sv3pt5-168',
   'squirtle-sv3pt5-170', 'charmander-sma-SV6', 'glaceon-swsh7-40', 'glaceon-swsh7-41', 'glaceon-swsh7-174', 'glaceon-swsh7-175'   # 12 built; e.g. swsh4-170 is not
-foreach ($n in $fxBuilt) { [IO.File]::WriteAllText((Join-Path $fx "dist\pokemon\$n.ans"), $fxArt, [Text.UTF8Encoding]::new($false)) }
+foreach ($n in $fxBuilt) { [IO.File]::WriteAllText((Join-Path $fx "dist\pokemon\$n.ans"), $(if ($n -match 'base1-') { $fxSprite } else { $fxArt }), [Text.UTF8Encoding]::new($false)) }
 $cli = Join-Path $fx 'scripts\pokeshell.ps1'
 $rs = New-TestState 'earn-read'
 $now = [DateTime]::UtcNow; $boot = [Pokeshell.Core]::BootId()
@@ -232,30 +236,44 @@ $exe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
 if (Test-Path $exe) {
   $viewedBefore = (Get-FileHash (Join-Path $rs 'viewed.txt')).Hash
   $frame = Strip (& $exe --root $fx --state $rs --first-frame | Out-String)
-  Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur illustration rare); header counts pending and new"
-  Assert ($frame -match '\b8 pulls' -and $frame -match 'best pulls' -and $frame -match "since $sinceLabel") "unbuilt and retired pulls are left out (8 shown); best pulls since ${sinceLabel} (on the panel's bottom border): $((($frame -split "`n") | Select-Object -First 1).Trim()) / $((($frame -split "`n") | Where-Object { $_ -match 'since' }) -replace '.*(since)', '$1')"
+  Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match 'caught 7' -and $frame -match 'seen 3' -and $frame -match '1 new') "the app opens on the last caught card (bulbasaur illustration rare); header: caught 7 · seen 3 (a pending and two expired cards), 1 new"
+  Assert ($frame -notmatch '(?i)pending') "no 'pending' anywhere on the page"
+  Assert ($frame -match '\b7 pulls' -and $frame -match 'best pulls' -and $frame -match "since $sinceLabel") "caught pulls only (7); unbuilt and retired pulls are left out; best pulls since ${sinceLabel} (on the panel's bottom border): $((($frame -split "`n") | Select-Object -First 1).Trim()) / $((($frame -split "`n") | Where-Object { $_ -match 'since' }) -replace '.*(since)', '$1')"
+  # a seen pull newer than every caught one: the app still opens on the last caught card, never the seen one
+  $ls = New-TestState 'earn-land'
+  Copy-Item (Join-Path $rs 'viewed.txt') $ls
+  $n1 = L 2 'charmander' 'illustration-rare' 'sv3pt5-168' 'pending' $now.AddMinutes(-2).Ticks
+  [IO.File]::WriteAllLines((Join-Path $ls 'pulls.log'), [string[]]($lines + $n1.line))
+  $frame = Strip (& $exe --root $fx --state $ls --first-frame | Out-String)
+  Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match 'caught' -and $frame -notmatch 'use the tab it was pulled in') "a newer seen pull (charmander, 2m ago): opens on the last caught card all the same"
+  $frame = Strip (& $exe --root $fx --state $ls --pull $n1.id --first-frame | Out-String)
+  Assert ($frame -match 'Charmander' -and $frame -match '168/165' -and $frame -match 'seen' -and $frame -match 'use the tab it was pulled in to catch it \(\d+m ago\)') "--pull <id> of that seen pull (the binder link under the card): lands on it, its silhouette and how to catch it"
   $frame = Strip (& $exe --root $fx --state $rs --pull $a.id --first-frame | Out-String)
-  Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'collected') "--pull <id> opens that pull, with its NEW sticker"
+  Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'caught') "--pull <id> opens that pull, with its NEW sticker"
   $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/charmander/rare shiny' --first-frame | Out-String)
-  Assert ($frame -match 'Charmander' -and $frame -match 'SV6/SV94' -and $frame -match 'not pulled yet') "--card pack/character/tier (tier by label) opens that card"
+  Assert ($frame -match 'Charmander' -and $frame -match 'SV6/SV94' -and $frame -match 'seen' -and $frame -match 'pull it again') "--card pack/character/tier (tier by label): an expired pull counts as seen (pull it again to catch it)"
+  $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-168' --first-frame | Out-String)
+  Assert ($frame -match 'Charmander' -and $frame -match 'not pulled yet') "--card of a card never pulled: empty"
   $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/sv3pt5-170' --first-frame | Out-String)
-  Assert ($frame -match 'Squirtle' -and $frame -match 'pending') "--card pack/<card id> opens that real card"
+  Assert ($frame -match 'Squirtle' -and $frame -match 'seen' -and $frame -match 'use the tab it was pulled in') "--card pack/<card id> opens that real card; a pending pull is seen: use its tab to catch it"
   $frame = Strip (& $exe --root $fx --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
   # tags and sets: a set's checklist (every pack.json card of the set, pulled or not) and a tag search
   $frame = Strip (& $exe --root $fx --state $rs --set sv3pt5 --first-frame | Out-String)
-  Assert ($frame -match 'set 151' -and $frame -match '1/3' -and $frame -match '\+1 pending' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled: 1 earned, and 1 pending, which isn't done yet)"
+  Assert ($frame -match 'set 151' -and $frame -match '1/3' -and $frame -match 'seen 1' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled: 1 caught, and 1 seen, which isn't done yet)"
   $frame = Strip (& $exe --root $fx --state $rs --set '151' --first-frame | Out-String)
   Assert ($frame -match 'set 151' -and $frame -match '1/3') "--set by name (fuzzy): 151"
   $frame = Strip (& $exe --root $fx --state $rs --set 'zzz' --first-frame | Out-String)
   Assert ($frame -match 'no set matches') "--set with no match says so"
-  $frame = Strip (& $exe --root $fx --state $rs --search 'set:base1 owned' --first-frame | Out-String)
-  Assert ($frame -match '/set:base1 owned 2') "--search 'set:base1 owned': tag filter + state word (2 cards)"
-  $frame = Strip (& $exe --root $fx --state $rs --search 'rarity:\"illustration rare\" pending' --first-frame | Out-String)
-  Assert ($frame -match 'pending 1') "--search with a quoted tag value and a state word"
-  $frame = Strip (& $exe --root $fx --state $rs --search 'glaceon owned' --first-frame | Out-String)
-  Assert ($frame -match '/glaceon owned 4') "four Glaceon cards pulled (two of one rarity): four slots"
+  foreach ($q in @(@('set:base1 caught', 2), @('set:base1 owned', 2), @('set:base1 seen', 1), @('set:base1 pending', 1), @('set:base1 missing', 2))) {
+    $frame = Strip (& $exe --root $fx --state $rs --search $q[0] --first-frame | Out-String)
+    Assert ($frame -match "/$([regex]::Escape($q[0])) $($q[1]) card") "--search '$($q[0])': tag filter + state word ($($q[1]); base1: 2 caught, 1 seen (expired), 1 never pulled)"
+  }
+  $frame = Strip (& $exe --root $fx --state $rs --search 'rarity:\"illustration rare\" seen' --first-frame | Out-String)
+  Assert ($frame -match 'seen 1') "--search with a quoted tag value and a state word"
+  $frame = Strip (& $exe --root $fx --state $rs --search 'glaceon caught' --first-frame | Out-String)
+  Assert ($frame -match '/glaceon caught 4') "four Glaceon cards pulled (two of one rarity): four slots"
   $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/swsh4-170' --first-frame | Out-String)
   Assert ($frame -notmatch 'Pikachu V') "an unbuilt card is no slot (--card pokemon/swsh4-170 doesn't land on it)"
   [IO.File]::WriteAllLines((Join-Path $rs 'config.txt'), [string[]]@('best_since=all'))
@@ -272,11 +290,17 @@ if ($py) {
   $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_PYTHON = $py; POKESHELL_NO_OPEN = '1' })
   $data = Get-Content (Join-Path $rs 'web\data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   $st2 = ($data.pulls | ForEach-Object { "$($_.char)/$($_.status)$(if ($_.new) { '+new' })" }) -join ' '
-  Assert ($st2 -eq 'squirtle/collected glaceon/collected glaceon/collected glaceon/collected glaceon/collected pikachu/collected+new squirtle/pending bulbasaur/collected' -and $data.hidden -eq 2) "data.json marks earned vs pending (expired left out, retired art and unbuilt cards hidden): $st2"
+  Assert ($st2 -eq 'squirtle/collected glaceon/collected glaceon/collected glaceon/collected glaceon/collected pikachu/collected+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/collected' -and $data.hidden -eq 2) "data.json marks caught vs pending vs expired (both seen: expired pulls are kept now; retired art and unbuilt cards hidden): $st2"
   Assert (@($data.pulls | Where-Object char -eq 'glaceon' | ForEach-Object card | Sort-Object -Unique).Count -eq 4) "each Glaceon pull keeps its own card (four slots)"
   Assert ($data.best_since -eq $realT.ToString('s')) "best pulls start at the first built real-card pull ($($data.best_since))"
-  Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'earned' } | Select-Object -First 1).Trim()))"
+  Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at' -and $out -match '7 pulls caught \(7 cards\), 3 seen') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'pulls caught' } | Select-Object -First 1).Trim()))"
   Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
+  $wpk0 = $data.packs | Where-Object id -eq 'pokemon'
+  $sq = $wpk0.characters | Where-Object id -eq 'squirtle'; $cm = $wpk0.characters | Where-Object id -eq 'charmander'
+  Assert ($sq.seen -eq 'base1-63' -and $cm.seen -eq 'base1-46' -and ($wpk0.cards | Where-Object id -eq 'base1-44').sprite) "silhouettes: a seen scene card takes its character's common (squirtle: base1-63; charmander: base1-46); a common (transparent art) is its own"
+  $pageHtml = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
+  Assert ($pageHtml.Contains('function seenEl') -and $pageHtml.Contains('seen__sil') -and $pageHtml.Contains('brightness(0)') -and -not $pageHtml.Contains('.card.pending') -and -not $pageHtml.Contains('pill--pending')) "the page draws seen cards as flat silhouettes; no pending ribbon"
+  Assert ($pageHtml.Contains("const recent = got.slice()") -and $pageHtml.Contains("'caught', h('b', {}, uniq)") -and $pageHtml.Contains("'seen', h('b', {}, nSeen)")) "the page's fresh pulls are caught ones only; its header counts caught N · seen M"
   $pk = $data.packs | Where-Object id -eq 'pokemon'
   Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and -not @($pk.cards | Where-Object id -eq 'swsh4-170') -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every built card with its set (the checklists) in data.json; unbuilt ones left out"
   $html = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
@@ -301,9 +325,12 @@ const cards = Object.entries(pk.cards).map(([id, c]) => {
   const tags = [['pack', 'pokemon'], ['char', c.character], ['name', c.name], ['tier', c.tier], ['id', id], ['number', c.number], ['rarity', c.rarity], ['set', sid], ['set', c.set]];
   return { id, c, hay: tags.map(([k, v]) => [k, api.field(v)]) };
 });
-const find = q => { const p = api.parseQuery(q); api.resolveSets(p.terms, { sets }); return cards.filter(x => api.matchHay(p.terms, x.hay, () => ({ owned: x.id === 'swsh7-92' }))).map(x => x.id); };
+// the flags the page's slotFlags gives: swsh7-92 caught, swsh7-91 seen
+const flags = x => { const caught = x.id === 'swsh7-92', seen = x.id === 'swsh7-91'; return { caught, owned: caught, seen, pending: seen, missing: !caught }; };
+const find = q => { const p = api.parseQuery(q); api.resolveSets(p.terms, { sets }); return cards.filter(x => api.matchHay(p.terms, x.hay, () => flags(x))).map(x => x.id); };
 const out = { cases: {} };
-for (const q of ['pikachu', 'pikchu', 'lyc vmax', 'lycvmax', 'evs rainbow', 'set:30th', 'number:17', 'id:"swsh7-9"', 'id:swsh7-9', '-pikachu set:30th', 'lyc owned', 'rarity:"rare rainbow"', 'rarity:rare rainbow', 'flabebe']) out.cases[q] = find(q);
+for (const q of ['pikachu', 'pikchu', 'lyc vmax', 'lycvmax', 'evs rainbow', 'set:30th', 'number:17', 'id:"swsh7-9"', 'id:swsh7-9', '-pikachu set:30th', 'lyc owned', 'lyc caught', 'lyc is:caught', 'lyc seen', 'lyc pending', 'lyc missing', 'rarity:"rare rainbow"', 'rarity:rare rainbow', 'flabebe']) out.cases[q] = find(q);
+out.lyc = cards.filter(x => /lycanroc/i.test(x.c.name)).map(x => x.id);
 out.pika = cards.filter(x => x.c.name.includes('Pikachu')).map(x => x.id);
 out.rainbows = cards.filter(x => x.id.startsWith('swsh7-') && x.c.rarity === 'Rare Rainbow').map(x => x.id);
 out.c30 = cards.filter(x => x.c.set.includes('30th')).map(x => x.id);
@@ -321,13 +348,14 @@ console.log(JSON.stringify(out));
     Assert (@($c.'number:17').Count -gt 0 -and -not @($c.'number:17' | Where-Object { $_ -notmatch '-0*17$' })) "web search: number:17 is the numerator (17/..., not 117 or 170)"
     Assert ((@($c.'id:"swsh7-9"') -join ',') -eq 'swsh7-9' -and (@($c.'id:swsh7-9') -join ',') -eq 'swsh7-9') "web search: id: is the whole id, quoted or not (the app does the same)"
     Assert (@($c.'-pikachu set:30th').Count -eq @($r.c30).Count - @($r.pika | Where-Object { @($r.c30) -contains $_ }).Count) "web search: -pikachu leaves the Pikachu cards out"
-    Assert ((@($c.'lyc owned') -join ',') -eq 'swsh7-92') "web search: a state word tests the card (lyc owned)"
+    Assert ((@($c.'lyc owned') -join ',') -eq 'swsh7-92' -and (@($c.'lyc caught') -join ',') -eq 'swsh7-92' -and (@($c.'lyc is:caught') -join ',') -eq 'swsh7-92') "web search: a state word tests the card (lyc caught, and its old word owned)"
+    Assert ((@($c.'lyc seen') -join ',') -eq 'swsh7-91' -and (@($c.'lyc pending') -join ',') -eq 'swsh7-91' -and @($c.'lyc missing').Count -eq @($r.lyc).Count - 1 -and @($c.'lyc missing') -notcontains 'swsh7-92') "web search: seen (and its old word pending); missing = not caught (seen and empty)"
     Assert ((& $has $c.'rarity:"rare rainbow"' $r.rainbows) -and @($c.'rarity:rare rainbow').Count -ge @($c.'rarity:"rare rainbow"').Count) "web search: a quoted value keeps its spaces"
     Assert (($r.sets -join ' ') -eq 'swsh1 swsh7,swsh1,swsh10 swsh7 me55,cel25 swsh7') "web search: set: names the best-matching sets like the app (swsh1 is not swsh10; swsh = every swsh; evsk; celebration is both): $($r.sets -join ' / ')"
   } else { Write-Host "  skip  node not found: the page's matcher is not run" -ForegroundColor Yellow }
-  Assert ($data.counts.kept -eq 7 -and $data.counts.pending -eq 1) "data.json counts kept pulls only; pending apart ($($data.counts.kept) kept, $($data.counts.pending) pending)"
+  Assert ($data.counts.pulls -eq 7 -and $data.counts.caught -eq 7 -and $data.counts.seen -eq 3) "data.json counts caught pulls and cards; seen cards apart ($($data.counts.pulls) pulls, caught $($data.counts.caught), seen $($data.counts.seen))"
 
-  # tools\binder_web.py on its own: the text half, pending not counted, unreadable lines, checklist order, the art cache
+  # tools\binder_web.py on its own: the text half, seen not counted, unreadable lines, checklist order, the art cache
   $cardsDir = Join-Path $fx 'packs\pokemon\cards'; [void][IO.Directory]::CreateDirectory($cardsDir)
   $cardJson = '{"id":"swsh7-40","name":"Glaceon V","supertype":"Pokémon","subtypes":["Basic","V"],"hp":"210","types":["Water"],"evolvesFrom":"",' +
     '"abilities":[{"name":"Test Ability","text":"Does a thing.","type":"Ability"}],' +
@@ -350,7 +378,7 @@ console.log(JSON.stringify(out));
   $o1 = Invoke-WebPy --root $fx --state $ws --out $wout
   Assert ($LASTEXITCODE -eq 0 -and $o1 -match '2 lines of pulls.log couldn''t be read') "invalid UTF-8 and a corrupt time: skipped with a warning, no crash ($(($o1 -split "`n" | Where-Object { $_ -match 'read' } | Select-Object -First 1).Trim()))"
   $wd = Get-Content (Join-Path $wout 'data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-  Assert ($wd.counts.kept -eq 2 -and $wd.counts.pending -eq 1 -and $wd.counts.shiny -eq 1 -and $wd.bad_lines -eq 2) "a pending shiny is shown but not counted: kept $($wd.counts.kept), pending $($wd.counts.pending), shiny $($wd.counts.shiny)"
+  Assert ($wd.counts.pulls -eq 2 -and $wd.counts.caught -eq 2 -and $wd.counts.seen -eq 1 -and $wd.counts.shiny -eq 1 -and $wd.bad_lines -eq 2) "a pending shiny is seen, not counted: pulls $($wd.counts.pulls), caught $($wd.counts.caught), seen $($wd.counts.seen), shiny $($wd.counts.shiny)"
   $wpk = $wd.packs | Where-Object id -eq 'pokemon'
   $c40 = $wpk.cards | Where-Object id -eq 'swsh7-40'
   $atk = @($c40.text.attacks)

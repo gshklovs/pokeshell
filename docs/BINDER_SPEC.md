@@ -1,6 +1,7 @@
 # Binder UX spec
 
 Status: **built** on branch `binder-earned` (2026-09-29): the earned rule, all four entry points, tags and search.
+Branch `binder-seen` (2026-09-29): empty / seen / caught slots (a Pokédex's), replacing "pending" in both binders.
 The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` prototype), the web binder is
 `tools/binder_web.py` + `tools/binder-web/index.html` (from `style-lab/binder-web`). Still open: the backend (below),
 `collection.json` (not needed so far: reading `pulls.log` takes a few ms), and the open questions at the end.
@@ -37,17 +38,64 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
 | `binder --web` | Regenerates the static web binder from the latest pulls (about 1 s) and opens it in the default browser. |
 
 ## Landing
-- It always opens on the **newest pull**: the binder page containing that card, with the card selected and shown in the detail panel.
-- `--card <pack/char/tier>` and `--pull <id>` (used by the click link) override that.
+- It opens on the **last card you caught**: the binder page containing it, the card selected and shown in the detail
+  panel. Never on a seen card: a newer pull that is pending or expired isn't in the binder yet. Every "newest pull"
+  landing does the same: plain `binder`, `L` in the app, a `--set` / `--search` start (the last caught card they show,
+  else their first card), the header's "last" pull. Nothing caught yet: the first card of the binder.
+- An explicit request for a pull or card lands on that card's slot even when it isn't caught (it then shows its
+  silhouette): `--pull <id>` and `--url pokeshell://binder?pull=<id>` (the `binder ⏎` link under a freshly pulled
+  card), `--card <pack/char/tier>` or `--card <pack/card id>`, and the web page's `?card=`.
+- The web page opens closed on its title page, as before; its fresh-pulls strip and best pulls are caught cards only.
 
 ## Earning a card
 1. **Roll.** Each roll gets a pull id (ULID) and is logged with the `pending` flag. The id is exported to the tab as `POKESHELL_PULL`.
 2. **First use.** The first real command in that tab (a hook on the prompt function; an empty Enter doesn't count) marks the pull `earned`, and prints one line once: `✦ Pikachu holo added to your binder`.
-3. **Closed unused.** The pull stays pending and expires when the next session starts (or after 24 h). Expired pulls never show.
-4. **In the binder.** A new earned card shows a **NEW** sticker until it has been viewed. Pending cards show greyed out with "use its tab to earn it".
+3. **Closed unused.** The pull stays pending and expires when the next session starts (or after 24 h).
+4. **In the binder.** A new earned card shows a **NEW** sticker until it has been viewed. A pulled card that isn't
+   earned (pending or expired) is **seen**: its silhouette (below).
 - What counts as "use": the lookbook question `use_rule` decides this. The default is the first command.
 
 Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired:<id>` lines. `collection.json` is a derived cache the binder rebuilds when it's stale. `viewed.txt` holds the ids already seen, which is what clears NEW stickers.
+
+## Empty, seen, caught (both binders)
+Every card slot is in one of three states, like a Pokédex:
+
+| State | When | Shows |
+|---|---|---|
+| **Empty** | never pulled | the empty pocket: its number, name and rarity hint |
+| **Seen** | pulled, never earned: every pull of it is pending or expired | a **silhouette**: the sprite's shape in one flat dark shadow colour on plain card stock, with its name, number and rarity hint. No colours, scene, foil, shimmer, animation, shiny or NEW sticker, no ribbon or tape. The text half stays hidden. |
+| **Caught** | earned at least once | the real card, exactly as before, with every effect |
+
+- **Expired pulls now count as seen** (you saw the card and didn't catch it). Before `binder-seen`, expired pulls
+  never showed. Both readers keep them (status `Expired` in the app, `"expired"` in data.json); the CLI's
+  `pokeshell collection` table still leaves them out.
+- **The detail panel** of a seen card says **seen** and how to catch it: "use the tab it was pulled in to catch it (5m ago)" while
+  a pull of it is still pending, else "pull it again". It lists no pulls, copies, skins or history (those are caught
+  pulls only).
+- **Counts** are Pokédex counts: **caught N · seen M** (seen = slots seen but not caught), in the headers (app: `caught
+  58 · seen 125` chips; web: chips, the cover label, the title page), on the completion line (`58/342 ■■□□ 17% · seen
+  125`) and in the legends. Completion counts caught only. The word "pending" is gone from both binders.
+- **Duplicates, best pulls, foils, shiny counts, pulls, streak, drought and activity** count caught pulls only.
+- **The web's fresh-pulls strip** shows caught pulls only (seen ones are not there at all).
+- **How the silhouette is made** (the same order in `ArtStore::silhouette` and `binder_web.py`): the sprite's opaque
+  pixels, never a scene's background.
+  1. Packs without real cards: the character's base (tier 0) art (web dex pages: the pulled sprite).
+  2. A real card whose art is the plain sprite (the commons): its own art. A card's art is its plain sprite when at
+     least 10% of it is transparent; every scene is full-bleed (0%), every common 26-66% (measured on the 342 cards).
+  3. A scene card: the character's plain sprite from one of its commons in the pack. This is the shipped art, so it
+     works on every install; about half the characters have a common.
+  4. Else the colorscripts sprite: `vendor/pokemon-colorscripts/colorscripts/large/regular/<name>` (or
+     `$POKESHELL_VENDOR`), then `dist/pokedex/<name>-common.ans`. Checkouts that build the art have these.
+  5. Else the card art's own **sprite layer**: the sprite sits pixel-exact over the scene (docs/ART_METHOD.md) and only
+     it changes colour in the `-shiny` art, so the pixels that differ, grown twice into the dark outline around them
+     and with enclosed holes filled, are its shape. Rougher (eyes or colours a shiny keeps can nibble it), so it is the
+     last resort. On a plain install, characters without a common land here.
+  6. Else no shape: the seen card shows a "?" on its stock.
+  The web exports a silhouette image only when no exported art already gives it (`img/<pack>/<character>/_seen.png`,
+  `<card id>-seen.png`) and draws any of them blacked out (`filter: brightness(0)`).
+- **The text half** (`v` in the app, the card page on the web) shows for caught cards and, as before, for cards never
+  pulled (a set's checklist can be read); a seen card keeps it hidden until it is caught.
+- **Empty pockets lose their faint silhouette** (the pokedex and One Piece packs had one): a shape now means seen.
 
 ## Tags and search (both binders)
 - **Search** (`/`), the same in both binders (`binder/src/query.rs`; the page's `search:begin`/`search:end` block is a
@@ -59,8 +107,9 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
     `-key:value`) leaves out what matches. Case and accents don't matter (`flabebe` finds Flabébé).
   - **Tags**: set id and name, printed rarity and our tier id, subtypes, Pokémon types (from the card's
     `cards/<id>.json`, else pack.json's card fields), character, name, number, card id, artist, pack; the page also
-    has `attack:` / `ability:` (key-only, so bare words find the same cards in both binders). State words `shiny`,
-    `foil`, `new`, `pending`, `owned`, `missing` (or `is:shiny`) test the card.
+    has `attack:` / `ability:` (key-only, so bare words find the same cards in both binders). State words (bare,
+    or `is:seen`) test the card: `caught`, `seen` (pulled, not caught), `missing` (not caught: empty or seen), `new`,
+    `shiny`, `foil`. `owned` still works as `caught`, and `pending` as `seen` (both undocumented in the binders).
   - **`key:value`** matches that key's tags like a bare word (`rarity:rainbow`, `type:drk`, `artist:ito`); quotes only
     keep spaces (`rarity:"rare rainbow"`) and mean nothing else, in both binders (before, the app took a quoted value
     as a substring and the page as a whole tag). Three keys are exact: `set:` names the best-matching sets by id or
@@ -79,15 +128,15 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
   them, then prefixed groups such as GG, SV, TG, each in order, then letters such as B / G / R), with empty pockets
   for the cards not pulled. A real card is its own slot (a character can have several cards per rarity across sets).
   `--set` takes an id or a name, matched the same way as `set:`.
-- **Completion** counts earned cards only; pending ones are shown apart (`13/193 7% +45 pending`), since a pending
-  card isn't in the binder until its tab is used.
+- **Completion** counts caught cards only; seen ones are shown apart (`13/193 7% · seen 45`), since a seen card isn't
+  in the binder until it is caught. `o` shows caught cards only, `m` the missing ones (empty or seen).
 - **Web**: a card's page lists its tags as chips; a click runs that search.
 
 ## Web binder
 - **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running. Each real
   card shows its text half from `packs/<pack>/cards/<id>.json` (HP, abilities, attacks with energy costs, weakness /
   resistance / retreat, rules; docs/CARD_FORMAT.md); the tab skin stays in the card's details. Odds are the game's
-  (only tiers with a built card roll). Pending pulls are shown greyed and never counted. Decoded art is cached
+  (only tiers with a built card roll). Seen cards show as silhouettes and are never counted. Decoded art is cached
   (`img\.cache.json`), so a rebuild takes well under a second once the art is cached.
 - **Soon: hosted backend** for sync and battles; see below.
 
@@ -96,7 +145,7 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
 - **Sync:**
   - The client pushes earned pull records (`id, time, pack, character, tier, skin, shiny`), never the whole log.
   - The server merges by pull id, so it's idempotent across machines.
-  - Pending pulls never leave the machine.
+  - Pending and expired (seen) pulls never leave the machine.
 - **Anti-farm:** the server rate-limits accepted pulls per account per hour to match the client's tab-spawn rate limit. Cards are cosmetic, so light checks are enough.
 - **Hosted binder:** `https://<host>/u/<github-login>`, the same web UI reading from the API, public or private per user.
 - **Battles (to spec separately):**

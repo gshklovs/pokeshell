@@ -2,7 +2,7 @@
 //! detail card, a port of the rounded gradient frame and the wanted poster in scripts/lib/Pokeshell.cs.
 
 use crate::art::Img;
-use crate::color::{Rgb, darken, desat, grad, hex, lighten, mix, noise, rainbow, rgb, str_seed};
+use crate::color::{Rgb, darken, grad, hex, lighten, mix, noise, rainbow, rgb, str_seed};
 use crate::data::{FrameSpec, Pack, SlotState};
 use crate::draw::{fill, image, put, putc, puts, trunc, width};
 use crate::theme::Theme;
@@ -44,7 +44,7 @@ pub fn card_size(c: &Card, img_w: usize, img_rows: usize) -> (u16, u16) {
         FrameSpec::Box(_) => {
             let title = width(&c.pack.name_for(c.ch, c.card)) + if c.shiny { 2 } else { 0 };
             let tag = width(&c.pack.tag_for(c.ch, c.card));
-            let new = if c.new && c.state == SlotState::Owned { width(STICKER) + 1 } else { 0 };
+            let new = if c.new && c.state == SlotState::Caught { width(STICKER) + 1 } else { 0 };
             (title + 2 + if tag > 0 { tag + 2 } else { 0 } + new + 3).max(width(&t.label) + 5)
         }
         FrameSpec::Wanted(_) => {
@@ -89,10 +89,11 @@ pub fn draw(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Them
     let t = &c.pack.tiers[c.tier];
     match (&t.frame, c.state) {
         (_, SlotState::Empty) => draw_empty(buf, r, c, img, theme),
+        (_, SlotState::Seen) => draw_seen(buf, r, c, img, theme),
         (FrameSpec::Box(stops), _) => draw_box(buf, r, c, img, stops, theme),
         (FrameSpec::Wanted(pal), _) => draw_wanted(buf, r, c, img, pal, theme),
     }
-    if c.new && c.state == SlotState::Owned {
+    if c.new && c.state == SlotState::Caught {
         sticker(buf, r, c.thumb);
     }
 }
@@ -228,20 +229,75 @@ fn draw_empty(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Th
     }
 }
 
+// ---------------------------------------------------------------- seen: a silhouette
+
+/// A seen card (pulled, never earned): the Pokédex "seen" shadow. A plain frame, flat card stock, the sprite's shape
+/// in one dark shadow colour (`img` is the silhouette, ArtStore::silhouette: only its opaque pixels count), the name
+/// and number, the rarity hint. No colours, scene, foil, shimmer, shiny or NEW.
+fn draw_seen(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Theme) {
+    let (x0, y0, x1, y1) = (r.x as i32, r.y as i32, (r.x + r.width - 1) as i32, (r.y + r.height - 1) as i32);
+    let line = if c.selected { mix(theme.dim, theme.hi, 0.7) } else { mix(theme.faint, theme.dim, 0.55) };
+    let stock = if c.selected { mix(theme.seen_bg, theme.hi, 0.06) } else { theme.seen_bg };
+    let edge_bg = theme_bg(theme);
+    fill(buf, Rect::new(r.x + 1, r.y + 1, r.width.saturating_sub(2), r.height.saturating_sub(2)), Some(stock));
+    for x in x0 + 1..x1 {
+        put(buf, x, y0, "─", Some(line), Some(edge_bg), false);
+        put(buf, x, y1, "─", Some(line), Some(edge_bg), false);
+    }
+    for y in y0 + 1..y1 {
+        put(buf, x0, y, "│", Some(line), Some(edge_bg), false);
+        put(buf, x1, y, "│", Some(line), Some(edge_bg), false);
+    }
+    put(buf, x0, y0, "╭", Some(line), Some(edge_bg), false);
+    put(buf, x1, y0, "╮", Some(line), Some(edge_bg), false);
+    put(buf, x0, y1, "╰", Some(line), Some(edge_bg), false);
+    put(buf, x1, y1, "╯", Some(line), Some(edge_bg), false);
+    match img {
+        Some(img) => {
+            let (pw, ph) = if c.thumb { (2, 2) } else { (4, 2) };
+            let (ax, ay) = art_origin(r, img, pw, ph, 1);
+            image(buf, ax, ay, img, stock, &|_| theme.shadow);
+        }
+        None => {
+            let (cx, cy) = (x0 + (r.width as i32 - 1) / 2, y0 + (r.height as i32 - 1) / 2);
+            put(buf, cx, cy, "?", Some(theme.shadow), Some(stock), true);
+        }
+    }
+    let w = r.width as usize;
+    let name_fg = if c.selected { theme.title } else { theme.fg };
+    let dim = if c.selected { theme.fg } else { theme.dim };
+    // top: the name (and the number, on the big card); bottom: the number (thumbnails), the rarity hint right
+    let tag = c.pack.tag_for(c.ch, c.card);
+    if w > 6 {
+        let tag_s = if c.thumb || tag.is_empty() { String::new() } else { format!(" {tag} ") };
+        let room = w.saturating_sub(4 + if tag_s.is_empty() { 0 } else { width(&tag_s) + 1 });
+        let name = format!(" {} ", trunc(&c.pack.name_for(c.ch, c.card), room.saturating_sub(2)));
+        puts(buf, x0 + 1, y0, &name, name_fg, Some(edge_bg), c.selected || !c.thumb, room);
+        if !tag_s.is_empty() {
+            puts(buf, x1 - width(&tag_s) as i32, y0, &tag_s, dim, Some(edge_bg), false, width(&tag_s));
+        }
+    }
+    let mut used = 0;
+    if c.thumb && !tag.is_empty() && w > 8 {
+        let l = format!(" {} ", trunc(&tag, w.saturating_sub(6)));
+        used = puts(buf, x0 + 1, y1, &l, dim, Some(edge_bg), false, w.saturating_sub(4)) + 1;
+    }
+    let room = w.saturating_sub(used + 5);
+    if room >= 3 {
+        let tl = format!(" {} ", short_label(&c.pack.tiers[c.tier].label, room - 2));
+        puts(buf, x1 - width(&tl) as i32, y1, &tl, dim, Some(edge_bg), false, room);
+    }
+}
+
 // ---------------------------------------------------------------- rounded gradient frame
 
 fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb], theme: &Theme) {
     let (x0, y0, x1, y1) = (r.x as i32, r.y as i32, (r.x + r.width - 1) as i32, (r.y + r.height - 1) as i32);
     let (w, h) = (r.width as f32, r.height as f32);
-    let pending = c.state == SlotState::Pending;
-    let tone = |col: Rgb| -> Rgb {
-        let col = if pending { darken(desat(col, 0.75), 0.35) } else { col };
-        if c.selected { mix(col, theme.hi, 0.0) } else { col }
-    };
+    let tone = |col: Rgb| -> Rgb { col };
     let edge = |t: f32| -> Rgb {
         let e = grad(stops, t);
-        let e = if c.thumb && !c.selected { darken(e, 0.12) } else { e };
-        tone(e)
+        if c.thumb && !c.selected { darken(e, 0.12) } else { e }
     };
     // interior
     for y in y0 + 1..y1 {
@@ -250,7 +306,7 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
             put(buf, x, y, " ", None, Some(tone(bg)), false);
         }
     }
-    let (hz, vt) = if pending { ("┄", "┆") } else { ("─", "│") };
+    let (hz, vt) = ("─", "│");
     for x in x0..=x1 {
         let u = (x - x0) as f32 / (w - 1.0).max(1.0);
         put(buf, x, y0, hz, Some(edge(0.5 * u)), Some(theme_bg(theme)), false);
@@ -305,7 +361,7 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
     if c.thumb {
         // top: name; bottom: ×count left, tier label right
         let name = c.pack.name_for(c.ch, c.card);
-        let room = rw.saturating_sub(4 + if c.shiny { 2 } else { 0 } + if c.new && !pending { sticker_w(r) } else { 0 });
+        let room = rw.saturating_sub(4 + if c.shiny { 2 } else { 0 } + if c.new { sticker_w(r) } else { 0 });
         let name = trunc(&name, room);
         let mut tx = x0 + 1;
         let (nfg, nbg) = if c.selected { (theme_bg(theme), Some(theme.hi)) } else { (tone(text_col(0.2, true)), None) };
@@ -319,16 +375,16 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
         }
         tx += crate::draw::puts(buf, tx, y0, &name, nfg, nbg, true, room) as i32;
         put(buf, tx, y0, " ", None, nbg, false);
-        let left = if pending { "◌ pending".to_string() } else if c.count > 1 { format!("×{}", c.count) } else { String::new() };
+        let left = if c.count > 1 { format!("×{}", c.count) } else { String::new() };
         let mut used = 0;
         if !left.is_empty() && rw > 8 {
             let l = trunc(&left, rw - 4);
             put(buf, x0 + 1, y1, " ", None, None, false);
-            used = crate::draw::puts(buf, x0 + 2, y1, &l, if pending { theme.warn } else { theme.fg }, None, !pending, rw - 4) + 2;
+            used = crate::draw::puts(buf, x0 + 2, y1, &l, theme.fg, None, true, rw - 4) + 2;
             put(buf, x0 + 2 + used as i32 - 2, y1, " ", None, None, false);
         }
         let room = rw.saturating_sub(used + 5);
-        if room >= 3 && !pending {
+        if room >= 3 {
             let lab = short_label(&tier.label, room);
             let lx = x1 - 2 - width(&lab) as i32;
             put(buf, lx - 1, y1, " ", None, None, false);
@@ -339,7 +395,7 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
         let title = format!("{}{}", if c.shiny { "✦ " } else { "" }, c.pack.name_for(c.ch, c.card));
         let tag = c.pack.tag_for(c.ch, c.card);
         // top: the name left, the number (and the NEW sticker) right; a narrow card drops the number, then cuts the name
-        let new = if c.new && !pending && r.width >= 14 { width(STICKER) + 1 } else { 0 };
+        let new = if c.new && r.width >= 14 { width(STICKER) + 1 } else { 0 };
         let tag_s = format!(" {tag} ");
         let room = (r.width as usize).saturating_sub(4 + new);
         let show_tag = !tag.is_empty() && width(&title) + 2 + width(&tag_s) + 1 <= room;
@@ -348,16 +404,12 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
         if show_tag {
             edge_text(buf, x1 - 1 - new as i32 - width(&tag_s) as i32, y0, &tag_s, tone(text_col(0.45, false)), false);
         }
-        // bottom: the tier label right, "pending" left; a narrow card keeps "pending" and a shortened label (or none)
-        let pend = " ◌ pending ";
-        let room = (r.width as usize).saturating_sub(4 + if pending { width(pend) + 1 } else { 0 });
+        // bottom: the tier label right (shortened on a narrow card, or none)
+        let room = (r.width as usize).saturating_sub(4);
         let label = short_label(&tier.label, room.saturating_sub(2 + if c.shiny { 8 } else { 0 }));
         if room >= 5 && !label.is_empty() {
             let bottom = format!(" {}{} ", label, if c.shiny && room >= width(&label) + 10 { " ✦ shiny" } else { "" });
             edge_text(buf, x1 - 1 - width(&bottom) as i32, y1, &bottom, tone(text_col(0.95, true)), true);
-        }
-        if pending {
-            edge_text(buf, x0 + 2, y1, pend, theme.warn, true);
         }
     }
 }
@@ -419,8 +471,7 @@ fn draw_wanted(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, pal: &str
     let (x0, y0) = (r.x as i32, r.y as i32);
     let (w, h) = (r.width as i32, r.height as i32);
     let (paper, stain, ink, acc) = wanted_pal(pal);
-    let pending = c.state == SlotState::Pending;
-    let tone = |col: Rgb| if pending { darken(desat(col, 0.75), 0.4) } else { col };
+    let tone = |col: Rgb| col;
     let ch = &c.pack.chars[c.ch];
     let pp = Paper { pal: pal.to_string(), seed: str_seed(ch) ^ str_seed(&c.pack.tiers[c.tier].id), w, h, paper, stain };
     let bg = theme_bg(theme);
@@ -484,9 +535,6 @@ fn draw_wanted(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, pal: &str
         if c.count > 1 {
             name = format!("{name} ×{}", c.count);
         }
-        if pending {
-            name = format!("◌ {name}");
-        }
         center(buf, y0 + h - 1, &name, if c.selected { acc } else { ink }, true);
         if c.selected {
             // selection marks on the torn corners
@@ -509,9 +557,6 @@ fn draw_wanted(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, pal: &str
         for (i, chr) in lab.chars().enumerate() {
             let px = lx + i as i32;
             putc(buf, px, y, chr, Some(acc), Some(tone(pp.at(px - x0, h - 1))), pal != "common");
-        }
-        if pending {
-            center(buf, y0 + 1, "◌ pending", theme.warn, true);
         }
     }
 }
