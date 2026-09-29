@@ -55,10 +55,20 @@ Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired
   `pending` (and `owned`, `missing`) from the pulls.
 - **Search** (`/`): words match any tag; `key:value` / `key:"a b"` filter one tag (keys: set, rarity, tier, type,
   subtype, char, artist, pack, name, number, id); state words stand alone. Example: `set:swsh7 rarity:"rare rainbow"`.
-  Same parser in `binder/src/query.rs` and the page.
-- **Sets**: real-card packs get a set tab (app: next to the pack tabs, `S` cycles; web: a divider tab per set). A set
-  page is its checklist: every card of that set in pack.json `cards`, in printed-number order, with empty pockets for
-  the cards not pulled. A real card is its own slot (a character can have several cards per rarity across sets).
+  Case and accents don't matter (`flabebe` finds Flabébé). Three keys are exact rather than substrings, so a short
+  value doesn't catch its neighbours: `set:` names a set by its id (`set:swsh1` is not swsh10), else by its name
+  (word starts: `set:evolving`, `set:30th`; then letters in order: `set:evsk`), and the best-matching sets win;
+  `number:17` is the printed number's numerator (17/203, not 117 or 170); `id:` is the whole card id. A quoted value
+  (`id:"swsh7-2"`) is a plain substring for any key. `binder/src/query.rs` implements this; the page's parser follows
+  the same rules.
+- **Sets**: real-card packs get a set tab (app: next to the pack tabs, `S` or a click opens the set picker, with each
+  set's completion, filtered by typing; web: a divider tab per set). A set page is its checklist: every card of that
+  set in pack.json `cards`, in printed-number order (plain numbers, the secret rares past the printed total after
+  them, then prefixed groups such as GG, SV, TG, each in order, then letters such as B / G / R), with empty pockets
+  for the cards not pulled. A real card is its own slot (a character can have several cards per rarity across sets).
+  `--set` takes an id or a name, matched the same way as `set:`.
+- **Completion** counts earned cards only; pending ones are shown apart (`13/193 7% +45 pending`), since a pending
+  card isn't in the binder until its tab is used.
 - **Web**: a card's page lists its tags as chips; a click runs that search.
 
 ## Web binder

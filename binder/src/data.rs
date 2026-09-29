@@ -193,9 +193,18 @@ pub fn now_utc() -> i64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
-/// Ids the binder has already shown (viewed.txt, one per line): they don't get the NEW sticker.
+/// Ids the binder has already shown (viewed.txt, one per line): they don't get the NEW sticker. Read lossily: one
+/// torn line must not bring every sticker back.
 pub fn read_viewed(path: &Path) -> std::collections::HashSet<String> {
-    std::fs::read_to_string(path).map(|t| t.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect()).unwrap_or_default()
+    read_lossy(path).map(|t| t.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty() && !l.contains('\u{fffd}')).collect()).unwrap_or_default()
+}
+
+/// A text file as UTF-8, invalid bytes replaced (what .NET's File.ReadAllLines does, which Pokeshell.cs ReadPulls
+/// uses): a torn write or one stray byte costs that line, never the whole file. A leading BOM is dropped.
+pub fn read_lossy(path: &Path) -> Option<String> {
+    let b = std::fs::read(path).ok()?;
+    let b = b.strip_prefix(b"\xef\xbb\xbf".as_slice()).unwrap_or(&b);
+    Some(String::from_utf8_lossy(b).into_owned())
 }
 
 /// Append ids to viewed.txt (append-only; duplicates are harmless).
@@ -226,9 +235,12 @@ pub struct ReadCtx<'a> {
 ///   event  time earned:<id> | time expired:<id>
 /// Dry runs are skipped; so are expired pulls (an `expired:` line, or pending for over 24 h, or from an earlier
 /// boot session). A line without an id is earned. `demo_pending` marks the N most recent pulls pending (preview).
+/// The file is decoded lossily (read_lossy); a line whose pack / character / tier / art columns hold an invalid byte
+/// is skipped (it can't name a card). A pull whose time doesn't parse is kept, as the C# reader keeps it, at the time
+/// of the line before it (the log is append-only, so that is when it was written, give or take).
 pub fn read_pulls(path: &Path, demo_pending: usize, ctx: &ReadCtx) -> Vec<Pull> {
-    let Ok(text) = std::fs::read_to_string(path) else { return Vec::new() };
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    let Some(text) = read_lossy(path) else { return Vec::new() };
+    let text = text.as_str();
     let mut earned = std::collections::HashSet::new();
     let mut expired = std::collections::HashSet::new();
     for line in text.lines() {
@@ -244,16 +256,27 @@ pub fn read_pulls(path: &Path, demo_pending: usize, ctx: &ReadCtx) -> Vec<Pull> 
         }
     }
     let mut out = Vec::with_capacity(text.len() / 60);
+    let mut last_ts: Option<i64> = None;
     for line in text.lines() {
         let f: Vec<&str> = line.split('\t').collect();
         if f.len() < 7 {
+            if let Some(t) = f.first().and_then(|t| parse_ts(t)) {
+                last_ts = Some(t); // an event line still dates the lines after it
+            }
             continue;
         }
         let flags = f.get(7).copied().unwrap_or("").trim();
         if flags.contains("dryrun") {
             continue;
         }
-        let Some(ts) = parse_ts(f[0]) else { continue };
+        if f[1..5].iter().any(|c| c.contains('\u{fffd}')) {
+            continue;
+        }
+        let ts = match parse_ts(f[0]).or(last_ts) {
+            Some(t) => t,
+            None => continue, // the first line, undated: nothing to place it by
+        };
+        last_ts = Some(ts);
         let (mut id, mut boot, mut card) = (String::new(), 0i64, String::new());
         for kv in f.iter().skip(8) {
             if let Some((k, v)) = kv.split_once('=') {
@@ -345,12 +368,44 @@ pub struct CardDef {
 }
 
 impl CardDef {
-    /// The number within its set, for checklist order ("215/203" -> 215; "SV6" -> 6).
-    pub fn number_key(&self) -> (u32, String) {
-        let n = self.number.split('/').next().unwrap_or("");
-        let digits: String = n.chars().filter(|c| c.is_ascii_digit()).collect();
-        (digits.parse().unwrap_or(u32::MAX), n.to_string())
+    /// Checklist order within its set (number_key of its printed number).
+    pub fn number_key(&self) -> NumberKey {
+        number_key(&self.number)
     }
+    /// The printed number's numerator, normalized for comparing: "017/203" -> "17", "TG05/TG30" -> "tg5".
+    pub fn numerator(&self) -> String {
+        numerator(&self.number)
+    }
+}
+
+/// (class, prefix, number, suffix): see number_key.
+pub type NumberKey = (u8, String, u32, String);
+
+/// Checklist order of a printed number (its numerator):
+///   0. plain numbers, numerically: 1, 2, ... 203, then the secret rares past the printed total (215/203); a
+///      letter suffix sorts right after its number (25, 25a, 25b, 26);
+///   1. prefixed groups, group by group in alphabetical order, each numerically: GG01..GG70, SV1..SV94, TG01..TG30;
+///   2. bare letters and anything else (me55's B, G, R), alphabetically.
+pub fn number_key(number: &str) -> NumberKey {
+    let n = number.split('/').next().unwrap_or("").trim().to_ascii_uppercase();
+    let prefix: String = n.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+    let rest = &n[prefix.len()..];
+    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let suffix = rest[digits.len()..].to_string();
+    match digits.parse::<u32>() {
+        Ok(d) if prefix.is_empty() => (0, String::new(), d, suffix),
+        Ok(d) => (1, prefix, d, suffix),
+        Err(_) => (2, n.clone(), 0, String::new()),
+    }
+}
+
+/// A printed number's numerator for matching (`number:17`, the `#` jump): lower-case, leading zeros dropped.
+pub fn numerator(number: &str) -> String {
+    let n = number.split('/').next().unwrap_or("").trim().to_ascii_lowercase();
+    let prefix: String = n.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+    let rest = n[prefix.len()..].trim_start_matches('0');
+    let rest = if rest.is_empty() && n.len() > prefix.len() { "0" } else { rest };
+    format!("{prefix}{rest}")
 }
 
 /// A set of a real-card pack, in the order its first card appears in pack.json.
@@ -375,7 +430,6 @@ pub struct Pack {
     posters: HashMap<String, String>,
     bounties: HashMap<String, String>,
     pub tiers: Vec<Tier>,
-    pub total_weight: u32,
     /// A real-card pack (pack.json has "cards"): every slot is a real printed card keyed by its pokemontcg.io id.
     pub is_cards: bool,
     /// pack.json `cards` in file order (real-card packs only), built ones only (card_built): a card whose art isn't
@@ -388,6 +442,18 @@ pub struct Pack {
     pub retired: HashMap<String, Option<String>>,
     /// real-card packs: the sets their cards come from
     pub sets: Vec<SetDef>,
+    /// card_list indices in checklist order: set by set (pack.json order), each by printed number (number_key)
+    pub checklist: Vec<usize>,
+    /// card_list index -> index into `sets` (usize::MAX: no set)
+    pub card_set: Vec<usize>,
+    /// character -> its cards (card_list indices, checklist order)
+    pub char_cards: Vec<Vec<usize>>,
+    /// tiers that hold a card (real-card packs), every tier otherwise
+    live: Vec<usize>,
+    /// cards per tier (real-card packs)
+    tier_n: Vec<usize>,
+    /// the odds a pull lands in each tier
+    tier_odds: Vec<f64>,
 }
 
 const PRESETS: &[(&str, &[u32])] = &[
@@ -538,7 +604,7 @@ impl Pack {
                 Tier { weight: skins.iter().map(|s| s.1).sum(), id, label, art: s("art"), skins, frame, color, odds_weight, family: s("family") }
             })
             .collect();
-        let total_weight = tiers.iter().skip(1).map(|t| t.weight).sum();
+        let total_weight: u32 = tiers.iter().skip(1).map(|t| t.weight).sum();
         let char_ix: HashMap<String, usize> = chars.iter().enumerate().map(|(i, c)| (c.clone(), i)).collect();
         let tier_of = |id: &str| tiers.iter().position(|t| t.id == id);
         let mut card_list = Vec::new();
@@ -578,6 +644,34 @@ impl Pack {
         for (i, c) in card_list.iter().enumerate() {
             slot_cards.entry((c.ch, c.tier)).or_default().push(i);
         }
+        let card_set: Vec<usize> = card_list.iter().map(|c| sets.iter().position(|s| s.id == c.set_id).unwrap_or(usize::MAX)).collect();
+        let mut checklist: Vec<usize> = (0..card_list.len()).collect();
+        checklist.sort_by_cached_key(|&i| (card_set[i], card_list[i].number_key(), i));
+        let mut char_cards: Vec<Vec<usize>> = vec![Vec::new(); chars.len()];
+        for &i in &checklist {
+            char_cards[card_list[i].ch].push(i);
+        }
+        // odds, once: a tier by its weight among the tiers that have cards (real-card packs)
+        let mut tier_n = vec![0usize; tiers.len()];
+        for c in &card_list {
+            tier_n[c.tier] += 1;
+        }
+        let live: Vec<usize> = (0..tiers.len()).filter(|&t| !is_cards || tier_n[t] > 0).collect();
+        let foil = v.get("foil_chance").and_then(|x| x.as_f64()).unwrap_or(0.2);
+        let tier_odds: Vec<f64> = (0..tiers.len())
+            .map(|ti| {
+                if is_cards {
+                    let tot: u64 = live.iter().map(|&t| tiers[t].odds_weight as u64).sum();
+                    if tot == 0 || tier_n[ti] == 0 { 0.0 } else { tiers[ti].odds_weight as f64 / tot as f64 }
+                } else if ti == 0 {
+                    if total_weight == 0 { 1.0 } else { 1.0 - foil }
+                } else if total_weight == 0 {
+                    0.0
+                } else {
+                    foil * tiers[ti].weight as f64 / total_weight as f64
+                }
+            })
+            .collect();
         // retired: { "<character>/<tier>": "<card id>" | null } (docs/PACK_FORMAT.md); a plain list hides its entries
         let retired = match v.get("retired") {
             Some(Value::Object(o)) => o.iter().map(|(k, x)| (k.clone(), x.as_str().map(String::from))).collect(),
@@ -589,7 +683,7 @@ impl Pack {
             name: v.get("name").and_then(|x| x.as_str()).unwrap_or(id).to_string(),
             dist,
             dir,
-            foil: v.get("foil_chance").and_then(|x| x.as_f64()).unwrap_or(0.2),
+            foil,
             shiny: v.get("shiny_chance").and_then(|x| x.as_f64()).unwrap_or(0.0),
             char_ix,
             chars,
@@ -598,13 +692,18 @@ impl Pack {
             posters: str_map(&v, "poster_names"),
             bounties: str_map(&v, "bounties"),
             tiers,
-            total_weight,
             is_cards,
             card_list,
             card_ix,
             slot_cards,
             retired,
             sets,
+            checklist,
+            card_set,
+            char_cards,
+            live,
+            tier_n,
+            tier_odds,
         })
     }
 
@@ -647,10 +746,11 @@ impl Pack {
     }
 
     /// Tiers that hold at least one card (real-card packs); every tier otherwise.
-    pub fn live_tiers(&self) -> Vec<usize> {
-        (0..self.tiers.len()).filter(|&t| !self.is_cards || (0..self.chars.len()).any(|c| self.has_slot(c, t))).collect()
+    pub fn live_tiers(&self) -> &[usize] {
+        &self.live
     }
 
+    #[cfg(test)]
     /// Slots in the full set: characters x tiers, or (real-card packs) one per card (a character can have several
     /// cards in one rarity: each is its own slot).
     pub fn slot_count(&self) -> usize {
@@ -701,9 +801,8 @@ impl Pack {
             Some(c) => {
                 v.push(("id", c.id.clone()));
                 v.push(("number", c.number.clone()));
-                if !c.rarity.is_empty() {
-                    v.push(("rarity", c.rarity.clone()));
-                }
+                // the printed rarity; a card without one (no card data yet) goes by its tier's label
+                v.push(("rarity", if c.rarity.is_empty() { self.tiers[k.tier].label.clone() } else { c.rarity.clone() }));
                 if !c.set_id.is_empty() {
                     v.push(("set", c.set_id.clone()));
                 }
@@ -774,31 +873,29 @@ impl Pack {
     pub fn tier_ix(&self, id: &str) -> Option<usize> {
         self.tiers.iter().position(|t| t.id == id)
     }
-    /// Odds a pull from this pack lands in tier `ti`.
+    /// Odds a pull from this pack lands in tier `ti` (computed when the pack loads).
     pub fn tier_p(&self, ti: usize) -> f64 {
-        if self.is_cards {
-            // a tier by its weight among the tiers that have cards
-            let live = self.live_tiers();
-            let tot: u64 = live.iter().map(|&t| self.tiers[t].odds_weight as u64).sum();
-            return if tot == 0 || !live.contains(&ti) { 0.0 } else { self.tiers[ti].odds_weight as f64 / tot as f64 };
-        }
-        if ti == 0 {
-            if self.total_weight == 0 { 1.0 } else { 1.0 - self.foil }
-        } else if self.total_weight == 0 {
-            0.0
-        } else {
-            self.foil * self.tiers[ti].weight as f64 / self.total_weight as f64
-        }
+        self.tier_odds.get(ti).copied().unwrap_or(0.0)
     }
     /// Odds of one exact card (character x tier [x shiny]).
     pub fn card_p(&self, ti: usize, shiny: bool) -> f64 {
-        let n = if self.is_cards { self.card_list.iter().filter(|c| c.tier == ti).count() } else { self.chars.len() };
+        let n = if self.is_cards { self.tier_n.get(ti).copied().unwrap_or(0) } else { self.chars.len() };
         let p = self.tier_p(ti) / n.max(1) as f64;
         if shiny { p * self.shiny } else { p }
     }
-    /// Big packs (the 905-mon pokedex) default to one binder slot per character.
+    /// The set a card belongs to (an index into `sets`).
+    pub fn set_of(&self, card: u32) -> Option<usize> {
+        self.card_set.get(card as usize).copied().filter(|&s| s != usize::MAX)
+    }
+    /// The key of a card slot (real-card packs).
+    pub fn key_of(&self, pack: usize, card: usize) -> SlotKey {
+        let c = &self.card_list[card];
+        SlotKey { pack, ch: c.ch, tier: c.tier, card: card as u32 }
+    }
+    /// Big packs without real cards (the 905-mon pokedex) default to one binder slot per character (the dex view);
+    /// a real-card pack's binder is its cards, set by set, however many characters they show.
     pub fn is_big(&self) -> bool {
-        self.chars.len() > 40
+        !self.is_cards && self.chars.len() > 40
     }
 }
 
@@ -915,7 +1012,8 @@ impl Collection {
         if pend { SlotState::Pending } else { SlotState::Empty }
     }
 
-    /// The highest-tier slot this character is owned (or pending) in: the one-slot-per-character "dex" view.
+    /// The highest-tier slot this character is owned (or pending) in (the dex view picks in App::compute_slots).
+    #[cfg(test)]
     pub fn best_slot(&self, pack: usize, ch: usize, shiny_only: bool) -> Option<SlotKey> {
         self.by_slot
             .keys()
@@ -933,9 +1031,99 @@ pub enum SlotState {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    /// A ULID pull id minted now (pending pulls in tests must not expire with the calendar).
+    pub(crate) fn ulid_now(tail: &str) -> String {
+        ulid_at(now_utc(), tail)
+    }
+
+    /// A real-card pack "p" in a temp root, its art built: Lycanroc V / VMAX / V (rare ultra) and Pikachu of
+    /// Evolving Skies (swsh7), three Pikachu Rares and a letter-numbered card of 30th Celebration (me55).
+    pub(crate) fn fixture_pack(name: &str) -> PathBuf {
+        let d = tmp(name);
+        std::fs::create_dir_all(d.join("packs/p")).unwrap();
+        std::fs::create_dir_all(d.join("dist/p")).unwrap();
+        std::fs::create_dir_all(d.join("state")).unwrap();
+        std::fs::write(
+            d.join("packs/p/pack.json"),
+            r#"{ "id": "p", "name": "Pokemon",
+                 "tiers": [ { "id": "common", "label": "common", "family": "non-foil", "weight": 50000, "skins": {} },
+                            { "id": "pikachu-rare", "label": "pikachu rare", "family": "holo", "weight": 900, "skins": {} },
+                            { "id": "rare-holo-v", "label": "rare holo V", "family": "holo", "weight": 900, "skins": {} },
+                            { "id": "rare-holo-vmax", "label": "rare holo VMAX", "family": "holo", "weight": 500, "skins": { "v-beam": 1 } },
+                            { "id": "rare-ultra", "label": "rare ultra", "family": "full-art", "weight": 300, "skins": {} },
+                            { "id": "illustration-rare", "label": "illustration rare", "family": "full-art", "weight": 200, "skins": {} } ],
+                 "cards": { "swsh7-49": { "character": "pikachu", "tier": "common", "name": "Pikachu", "number": "49/203", "set": "Evolving Skies" },
+                            "swsh7-92": { "character": "lycanroc", "tier": "rare-holo-vmax", "name": "Lycanroc VMAX", "number": "92/203", "set": "Evolving Skies" },
+                            "swsh7-91": { "character": "lycanroc", "tier": "rare-holo-v", "name": "Lycanroc V", "number": "91/203", "set": "Evolving Skies" },
+                            "swsh7-187": { "character": "lycanroc", "tier": "rare-ultra", "name": "Lycanroc V", "number": "187/203", "set": "Evolving Skies" },
+                            "me55-B": { "character": "bulbasaur", "tier": "illustration-rare", "name": "Bulbasaur", "number": "B/128", "set": "30th Celebration" },
+                            "me55-48": { "character": "pikachu", "tier": "pikachu-rare", "name": "Pikachu", "number": "48/128", "set": "30th Celebration" },
+                            "me55-28": { "character": "pikachu", "tier": "pikachu-rare", "name": "Pikachu", "number": "28/128", "set": "30th Celebration" },
+                            "me55-45": { "character": "pikachu", "tier": "pikachu-rare", "name": "Pikachu", "number": "45/128", "set": "30th Celebration" },
+                            "base1-58": { "character": "pikachu", "tier": "common", "name": "Pikachu", "number": "58/102", "set": "Base" } },
+                 "retired": { "pikachu/common": "base1-58" } }"#,
+        )
+        .unwrap();
+        for (ch, id) in [("pikachu", "swsh7-49"), ("lycanroc", "swsh7-92"), ("lycanroc", "swsh7-91"), ("lycanroc", "swsh7-187"), ("bulbasaur", "me55-B"), ("pikachu", "me55-48"), ("pikachu", "me55-28"), ("pikachu", "me55-45")] {
+            std::fs::write(d.join(format!("dist/p/{ch}-{id}.ans")), "x").unwrap();
+        }
+        d
+    }
+
+    pub(crate) fn write_log(d: &Path, lines: &[&str]) {
+        std::fs::write(d.join("state/pulls.log"), lines.join("\r\n") + "\r\n").unwrap();
+    }
+
+    #[test]
+    fn checklist_order() {
+        // S-05: plain numbers first (secret rares past the printed total too, a letter suffix after its number),
+        // then prefixed groups one by one (GG, SV, TG), then bare letters
+        let mut v = vec!["TG02/TG30", "2/70", "GG01/GG70", "215/203", "1/70", "B/128", "TG01/TG30", "25a/70", "25/70", "SV6/SV94", "GG70/GG70", "SV10/SV94", "G/128", "26/70", "070/70"];
+        v.sort_by_key(|n| number_key(n));
+        assert_eq!(v, vec!["1/70", "2/70", "25/70", "25a/70", "26/70", "070/70", "215/203", "GG01/GG70", "GG70/GG70", "SV6/SV94", "SV10/SV94", "TG01/TG30", "TG02/TG30", "B/128", "G/128"]);
+        assert_eq!(numerator("017/203"), "17");
+        assert_eq!(numerator("TG05/TG30"), "tg5");
+        assert_eq!(numerator("B/128"), "b");
+        assert_eq!(numerator("0"), "0");
+        let d = fixture_pack("order");
+        let p = Pack::load(&d, "p").unwrap();
+        let ids: Vec<&str> = p.checklist.iter().map(|&i| p.card_list[i].id.as_str()).collect();
+        assert_eq!(ids, vec!["swsh7-49", "swsh7-91", "swsh7-92", "swsh7-187", "me55-28", "me55-45", "me55-48", "me55-B"], "set by set, each in printed order");
+        assert_eq!(p.sets.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), vec!["Evolving Skies", "30th Celebration"]);
+        assert_eq!(p.live_tiers().len(), 6);
+        assert!((p.tier_p(1) - 900.0 / 52800.0).abs() < 1e-9);
+        assert!((p.card_p(1, false) - 900.0 / 52800.0 / 3.0).abs() < 1e-9, "three pikachu rares");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn invalid_utf8_is_read_lossily() {
+        // D-01: one torn line (an invalid byte) costs that line, never the whole log; the same for viewed.txt
+        let d = tmp("utf8");
+        let good = |c: &str| format!("2026-09-28T10:00:00\tpokemon\t{c}\tcommon\tcommon\t\t0\t");
+        let mut bytes: Vec<u8> = Vec::new();
+        bytes.extend_from_slice(b"\xef\xbb\xbf");
+        bytes.extend_from_slice(good("bulbasaur").as_bytes());
+        bytes.extend_from_slice(b"\r\n2026-09-28T10:01:00\tpokemon\tchar\xffmander\tcommon\tcommon\t\t0\t\r\n");
+        bytes.extend_from_slice(b"2026-09-28T10:02:00\tpokemon\tsquirtle\tcommon\tcommon\t\t0\tnote\xfe\r\n");
+        bytes.extend_from_slice(b"garbage \xc3\x28 line\r\n");
+        bytes.extend_from_slice(b"not-a-time\tpokemon\tpikachu\tcommon\tcommon\t\t0\t\r\n");
+        bytes.extend_from_slice(good("eevee").as_bytes());
+        std::fs::write(d.join("pulls.log"), &bytes).unwrap();
+        let viewed = HashSet::new();
+        let pulls = read_pulls(&d.join("pulls.log"), 0, &ReadCtx { now_utc: 0, boot: 0, viewed: &viewed });
+        let chars: Vec<&str> = pulls.iter().map(|p| p.ch.as_str()).collect();
+        assert_eq!(chars, vec!["bulbasaur", "squirtle", "pikachu", "eevee"], "the bad-id line is skipped, a bad flags column kept");
+        assert_eq!(pulls[2].ts, parse_ts("2026-09-28T10:02:00").unwrap(), "an undated pull takes the time of the line before");
+        std::fs::write(d.join("viewed.txt"), b"AAAA\r\nBB\xffBB\r\nCCCC\r\n").unwrap();
+        let v = read_viewed(&d.join("viewed.txt"));
+        assert!(v.contains("AAAA") && v.contains("CCCC") && v.len() == 2);
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     fn ulid_at(secs: i64, tail: &str) -> String {
         let mut ms = secs * 1000;

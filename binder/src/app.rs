@@ -1,10 +1,12 @@
 //! App state: which pack/page/card is selected, filters, focus, and input handling.
 
 use crate::art::ArtStore;
-use crate::data::{Collection, NO_CARD, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
+use crate::data::{Collection, NO_CARD, Pull, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
+use crate::query;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Position, Rect};
 use serde_json::Value;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -19,19 +21,35 @@ pub enum Focus {
     Stats,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum View {
-    /// Every character x every tier, tier by tier: the full set.
+    /// Every card (real-card packs: one slot per card, set by set in printed-number order; others: every character x
+    /// every tier, tier by tier): the full set, the checklist.
     Set,
     /// One slot per character showing its best card (the 905-mon pokedex).
     Dex,
 }
 
+/// `o` / `m`: every slot, the earned ones, or the ones not pulled yet.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum Own {
+    All,
+    Owned,
+    Missing,
+}
+
+/// A clickable tab on the binder's top border.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Tab {
+    Pack(usize),
+    Set,
+}
+
 #[derive(Default)]
 pub struct Hits {
     pub slots: Vec<(Rect, usize)>,
-    pub tabs: Vec<(i32, i32, i32, usize)>, // x0, x1, y, pack
-    pub best: Vec<(Rect, usize)>,          // pull index
+    pub tabs: Vec<(i32, i32, i32, Tab)>, // x0, x1, y, tab
+    pub best: Vec<(Rect, usize)>,        // pull index
     pub binder: Rect,
     pub card: Rect,
     pub stats: Rect,
@@ -41,6 +59,15 @@ pub struct Hits {
     pub card_art: Rect,
     /// the art box the big card was fitted to (reused by animation frames)
     pub card_fit: (usize, usize),
+    /// the text half (v) and how many rows of it are hidden (scrollable)
+    pub text: Rect,
+    pub text_more: usize,
+    /// the set picker: its box and its rows (row index into App::set_rows)
+    pub picker: Rect,
+    pub picker_rows: Vec<(Rect, usize)>,
+    /// the help overlay and how many rows it can scroll
+    pub help: Rect,
+    pub help_more: usize,
 }
 
 /// Where the binder opens: the newest pull (default), a pull id (--pull, the card's link) or a card (--card).
@@ -61,9 +88,85 @@ pub struct Opts {
     pub start: Start,
     /// never write viewed.txt (snapshots, bench, selftest)
     pub readonly: bool,
-    /// start with this search (--search) / on this set's checklist (--set <set id>)
+    /// start with this search (--search) / on this set's checklist (--set: an id or a name, fuzzy)
     pub search: String,
     pub set: String,
+}
+
+/// The set picker (`S`): a filter typed into it and the highlighted row.
+#[derive(Clone, Default)]
+pub struct Picker {
+    pub filter: String,
+    pub sel: usize,
+}
+
+/// A row of the set picker: every set (ix 0) or pack.sets[ix - 1], with its completion.
+#[derive(Clone, Debug)]
+pub struct SetRow {
+    pub ix: usize,
+    pub id: String,
+    pub name: String,
+    pub done: Completion,
+}
+
+/// Completion of a checklist: earned, pending (pulled, not earned yet: not counted as done), total.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Completion {
+    pub owned: usize,
+    pub pending: usize,
+    pub total: usize,
+}
+
+impl Completion {
+    pub fn frac(&self) -> f32 {
+        self.owned as f32 / self.total.max(1) as f32
+    }
+}
+
+/// One row of the tiers panel: a rarity, its cards caught (earned) / pending / in the checklist, and its pulls.
+#[derive(Clone, Debug)]
+pub struct TierRow {
+    pub tier: usize,
+    pub caught: usize,
+    pub pending: usize,
+    pub of: usize,
+    pub pulls: usize,
+}
+
+/// The header's totals (docs/BINDER_SPEC.md): pulls are every roll shown; cards, foils and shinies are earned ones.
+#[derive(Clone, Default)]
+pub struct Stats {
+    pub total: usize,
+    pub foils: usize,
+    pub shinies: usize,
+    pub unique: usize,
+    pub pending: usize,
+    pub last: Option<usize>,
+    pub streak: i64,
+    pub drought: usize,
+    pub first_ts: Option<i64>,
+}
+
+/// Per-collection results that every frame needs and that only change when pulls.log is reloaded (P-01).
+#[derive(Default)]
+struct Memo {
+    ver: u64,
+    best: Option<Rc<Vec<(usize, f64)>>>,
+    stats: Option<(i64, Rc<Stats>)>,
+    done: HashMap<(usize, usize, bool, bool), Completion>,
+    tiers: HashMap<(usize, usize, bool), Rc<Vec<TierRow>>>,
+}
+
+#[derive(Clone, PartialEq)]
+struct SlotsKey {
+    ver: u64,
+    pack: usize,
+    view: View,
+    shiny: bool,
+    own: Own,
+    search: String,
+    set: usize,
+    focus: Option<SlotKey>,
 }
 
 pub struct App {
@@ -75,15 +178,25 @@ pub struct App {
     pub views: Vec<View>,
     pub sel: Vec<usize>,
     pub shiny_only: bool,
-    pub owned_only: bool,
-    /// `/`: free text and tag filters (query.rs)
+    pub own: Own,
+    /// `/`: free text and tag filters (query.rs); the cursor is a char index into it
     pub search: String,
     pub searching: bool,
+    pub cursor: usize,
     /// per pack: 0 = every set, i + 1 = pack.sets[i] (the set's checklist)
     pub set_sel: Vec<usize>,
+    /// `S`: the set picker, when open
+    pub picker: Option<Picker>,
+    /// `#`: the jump-to-number prompt, when open
+    pub number: Option<String>,
+    /// per pack, dex view: the card a character's slot shows when you jumped to it (--card, --pull, the newest pull,
+    /// a best pull), instead of its best one: landing is always on the exact card
+    pub dex_focus: Vec<Option<SlotKey>>,
     pub focus: Focus,
     pub help: bool,
-    pub hist: usize,
+    pub help_scroll: usize,
+    /// the card panel's history cursor: which pull of which slot (None: the newest pull of whatever is selected)
+    pub hist: Option<(SlotKey, usize)>,
     pub best_sel: usize,
     /// best pulls start here (config.txt `best_since`, default: when the real cards went live); None = every pull
     pub best_since: Option<i64>,
@@ -94,17 +207,27 @@ pub struct App {
     pub hits: Hits,
     pub quit: bool,
     pub log_mtime: Option<SystemTime>,
-    slots_key: (usize, View, bool, bool, String, usize, usize),
+    last_poll: Instant,
+    /// bumped whenever the collection is rebuilt (pulls.log reloaded): keys every cache
+    pub ver: u64,
+    slots_key: Option<SlotsKey>,
     slots: Vec<SlotKey>,
+    memo: RefCell<Memo>,
     /// Set when anything but the animation changed: the next draw repaints everything.
     pub dirty: bool,
     pub compact_right: Focus,
-    /// `v`: the card's text half (docs/CARD_FORMAT.md) stacked under the art
+    /// `v`: the card's text half (docs/CARD_FORMAT.md) stacked under the art, and how far it is scrolled
     pub show_text: bool,
+    pub text_scroll: usize,
+    text_for: Option<SlotKey>,
     text_cache: HashMap<PathBuf, Option<Rc<Value>>>,
     viewed: HashSet<String>,
-    /// the slot whose NEW pulls were last shown in the card panel (they lose the sticker once you move on)
+    /// the slot whose NEW pulls were last shown in the card panel (they lose the sticker once you move on), and those
+    /// pulls' ids (a reload keeps their sticker until then)
     seen_slot: Option<SlotKey>,
+    sticky: HashSet<String>,
+    /// a one-line message (an unknown --set, a pull that isn't in the binder, ...), cleared by the next key
+    pub notice: Option<String>,
 }
 
 fn mtime(p: &PathBuf) -> Option<SystemTime> {
@@ -112,7 +235,7 @@ fn mtime(p: &PathBuf) -> Option<SystemTime> {
 }
 
 impl App {
-    fn load_pulls(opts: &Opts, viewed: &HashSet<String>) -> Vec<crate::data::Pull> {
+    fn load_pulls(opts: &Opts, viewed: &HashSet<String>) -> Vec<Pull> {
         read_pulls(&opts.log, opts.demo_pending, &ReadCtx { now_utc: now_utc(), boot: boot_id(), viewed })
     }
 
@@ -133,13 +256,18 @@ impl App {
             views,
             sel: vec![0; n],
             shiny_only: false,
-            owned_only: false,
+            own: Own::All,
             search: String::new(),
-            set_sel: vec![0; n],
             searching: false,
+            cursor: 0,
+            set_sel: vec![0; n],
+            picker: None,
+            number: None,
+            dex_focus: vec![None; n],
             focus: Focus::Binder,
             help: false,
-            hist: 0,
+            help_scroll: 0,
+            hist: None,
             best_sel: 0,
             best_since: None,
             now: now_local(),
@@ -147,42 +275,86 @@ impl App {
             phase_override: None,
             hits: Hits::default(),
             quit: false,
-            slots_key: (usize::MAX, View::Set, false, false, String::new(), 0, 0),
+            last_poll: Instant::now(),
+            ver: 0,
+            slots_key: None,
             slots: Vec::new(),
+            memo: RefCell::new(Memo::default()),
             dirty: true,
             compact_right: Focus::Card,
             show_text: false,
+            text_scroll: 0,
+            text_for: None,
             text_cache: HashMap::new(),
             viewed,
             seen_slot: None,
+            sticky: HashSet::new(),
+            notice: None,
         };
         app.best_since = app.best_since_setting();
-        // --set / --search: open on that set (in its pack) / with that search, on its first card
-        let set = app.opts.set.clone();
-        if !set.is_empty() {
-            for (pi, p) in app.coll.packs.iter().enumerate() {
-                if let Some(si) = p.sets.iter().position(|s| s.id.eq_ignore_ascii_case(&set) || s.name.eq_ignore_ascii_case(&set)) {
-                    app.pack = pi;
-                    app.set_sel[pi] = si + 1;
-                    break;
-                }
-            }
-        }
-        app.search = app.opts.search.clone();
-        if !set.is_empty() || !app.search.is_empty() {
-            app.hist = usize::MAX;
+        if app.coll.packs.is_empty() {
             return app;
         }
+        // --set: that set's checklist (in its pack); fuzzy (set_score), a clear notice when it names none
+        let set = app.opts.set.trim().to_string();
+        if !set.is_empty() {
+            app.open_set_arg(&set);
+        }
+        app.search = app.opts.search.clone();
+        app.cursor = app.search.chars().count();
+        // where to land: the pull / card asked for (it clears filters that hide it), else the newest pull that the
+        // set and search show, else the newest pull
         let start = app.opts.start.clone();
         let landed = match &start {
             Start::Latest => false,
-            Start::Pull(id) => app.select_pull(id),
-            Start::Card(c) => app.select_card(c),
+            Start::Pull(id) => app.select_pull(id) || {
+                app.notice = Some(format!("pull {id} isn't in the binder (hidden or not in pulls.log): showing the newest pull"));
+                false
+            },
+            Start::Card(c) => app.select_card(c) || {
+                app.notice = Some(format!("no card {c}: showing the newest pull"));
+                false
+            },
         };
         if !landed {
-            app.select_latest();
+            let filtered = !set.is_empty() || !app.search.is_empty();
+            if !filtered || !app.select_latest_visible() {
+                if !filtered {
+                    app.select_latest();
+                }
+            }
         }
         app
+    }
+
+    /// --set <query>: the best-matching set across the packs (query::set_score), its checklist.
+    fn open_set_arg(&mut self, q: &str) {
+        let all: Vec<(usize, usize, u8)> = self
+            .coll
+            .packs
+            .iter()
+            .enumerate()
+            .flat_map(|(pi, p)| p.sets.iter().enumerate().map(move |(si, s)| (pi, si, query::set_score(s, q))))
+            .filter(|x| x.2 > 0)
+            .collect();
+        let top = all.iter().map(|x| x.2).max().unwrap_or(0);
+        let best: Vec<&(usize, usize, u8)> = all.iter().filter(|x| x.2 == top).collect();
+        let Some(&&(pi, si, _)) = best.first() else {
+            let names: Vec<String> = self.coll.packs.iter().flat_map(|p| p.sets.iter().map(|s| format!("{} ({})", s.name, s.id))).collect();
+            self.notice = Some(if names.is_empty() {
+                format!("no set matches “{q}”: no pack here has sets")
+            } else {
+                format!("no set matches “{q}” · sets: {} · S picks one", names.join(", "))
+            });
+            return;
+        };
+        self.pack = pi;
+        self.set_sel[pi] = si + 1;
+        self.views[pi] = View::Set;
+        if best.len() > 1 {
+            let others: Vec<String> = best[1..].iter().map(|&&(p, s, _)| self.coll.packs[p].sets[s].name.clone()).collect();
+            self.notice = Some(format!("“{q}” also matches {} · S picks another", others.join(", ")));
+        }
     }
 
     /// Open on a pull by id (the card's pokeshell://binder?pull=<id> link). False if it isn't in the binder.
@@ -197,7 +369,8 @@ impl App {
         }
     }
 
-    /// Open on a card: "pack/character/tier" (tier by id or label; the character may be a card id).
+    /// Open on a card: "pack/<card id>" or "pack/character/tier" (tier by id or label; none: its lowest tier with a
+    /// card). A character with several cards in that tier: the one pulled last, else the first in checklist order.
     pub fn select_card(&mut self, spec: &str) -> bool {
         let parts: Vec<&str> = spec.split('/').map(|s| s.trim()).collect();
         let (pack, ch, tier) = match parts.as_slice() {
@@ -207,10 +380,8 @@ impl App {
         };
         let Some(pi) = self.coll.packs.iter().position(|p| p.id.eq_ignore_ascii_case(pack)) else { return false };
         let pk = &self.coll.packs[pi];
-        // a card id (pokemon/swsh4-170), or a character and a tier (by id or label; none: its lowest tier with a card)
         let k = if let Some(ix) = pk.card_list.iter().position(|c| c.id.eq_ignore_ascii_case(ch)) {
-            let c = &pk.card_list[ix];
-            SlotKey { pack: pi, ch: c.ch, tier: c.tier, card: ix as u32 }
+            pk.key_of(pi, ix)
         } else {
             let Some(&ci) = pk.char_ix.get(ch) else { return false };
             let ti = if tier.is_empty() {
@@ -219,12 +390,16 @@ impl App {
                 pk.tier_ix(tier).or_else(|| pk.tiers.iter().position(|t| t.label.eq_ignore_ascii_case(tier)))
             };
             let Some(ti) = ti else { return false };
-            // real-card packs: that character's first card in that tier
-            let card = pk.card_list.iter().position(|c| c.ch == ci && c.tier == ti).map(|i| i as u32).unwrap_or(NO_CARD);
-            if pk.is_cards && card == NO_CARD {
-                return false;
+            if pk.is_cards {
+                let cards: Vec<usize> = pk.char_cards[ci].iter().copied().filter(|&i| pk.card_list[i].tier == ti).collect();
+                let pulled = cards.iter().copied().filter_map(|i| self.coll.slot_pulls(pk.key_of(pi, i)).last().map(|&p| (p, i))).max();
+                match pulled.map(|x| x.1).or(cards.first().copied()) {
+                    Some(i) => pk.key_of(pi, i),
+                    None => return false,
+                }
+            } else {
+                SlotKey { pack: pi, ch: ci, tier: ti, card: NO_CARD }
             }
-            SlotKey { pack: pi, ch: ci, tier: ti, card }
         };
         let newest = self.coll.slot_pulls(k).last().copied();
         self.jump_to(k, newest);
@@ -244,7 +419,8 @@ impl App {
             .clone()
     }
 
-    /// Record that the selected card was shown: its NEW pulls go to viewed.txt; the sticker stays until you move on.
+    /// Record that the selected card was shown in the card panel: its NEW pulls go to viewed.txt; the sticker stays
+    /// until you move on. Called after a full draw, only when the card panel was on screen (D-15).
     pub fn mark_seen(&mut self) {
         let cur = self.selected();
         if cur == self.seen_slot {
@@ -255,23 +431,19 @@ impl App {
                 self.coll.pulls[i].new = false;
             }
         }
+        self.sticky.clear();
         self.seen_slot = cur;
         let Some(k) = cur else { return };
-        let ids: Vec<String> = self
-            .coll
-            .slot_pulls(k)
-            .iter()
-            .map(|&i| &self.coll.pulls[i])
-            .filter(|p| p.new && !self.viewed.contains(&p.id))
-            .map(|p| p.id.clone())
-            .collect();
+        let ids: Vec<String> = self.coll.slot_pulls(k).iter().map(|&i| &self.coll.pulls[i]).filter(|p| p.new).map(|p| p.id.clone()).collect();
+        let fresh: Vec<String> = ids.iter().filter(|id| !self.viewed.contains(*id)).cloned().collect();
         if !self.opts.readonly {
-            mark_viewed(&self.opts.viewed, &ids);
+            mark_viewed(&self.opts.viewed, &fresh);
         }
-        self.viewed.extend(ids);
+        self.viewed.extend(fresh);
+        self.sticky.extend(ids);
     }
 
-    /// Start on the card you pulled most recently.
+    /// Start on the card you pulled most recently (the exact card, in any view).
     pub fn select_latest(&mut self) {
         let last = (0..self.coll.pulls.len()).rev().find_map(|i| self.coll.slot_of[i].map(|k| (i, k)));
         if let Some((i, k)) = last {
@@ -279,6 +451,26 @@ impl App {
         }
     }
 
+    /// Land on the newest pull the current filters (set, search, owned/missing) show, without clearing them. False
+    /// if they show none (the selection stays on the first slot).
+    pub fn select_latest_visible(&mut self) -> bool {
+        let terms = self.terms();
+        let hit = (0..self.coll.pulls.len()).rev().find_map(|i| self.coll.slot_of[i].filter(|k| self.visible_with(&terms, *k)).map(|k| (i, k)));
+        match hit {
+            Some((i, k)) => {
+                self.select_key(k);
+                self.hist = self.coll.slot_pulls(k).iter().position(|&x| x == i).map(|h| (k, h));
+                true
+            }
+            None => {
+                self.sel[self.pack] = 0;
+                false
+            }
+        }
+    }
+
+    /// Re-read pulls.log if it changed (checked every couple of seconds and on focus). The selected card, the pull
+    /// the card panel shows, and the NEW sticker of the card on screen survive the reload (D-10).
     pub fn reload_if_changed(&mut self) -> bool {
         let m = mtime(&self.opts.log);
         if m == self.log_mtime {
@@ -286,25 +478,56 @@ impl App {
         }
         self.log_mtime = m;
         let cur = self.selected();
+        let shown = cur.and_then(|k| self.shown_pull(k).1.map(|i| self.coll.pulls[i].id.clone()));
         let pulls = Self::load_pulls(&self.opts, &self.viewed);
         let packs = std::mem::take(&mut self.coll.packs);
-        self.seen_slot = None;
         self.coll = Collection::build(pulls, packs);
-        self.best_since = self.best_since_setting();
-        self.slots_key.5 = self.slots_key.5.wrapping_add(1);
-        self.slots_key.0 = usize::MAX;
-        if let Some(k) = cur {
-            self.jump_to(k, None);
+        for p in self.coll.pulls.iter_mut() {
+            if !p.id.is_empty() && self.sticky.contains(&p.id) {
+                p.new = true;
+            }
         }
+        self.ver += 1;
+        self.best_since = self.best_since_setting();
+        if let Some(k) = cur {
+            self.select_key(k);
+            let list = self.coll.slot_pulls(k).to_vec();
+            self.hist = shown.filter(|s| !s.is_empty()).and_then(|id| list.iter().position(|&i| self.coll.pulls[i].id == id)).map(|h| (k, h));
+        }
+        self.dirty = true;
         true
     }
 
+    /// Poll pulls.log's mtime at most every 2 s (the event loop calls this on every wake-up).
+    pub fn poll_reload(&mut self) -> bool {
+        if self.last_poll.elapsed().as_millis() < 2000 {
+            return false;
+        }
+        self.last_poll = Instant::now();
+        self.reload_if_changed()
+    }
+
+    // ------------------------------------------------------------ slots
+
     /// The slots of the current pack after filters (cached).
     pub fn slots(&mut self) -> &[SlotKey] {
-        let key = (self.pack, self.views[self.pack], self.shiny_only, self.owned_only, self.search.to_lowercase(), self.slots_key.5, self.set_sel[self.pack]);
-        if key != self.slots_key {
-            self.slots = self.compute_slots(&key.4);
-            self.slots_key = key;
+        if self.coll.packs.is_empty() {
+            self.slots.clear();
+            return &self.slots;
+        }
+        let key = SlotsKey {
+            ver: self.ver,
+            pack: self.pack,
+            view: self.views[self.pack],
+            shiny: self.shiny_only,
+            own: self.own,
+            search: self.search.clone(),
+            set: self.set_sel[self.pack],
+            focus: self.dex_focus[self.pack],
+        };
+        if self.slots_key.as_ref() != Some(&key) {
+            self.slots = self.compute_slots();
+            self.slots_key = Some(key);
         }
         &self.slots
     }
@@ -312,27 +535,29 @@ impl App {
     /// The set the current pack's binder is showing (None: every set).
     pub fn current_set(&self) -> Option<&crate::data::SetDef> {
         let s = *self.set_sel.get(self.pack)?;
-        if s == 0 { None } else { self.coll.packs[self.pack].sets.get(s - 1) }
+        if s == 0 { None } else { self.coll.packs.get(self.pack)?.sets.get(s - 1) }
     }
 
-    /// `S`: every set -> each set's checklist in turn -> every set.
-    pub fn cycle_set(&mut self, d: isize) {
-        let n = self.coll.packs.get(self.pack).map(|p| p.sets.len()).unwrap_or(0) as isize;
-        if n == 0 {
-            return;
+    /// Is a card in the selected set (always, with every set selected or in a pack without sets)?
+    fn in_set(&self, k: SlotKey) -> bool {
+        let s = self.set_sel.get(k.pack).copied().unwrap_or(0);
+        s == 0 || self.coll.packs[k.pack].set_of(k.card) == Some(s - 1)
+    }
+
+    /// The search terms, with `set:` resolved against the current pack's sets.
+    pub fn terms(&self) -> Vec<query::Term> {
+        let mut t = query::parse(&self.search);
+        if let Some(p) = self.coll.packs.get(self.pack) {
+            query::resolve_terms(&mut t, &p.sets);
         }
-        let s = &mut self.set_sel[self.pack];
-        *s = (*s as isize + d).rem_euclid(n + 1) as usize;
-        self.sel[self.pack] = 0;
-        self.hist = usize::MAX;
-        self.dirty = true;
+        t
     }
 
     /// The state words of a slot for the search (query.rs).
-    pub fn slot_flags(&self, k: SlotKey) -> crate::query::Flags {
+    pub fn slot_flags(&self, k: SlotKey) -> query::Flags {
         let st = self.coll.slot_state(k, false);
-        crate::query::Flags {
-            shiny: self.coll.slot_pulls(k).iter().any(|&i| self.coll.pulls[i].shiny),
+        query::Flags {
+            shiny: self.coll.slot_pulls(k).iter().any(|&i| self.coll.pulls[i].shiny && self.coll.pulls[i].status == Status::Collected),
             foil: self.coll.packs[k.pack].foil_tier(k.tier),
             new: self.coll.slot_new(k, false),
             pending: st == SlotState::Pending,
@@ -340,27 +565,39 @@ impl App {
         }
     }
 
-    fn compute_slots(&self, q: &str) -> Vec<SlotKey> {
+    fn own_ok(&self, k: SlotKey) -> bool {
+        match self.own {
+            Own::All => true,
+            Own::Owned => self.coll.slot_state(k, self.shiny_only) == SlotState::Owned,
+            Own::Missing => self.coll.slot_state(k, self.shiny_only) == SlotState::Empty,
+        }
+    }
+
+    /// Would this card be in the binder with the current set, search and owned/missing filters (in the dex view: if its
+    /// character's slot showed it)?
+    pub fn visible(&self, k: SlotKey) -> bool {
+        self.visible_with(&self.terms(), k)
+    }
+
+    fn visible_with(&self, terms: &[query::Term], k: SlotKey) -> bool {
+        k.pack == self.pack && self.in_set(k) && self.own_ok(k) && (terms.is_empty() || query::matches(terms, &self.coll.packs[k.pack].slot_tags(k), self.slot_flags(k)))
+    }
+
+    fn compute_slots(&self) -> Vec<SlotKey> {
         let pi = self.pack;
         let Some(p) = self.coll.packs.get(pi) else { return vec![] };
-        let terms = crate::query::parse(q);
-        let set = self.current_set().map(|s| s.id.clone());
-        let keep = |k: SlotKey| {
-            (terms.is_empty() || crate::query::matches(&terms, &p.slot_tags(k), self.slot_flags(k)))
-                && (!self.owned_only || self.coll.slot_state(k, self.shiny_only) != SlotState::Empty)
-        };
+        let terms = self.terms();
+        let shiny = self.shiny_only;
+        let term_ok = |k: SlotKey| terms.is_empty() || query::matches(&terms, &p.slot_tags(k), self.slot_flags(k));
+        let st = |k: SlotKey| self.coll.slot_state(k, shiny);
         let mut out = Vec::new();
         match self.views[pi] {
             // real cards: one slot per card, set by set in checklist (printed number) order; a set picked with `S`
             // is that set's whole checklist, pulled or not
             View::Set if p.is_cards => {
-                let mut ix: Vec<usize> = (0..p.card_list.len()).filter(|&i| set.as_ref().is_none_or(|s| &p.card_list[i].set_id == s)).collect();
-                let set_order = |i: usize| p.sets.iter().position(|s| s.id == p.card_list[i].set_id).unwrap_or(usize::MAX);
-                ix.sort_by_key(|&i| (set_order(i), p.card_list[i].number_key(), i));
-                for i in ix {
-                    let c = &p.card_list[i];
-                    let k = SlotKey { pack: pi, ch: c.ch, tier: c.tier, card: i as u32 };
-                    if keep(k) {
+                for &i in &p.checklist {
+                    let k = p.key_of(pi, i);
+                    if self.in_set(k) && self.own_ok(k) && term_ok(k) {
                         out.push(k);
                     }
                 }
@@ -369,32 +606,44 @@ impl App {
                 for tier in 0..p.tiers.len() {
                     for ch in 0..p.chars.len() {
                         let k = SlotKey::legacy(pi, ch, tier);
-                        if keep(k) {
+                        if self.own_ok(k) && term_ok(k) {
                             out.push(k);
                         }
                     }
                 }
             }
+            // one slot per character. A character is in if any of its cards (in the selected set) passes the search
+            // and the owned/missing filter, and its slot shows the card you jumped to (dex_focus) if that one
+            // passes, else its best earned card, else a pending one, else its first card
             View::Dex => {
+                let focus = self.dex_focus[pi].filter(|k| k.pack == pi);
                 for ch in 0..p.chars.len() {
-                    // the best card pulled; unowned: the character's lowest-tier card (legacy packs: tier 0)
-                    let first = || {
-                        let c = (0..p.card_list.len())
-                            .filter(|&i| p.card_list[i].ch == ch && set.as_ref().is_none_or(|s| &p.card_list[i].set_id == s))
-                            .min_by_key(|&i| p.card_list[i].tier)?;
-                        Some(SlotKey { pack: pi, ch, tier: p.card_list[c].tier, card: c as u32 })
+                    let cands: Vec<SlotKey> = if p.is_cards {
+                        p.char_cards[ch].iter().map(|&i| p.key_of(pi, i)).filter(|&k| self.in_set(k)).collect()
+                    } else {
+                        (0..p.tiers.len()).map(|t| SlotKey::legacy(pi, ch, t)).collect()
                     };
-                    let k = match self.coll.best_slot(pi, ch, self.shiny_only) {
-                        Some(k) if set.as_ref().is_none_or(|s| p.card_at(k.card).is_some_and(|c| &c.set_id == s)) => k,
-                        _ if p.is_cards => match first() {
-                            Some(k) => k,
-                            None => continue,
-                        },
-                        _ => SlotKey::legacy(pi, ch, 0),
-                    };
-                    if keep(k) {
-                        out.push(k);
+                    if cands.is_empty() {
+                        continue;
                     }
+                    let matching: Vec<SlotKey> = cands.iter().copied().filter(|&k| term_ok(k)).collect();
+                    let pool: Vec<SlotKey> = match self.own {
+                        Own::All => matching,
+                        Own::Owned => matching.into_iter().filter(|&k| st(k) == SlotState::Owned).collect(),
+                        // missing: characters with none of these cards pulled
+                        Own::Missing if matching.iter().any(|&k| st(k) != SlotState::Empty) => continue,
+                        Own::Missing => matching,
+                    };
+                    if pool.is_empty() {
+                        continue;
+                    }
+                    let rank = |k: &SlotKey| (k.tier, self.coll.slot_pulls(*k).last().copied());
+                    let pick = focus
+                        .filter(|f| f.ch == ch && pool.contains(f))
+                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Owned).max_by_key(rank))
+                        .or_else(|| pool.iter().copied().filter(|&k| st(k) == SlotState::Pending).max_by_key(rank))
+                        .unwrap_or(pool[0]);
+                    out.push(pick);
                 }
             }
         }
@@ -402,6 +651,9 @@ impl App {
     }
 
     pub fn sel_ix(&mut self) -> usize {
+        if self.coll.packs.is_empty() {
+            return 0;
+        }
         let n = self.slots().len();
         let s = &mut self.sel[self.pack];
         if n == 0 {
@@ -425,29 +677,58 @@ impl App {
         self.slots().len().div_ceil(PER_PAGE).max(1)
     }
 
-    pub fn jump_to(&mut self, k: SlotKey, pull: Option<usize>) {
-        self.pack = k.pack;
-        let dex = self.views[k.pack] == View::Dex;
-        let pos = self.slots().iter().position(|s| if dex { s.ch == k.ch } else { *s == k });
-        let pos = match pos {
-            Some(p) => Some(p),
-            None => {
-                // filtered out: clear filters and retry
-                self.search.clear();
-                self.set_sel[k.pack] = 0;
-                self.owned_only = false;
-                if self.shiny_only && !pull.is_some_and(|i| self.coll.pulls[i].shiny) {
-                    self.shiny_only = false;
-                }
-                self.slots().iter().position(|s| if dex { s.ch == k.ch } else { *s == k })
-            }
-        };
-        if let Some(p) = pos {
-            self.sel[k.pack] = p;
+    /// Select a card if the current filters show it (in the dex view its character's slot is made to show it).
+    /// False if it is filtered out.
+    fn select_key(&mut self, k: SlotKey) -> bool {
+        if k.pack >= self.coll.packs.len() {
+            return false;
         }
-        self.hist = pull
-            .and_then(|pi| self.coll.slot_pulls(k).iter().position(|&x| x == pi))
-            .unwrap_or(usize::MAX);
+        self.pack = k.pack;
+        if self.views[k.pack] == View::Dex {
+            self.dex_focus[k.pack] = Some(k);
+        }
+        match self.slots().iter().position(|s| *s == k) {
+            Some(p) => {
+                self.sel[k.pack] = p;
+                self.dirty = true;
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Select exactly this card, clearing the filters that hide it, and show `pull` in the card panel.
+    pub fn jump_to(&mut self, k: SlotKey, pull: Option<usize>) {
+        if !self.select_key(k) {
+            // filtered out: clear what hides it and retry
+            self.search.clear();
+            self.cursor = 0;
+            self.searching = false;
+            self.own = Own::All;
+            if !self.in_set(k) {
+                self.set_sel[k.pack] = 0;
+            }
+            if self.shiny_only && !pull.is_some_and(|i| self.coll.pulls[i].shiny) {
+                self.shiny_only = false;
+            }
+            self.select_key(k);
+        }
+        self.hist = pull.and_then(|pi| self.coll.slot_pulls(k).iter().position(|&x| x == pi)).map(|h| (k, h));
+        self.dirty = true;
+    }
+
+    /// Run `f` (a filter or view change) and keep the selected card selected when it is still shown (K-06, D-11).
+    fn keeping_selection(&mut self, f: impl FnOnce(&mut Self)) {
+        let prev = self.selected();
+        f(self);
+        if let Some(k) = prev {
+            if !self.select_key(k) && self.views[self.pack] == View::Dex {
+                // the dex view shows another card of that character: stay on the character
+                if let Some(p) = self.slots().iter().position(|s| s.ch == k.ch) {
+                    self.sel[self.pack] = p;
+                }
+            }
+        }
         self.dirty = true;
     }
 
@@ -458,7 +739,6 @@ impl App {
         }
         let s = self.sel_ix() as isize;
         self.sel[self.pack] = (s + d).clamp(0, n - 1) as usize;
-        self.hist = usize::MAX;
     }
 
     fn flip(&mut self, d: isize) {
@@ -472,7 +752,6 @@ impl App {
         let np = (page + d).rem_euclid(pages) as usize;
         let within = s % PER_PAGE;
         self.sel[self.pack] = (np * PER_PAGE + within).min(n - 1);
-        self.hist = usize::MAX;
     }
 
     fn move_grid(&mut self, dx: isize, dy: isize) {
@@ -480,45 +759,52 @@ impl App {
         if n == 0 {
             return;
         }
+        let pages = self.pages();
         let s = self.sel_ix();
         let (page, within) = (s / PER_PAGE, s % PER_PAGE);
         let (col, row) = ((within % 3) as isize, (within / 3) as isize);
         let (nc, nr) = (col + dx, row + dy);
         if nc < 0 {
-            // off the left edge: previous page, rightmost column
-            if page > 0 || self.pages() > 1 {
+            // off the left edge: previous page, rightmost column (one page: stay)
+            if pages > 1 {
                 self.flip(-1);
                 let p = self.sel_ix() / PER_PAGE;
                 self.sel[self.pack] = (p * PER_PAGE + row as usize * 3 + 2).min(n - 1);
             }
         } else if nc > 2 || (dx > 0 && s + 1 >= n) {
-            self.flip(1);
-            let p = self.sel_ix() / PER_PAGE;
-            self.sel[self.pack] = (p * PER_PAGE + row as usize * 3).min(n - 1);
+            // off the right edge (or past the last card): next page, leftmost column (one page: stay)
+            if pages > 1 {
+                self.flip(1);
+                let p = self.sel_ix() / PER_PAGE;
+                self.sel[self.pack] = (p * PER_PAGE + row as usize * 3).min(n - 1);
+            }
         } else if nr < 0 {
-            self.move_sel(-3);
+            // above the top row: the previous page's bottom row; the first row of the first page stays (D-13)
+            if s >= 3 {
+                self.move_sel(-3);
+            }
         } else if nr > 2 {
             // below the last row: next page, same column
-            self.flip(1);
-            let p = self.sel_ix() / PER_PAGE;
-            self.sel[self.pack] = (p * PER_PAGE + col as usize).min(n - 1);
+            if pages > 1 {
+                self.flip(1);
+                let p = self.sel_ix() / PER_PAGE;
+                self.sel[self.pack] = (p * PER_PAGE + col as usize).min(n - 1);
+            }
         } else {
             let t = page * PER_PAGE + nr as usize * 3 + nc as usize;
             if t < n {
                 self.sel[self.pack] = t;
-            } else if dy > 0 {
+            } else if dy > 0 && pages > 1 {
                 self.flip(1);
                 let p = self.sel_ix() / PER_PAGE;
                 self.sel[self.pack] = (p * PER_PAGE + col as usize).min(n - 1);
             }
         }
-        self.hist = usize::MAX;
     }
 
     pub fn set_pack(&mut self, p: usize) {
         if p < self.coll.packs.len() && p != self.pack {
             self.pack = p;
-            self.hist = usize::MAX;
             self.dirty = true;
         }
     }
@@ -529,13 +815,26 @@ impl App {
         crate::data::best_since(crate::data::read_config(&dir, "best_since").as_deref(), self.coll.real_since)
     }
 
-    /// Ranked best pulls across all packs, since best_since: rarest odds first.
-    pub fn best_pulls(&self) -> Vec<(usize, f64)> {
+    // ------------------------------------------------------------ derived (cached per collection version)
+
+    fn memo(&self) -> std::cell::RefMut<'_, Memo> {
+        let mut m = self.memo.borrow_mut();
+        if m.ver != self.ver {
+            *m = Memo { ver: self.ver, ..Memo::default() };
+        }
+        m
+    }
+
+    /// Ranked best pulls across all packs, since best_since: earned foils and shinies, rarest odds first.
+    pub fn best_pulls(&self) -> Rc<Vec<(usize, f64)>> {
+        if let Some(b) = &self.memo().best {
+            return b.clone();
+        }
         let mut v: Vec<(usize, f64)> = (0..self.coll.pulls.len())
             .filter_map(|i| {
                 let k = self.coll.slot_of[i]?;
                 let p = &self.coll.pulls[i];
-                if self.best_since.is_some_and(|t| p.ts < t) {
+                if p.status != Status::Collected || self.best_since.is_some_and(|t| p.ts < t) {
                     return None;
                 }
                 if !self.coll.packs[k.pack].foil_tier(k.tier) && !p.shiny {
@@ -544,8 +843,272 @@ impl App {
                 Some((i, self.coll.packs[k.pack].card_p(k.tier, p.shiny)))
             })
             .collect();
-        v.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap().then(b.0.cmp(&a.0)));
+        v.sort_by(|a, b| a.1.total_cmp(&b.1).then(b.0.cmp(&a.0)));
+        let v = Rc::new(v);
+        self.memo().best = Some(v.clone());
         v
+    }
+
+    /// The header's totals (cached per collection and minute).
+    pub fn stats(&self) -> Rc<Stats> {
+        let minute = self.now.div_euclid(60);
+        if let Some((m, s)) = &self.memo().stats {
+            if *m == minute {
+                return s.clone();
+            }
+        }
+        let c = &self.coll;
+        let earned = |i: usize| c.pulls[i].status == Status::Collected;
+        let foil = |i: usize| c.slot_of[i].is_some_and(|k| c.packs[k.pack].foil_tier(k.tier));
+        let unique = c.by_slot.keys().filter(|k| c.slot_state(**k, false) == SlotState::Owned).count();
+        let days: std::collections::BTreeSet<i64> = c.pulls.iter().map(|p| p.ts.div_euclid(86400)).collect();
+        let today = self.now.div_euclid(86400);
+        let mut d = if days.contains(&today) { today } else { today - 1 };
+        let mut streak = 0;
+        while days.contains(&d) {
+            streak += 1;
+            d -= 1;
+        }
+        let s = Rc::new(Stats {
+            total: c.pulls.len(),
+            foils: (0..c.pulls.len()).filter(|&i| earned(i) && foil(i)).count(),
+            shinies: (0..c.pulls.len()).filter(|&i| earned(i) && c.pulls[i].shiny).count(),
+            unique,
+            pending: c.pulls.iter().filter(|p| p.status == Status::Pending).count(),
+            last: c.pulls.len().checked_sub(1),
+            streak,
+            drought: (0..c.pulls.len()).rev().take_while(|&i| !foil(i)).count(),
+            first_ts: c.pulls.iter().map(|p| p.ts).min(),
+        });
+        self.memo().stats = Some((minute, s.clone()));
+        s
+    }
+
+    /// Completion of a pack's checklist: `set` 0 = every set, else pack.sets[set - 1]; `dex`: characters caught
+    /// instead of cards (slots). Earned only: a pending card is counted apart (S-06).
+    pub fn completion(&self, pi: usize, set: usize, shiny: bool, dex: bool) -> Completion {
+        if let Some(c) = self.memo().done.get(&(pi, set, shiny, dex)) {
+            return *c;
+        }
+        let c = &self.coll;
+        let p = &c.packs[pi];
+        let in_set = |k: SlotKey| set == 0 || p.set_of(k.card) == Some(set - 1);
+        let mut out = Completion::default();
+        let mut add = |states: &mut dyn Iterator<Item = SlotState>| {
+            let mut any = false;
+            let (mut own, mut pend) = (false, false);
+            for s in states {
+                any = true;
+                own |= s == SlotState::Owned;
+                pend |= s == SlotState::Pending;
+            }
+            if any {
+                out.total += 1;
+                if own {
+                    out.owned += 1;
+                } else if pend {
+                    out.pending += 1;
+                }
+            }
+        };
+        if p.is_cards {
+            if dex {
+                for ch in 0..p.chars.len() {
+                    add(&mut p.char_cards[ch].iter().map(|&i| p.key_of(pi, i)).filter(|&k| in_set(k)).map(|k| c.slot_state(k, shiny)));
+                }
+            } else {
+                for &i in &p.checklist {
+                    let k = p.key_of(pi, i);
+                    if in_set(k) {
+                        add(&mut std::iter::once(c.slot_state(k, shiny)));
+                    }
+                }
+            }
+        } else if dex {
+            for ch in 0..p.chars.len() {
+                add(&mut (0..p.tiers.len()).map(|t| c.slot_state(SlotKey::legacy(pi, ch, t), shiny)));
+            }
+        } else {
+            for t in 0..p.tiers.len() {
+                for ch in 0..p.chars.len() {
+                    add(&mut std::iter::once(c.slot_state(SlotKey::legacy(pi, ch, t), shiny)));
+                }
+            }
+        }
+        self.memo().done.insert((pi, set, shiny, dex), out);
+        out
+    }
+
+    /// A pack's completion as its header meter shows it: cards (real-card packs), characters (big packs), slots.
+    pub fn pack_completion(&self, pi: usize) -> Completion {
+        self.completion(pi, 0, false, self.coll.packs[pi].is_big())
+    }
+
+    /// The binder's completion line: the view and set on screen (dex: characters), shiny-only aware.
+    pub fn view_completion(&self) -> Completion {
+        let pi = self.pack;
+        self.completion(pi, self.set_sel[pi], self.shiny_only, self.views[pi] == View::Dex)
+    }
+
+    /// The tiers panel: the rarities of the selected set (or the pack), each caught / of, and its pulls (S-08).
+    pub fn tier_rows(&self) -> Rc<Vec<TierRow>> {
+        let (pi, set, shiny) = (self.pack, self.set_sel.get(self.pack).copied().unwrap_or(0), self.shiny_only);
+        if let Some(r) = self.memo().tiers.get(&(pi, set, shiny)) {
+            return r.clone();
+        }
+        let c = &self.coll;
+        let Some(p) = c.packs.get(pi) else { return Rc::new(vec![]) };
+        let in_set = |k: SlotKey| set == 0 || p.set_of(k.card) == Some(set - 1);
+        let mut rows: Vec<TierRow> = (0..p.tiers.len()).map(|tier| TierRow { tier, caught: 0, pending: 0, of: 0, pulls: 0 }).collect();
+        let mut count = |k: SlotKey| {
+            let r = &mut rows[k.tier];
+            r.of += 1;
+            match c.slot_state(k, shiny) {
+                SlotState::Owned => r.caught += 1,
+                SlotState::Pending => r.pending += 1,
+                SlotState::Empty => {}
+            }
+        };
+        if p.is_cards {
+            for &i in &p.checklist {
+                let k = p.key_of(pi, i);
+                if in_set(k) {
+                    count(k);
+                }
+            }
+        } else {
+            for t in 0..p.tiers.len() {
+                for ch in 0..p.chars.len() {
+                    count(SlotKey::legacy(pi, ch, t));
+                }
+            }
+        }
+        for k in c.slot_of.iter().flatten() {
+            if k.pack == pi && in_set(*k) {
+                rows[k.tier].pulls += 1;
+            }
+        }
+        let live: HashSet<usize> = p.live_tiers().iter().copied().collect();
+        let rows: Vec<TierRow> = rows.into_iter().filter(|r| if p.is_cards { r.of > 0 } else { live.contains(&r.tier) }).collect();
+        let rows = Rc::new(rows);
+        self.memo().tiers.insert((pi, set, shiny), rows.clone());
+        rows
+    }
+
+    /// The set picker's rows: every set first, then the pack's sets, the ones you collect most first (then the
+    /// biggest). With a filter typed: the sets it names (query::set_score), best first.
+    pub fn set_rows(&self) -> Vec<SetRow> {
+        let Some(p) = self.coll.packs.get(self.pack) else { return vec![] };
+        let f = self.picker.as_ref().map(|p| p.filter.trim().to_string()).unwrap_or_default();
+        let mut rows: Vec<(u8, SetRow)> = p
+            .sets
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (if f.is_empty() { 1 } else { query::set_score(s, &f) }, SetRow { ix: i + 1, id: s.id.clone(), name: s.name.clone(), done: self.completion(self.pack, i + 1, false, false) }))
+            .filter(|r| r.0 > 0)
+            .collect();
+        rows.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.done.owned.cmp(&a.1.done.owned)).then(b.1.done.total.cmp(&a.1.done.total)).then(a.1.ix.cmp(&b.1.ix)));
+        let mut out: Vec<SetRow> = Vec::new();
+        if f.is_empty() || "all sets".starts_with(&query::fold(&f)) {
+            out.push(SetRow { ix: 0, id: String::new(), name: "every set".into(), done: self.completion(self.pack, 0, false, false) });
+        }
+        out.extend(rows.into_iter().map(|r| r.1));
+        out
+    }
+
+    /// Show a set's checklist (0: every set). A picked set is always the checklist (the card view); the selection
+    /// stays on the card you are on if the set has it, else goes to the newest pull in the set, else its first card.
+    pub fn choose_set(&mut self, ix: usize) {
+        let pi = self.pack;
+        let Some(p) = self.coll.packs.get(pi) else { return };
+        if ix > p.sets.len() {
+            return;
+        }
+        let prev = self.selected();
+        self.set_sel[pi] = ix;
+        if ix > 0 {
+            self.views[pi] = View::Set;
+        }
+        self.dex_focus[pi] = None;
+        self.picker = None;
+        self.dirty = true;
+        if prev.is_some_and(|k| self.select_key(k)) {
+            return;
+        }
+        if !self.select_latest_visible() {
+            self.sel[pi] = 0;
+        }
+    }
+
+    pub fn open_picker(&mut self) {
+        let Some(p) = self.coll.packs.get(self.pack) else { return };
+        if p.sets.is_empty() {
+            self.notice = Some(format!("{} has no sets: its binder is every character x every tier", p.name));
+            return;
+        }
+        self.picker = Some(Picker::default());
+        let cur = self.set_sel[self.pack];
+        let sel = self.set_rows().iter().position(|r| r.ix == cur).unwrap_or(0);
+        if let Some(pk) = self.picker.as_mut() {
+            pk.sel = sel;
+        }
+        self.searching = false;
+        self.dirty = true;
+    }
+
+    /// `#`: select the card with this printed number (numerator: "17", "TG05", "B") in the selected set (or the
+    /// pack), clearing a search or filter that hides it.
+    pub fn jump_number(&mut self, q: &str) {
+        let pi = self.pack;
+        let Some(p) = self.coll.packs.get(pi) else { return };
+        let want = crate::data::numerator(q.trim().trim_start_matches('#'));
+        if want.is_empty() {
+            return;
+        }
+        if !p.is_cards {
+            self.notice = Some(format!("{} has no printed numbers", p.name));
+            return;
+        }
+        let hit = p.checklist.iter().copied().map(|i| p.key_of(pi, i)).find(|&k| self.in_set(k) && p.card_list[k.card as usize].numerator() == want);
+        match hit {
+            Some(k) => {
+                let newest = self.coll.slot_pulls(k).last().copied();
+                self.jump_to(k, newest);
+            }
+            None => {
+                let where_ = self.current_set().map(|s| s.name.clone()).unwrap_or_else(|| p.name.clone());
+                self.notice = Some(format!("no card #{} in {where_}", q.trim().trim_start_matches('#')));
+            }
+        }
+    }
+
+    /// Which pulls of a slot the card panel steps through (shiny-only: its shinies) and which one it shows: the
+    /// history cursor if it belongs to this slot, else the newest.
+    pub fn shown_pull(&self, k: SlotKey) -> (Vec<usize>, Option<usize>) {
+        let shiny = self.shiny_only;
+        let list: Vec<usize> = self.coll.slot_pulls(k).iter().copied().filter(|&i| !shiny || self.coll.pulls[i].shiny).collect();
+        if list.is_empty() {
+            return (list, None);
+        }
+        let h = match self.hist {
+            Some((hk, h)) if hk == k && h < list.len() => h,
+            _ => list.len() - 1,
+        };
+        let shown = list[h];
+        (list, Some(shown))
+    }
+
+    /// The history cursor's position in the shown list.
+    pub fn hist_pos(&self, k: SlotKey) -> Option<(usize, usize)> {
+        let (list, shown) = self.shown_pull(k);
+        let i = shown?;
+        Some((list.iter().position(|&x| x == i)?, list.len()))
+    }
+
+    fn step_hist(&mut self, d: isize) {
+        let Some(k) = self.selected() else { return };
+        let Some((h, n)) = self.hist_pos(k) else { return };
+        self.hist = Some((k, (h as isize + d).clamp(0, n as isize - 1) as usize));
     }
 
     pub fn anim_phase(&self) -> f32 {
@@ -558,20 +1121,32 @@ impl App {
 
     /// Should the selected card be shimmering right now (visible foil that you own)?
     pub fn animating(&mut self) -> bool {
-        if self.help || self.hits.card_art.width == 0 {
+        if self.help || self.picker.is_some() || self.hits.card_art.width == 0 {
             return false;
         }
         let Some(k) = self.selected() else { return false };
         let shiny = self.shiny_only;
         let st = self.coll.slot_state(k, shiny);
-        st != SlotState::Empty && crate::card::is_foil(&self.coll.packs[k.pack], k.tier, shiny)
+        st == SlotState::Owned && crate::card::is_foil(&self.coll.packs[k.pack], k.tier, shiny)
+    }
+
+    /// Keep the text half's scroll for the card it was scrolled on.
+    pub fn text_scroll_for(&mut self, k: SlotKey) -> usize {
+        if self.text_for != Some(k) {
+            self.text_for = Some(k);
+            self.text_scroll = 0;
+        }
+        self.text_scroll
     }
 
     // ------------------------------------------------------------ input
 
     pub fn on_event(&mut self, ev: Event) {
         match ev {
-            Event::Key(k) if k.kind != KeyEventKind::Release => self.on_key(k),
+            Event::Key(k) if k.kind != KeyEventKind::Release => {
+                self.notice = None;
+                self.on_key(k)
+            }
             Event::Mouse(m) => self.on_mouse(m),
             Event::Resize(..) => self.dirty = true,
             Event::FocusGained => {
@@ -585,58 +1160,88 @@ impl App {
 
     fn on_key(&mut self, k: KeyEvent) {
         self.dirty = true;
-        if k.modifiers.contains(KeyModifiers::CONTROL) && matches!(k.code, KeyCode::Char('c')) {
+        // AltGr arrives as Ctrl+Alt: a character typed with it ([ ] / # on many layouts) is the plain character
+        let altgr = k.modifiers.contains(KeyModifiers::CONTROL) && k.modifiers.contains(KeyModifiers::ALT);
+        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL) && !altgr;
+        let alt = k.modifiers.contains(KeyModifiers::ALT) && !altgr;
+        if ctrl && matches!(k.code, KeyCode::Char('c')) {
             self.quit = true;
             return;
         }
         if self.help {
-            self.help = false;
+            match k.code {
+                KeyCode::Up | KeyCode::Char('k') => self.help_scroll = self.help_scroll.saturating_sub(1),
+                KeyCode::Down | KeyCode::Char('j') => self.help_scroll += 1,
+                KeyCode::PageUp => self.help_scroll = self.help_scroll.saturating_sub(10),
+                KeyCode::PageDown | KeyCode::Char(' ') => self.help_scroll += 10,
+                _ => self.help = false,
+            }
             return;
         }
-        if self.searching {
+        if self.picker.is_some() {
+            self.on_picker_key(k, ctrl || alt);
+            return;
+        }
+        if let Some(q) = self.number.as_mut() {
             match k.code {
-                KeyCode::Esc => {
-                    self.searching = false;
-                    self.search.clear();
+                KeyCode::Esc => self.number = None,
+                KeyCode::Enter => {
+                    let q = std::mem::take(q);
+                    self.number = None;
+                    self.jump_number(&q);
                 }
-                KeyCode::Enter => self.searching = false,
                 KeyCode::Backspace => {
-                    self.search.pop();
+                    if q.pop().is_none() {
+                        self.number = None;
+                    }
                 }
-                KeyCode::Char(c) => {
-                    self.search.push(c);
-                    self.sel[self.pack] = 0;
-                }
-                KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down => {
-                    self.searching = false;
-                    self.on_key(k);
-                }
+                KeyCode::Char(c) if !ctrl && !alt && (c.is_ascii_alphanumeric() || c == '/') && q.len() < 12 => q.push(c),
                 _ => {}
             }
             return;
+        }
+        if self.searching {
+            self.on_search_key(k, ctrl, alt);
+            return;
+        }
+        if ctrl || alt {
+            return; // Ctrl/Alt + a letter is not the bare key (K-01)
         }
         match k.code {
             KeyCode::Char('q') => self.quit = true,
             KeyCode::Esc => {
                 if !self.search.is_empty() {
-                    self.search.clear();
+                    self.keeping_selection(|a| {
+                        a.search.clear();
+                        a.cursor = 0;
+                    });
                 } else {
                     self.quit = true;
                 }
             }
-            KeyCode::Char('?') | KeyCode::F(1) => self.help = true,
+            KeyCode::Char('?') | KeyCode::F(1) => {
+                self.help = true;
+                self.help_scroll = 0;
+            }
             KeyCode::Char('/') => {
                 self.searching = true;
+                self.cursor = self.search.chars().count();
                 self.focus = Focus::Binder;
             }
+            KeyCode::Char('#') => self.number = Some(String::new()),
             KeyCode::Char('s') => self.toggle_shiny(),
-            KeyCode::Char('o') => self.owned_only = !self.owned_only,
+            KeyCode::Char('o') => self.keeping_selection(|a| a.own = if a.own == Own::Owned { Own::All } else { Own::Owned }),
+            KeyCode::Char('m') => self.keeping_selection(|a| a.own = if a.own == Own::Missing { Own::All } else { Own::Missing }),
             KeyCode::Char('v') => self.show_text = !self.show_text,
-            KeyCode::Char('S') => self.cycle_set(1),
+            KeyCode::Char('S') => self.open_picker(),
             KeyCode::Char('d') => {
-                let v = &mut self.views[self.pack];
-                *v = if *v == View::Set { View::Dex } else { View::Set };
-                self.sel[self.pack] = 0;
+                if self.coll.packs.is_empty() {
+                    return;
+                }
+                self.keeping_selection(|a| {
+                    let v = &mut a.views[a.pack];
+                    *v = if *v == View::Set { View::Dex } else { View::Set };
+                });
             }
             KeyCode::Char('t') => self.theme = (self.theme + 1) % crate::theme::THEMES.len(),
             KeyCode::Char('r') => {
@@ -676,13 +1281,15 @@ impl App {
             KeyCode::PageDown | KeyCode::Char(' ') => self.flip(1),
             KeyCode::PageUp => self.flip(-1),
             KeyCode::Home | KeyCode::Char('g') => {
-                self.sel[self.pack] = 0;
-                self.hist = usize::MAX;
+                if !self.coll.packs.is_empty() {
+                    self.sel[self.pack] = 0;
+                }
             }
             KeyCode::End | KeyCode::Char('G') => {
                 let n = self.slots().len();
-                self.sel[self.pack] = n.saturating_sub(1);
-                self.hist = usize::MAX;
+                if !self.coll.packs.is_empty() {
+                    self.sel[self.pack] = n.saturating_sub(1);
+                }
             }
             _ => match self.focus {
                 Focus::Binder => match k.code {
@@ -690,21 +1297,27 @@ impl App {
                     KeyCode::Right | KeyCode::Char('l') => self.move_grid(1, 0),
                     KeyCode::Up | KeyCode::Char('k') => self.move_grid(0, -1),
                     KeyCode::Down | KeyCode::Char('j') => self.move_grid(0, 1),
+                    KeyCode::Enter => {
+                        self.focus = Focus::Card;
+                        self.compact_right = Focus::Card;
+                    }
                     _ => {}
                 },
-                Focus::Card => {
-                    let n = self.selected().map(|s| self.coll.slot_pulls(s).len()).unwrap_or(0);
-                    let cur = if self.hist >= n { n.saturating_sub(1) } else { self.hist };
-                    match k.code {
-                        KeyCode::Left | KeyCode::Up | KeyCode::Char('h') | KeyCode::Char('k') => self.hist = cur.saturating_sub(1),
-                        KeyCode::Right | KeyCode::Down | KeyCode::Char('l') | KeyCode::Char('j') => {
-                            self.hist = (cur + 1).min(n.saturating_sub(1))
-                        }
-                        _ => {}
+                Focus::Card => match k.code {
+                    KeyCode::Left | KeyCode::Char('h') => self.step_hist(-1),
+                    KeyCode::Right | KeyCode::Char('l') => self.step_hist(1),
+                    // with the text half cut off, up/down scroll it; otherwise they step pulls too
+                    KeyCode::Up | KeyCode::Char('k') if self.show_text && (self.text_scroll > 0 || self.hits.text_more > 0) => {
+                        self.text_scroll = self.text_scroll.saturating_sub(1)
                     }
-                }
+                    KeyCode::Down | KeyCode::Char('j') if self.show_text && self.hits.text_more > 0 => self.text_scroll += 1,
+                    KeyCode::Up | KeyCode::Char('k') => self.step_hist(-1),
+                    KeyCode::Down | KeyCode::Char('j') => self.step_hist(1),
+                    _ => {}
+                },
                 Focus::Stats => {
                     let n = self.best_pulls().len();
+                    self.best_sel = self.best_sel.min(n.saturating_sub(1));
                     match k.code {
                         KeyCode::Up | KeyCode::Char('k') => self.best_sel = self.best_sel.saturating_sub(1),
                         KeyCode::Down | KeyCode::Char('j') => self.best_sel = (self.best_sel + 1).min(n.saturating_sub(1)),
@@ -714,6 +1327,134 @@ impl App {
                 }
             },
         }
+    }
+
+    fn on_picker_key(&mut self, k: KeyEvent, modded: bool) {
+        let rows = self.set_rows();
+        let n = rows.len();
+        let Some(pk) = self.picker.as_mut() else { return };
+        match k.code {
+            KeyCode::Esc => {
+                if pk.filter.is_empty() {
+                    self.picker = None;
+                } else {
+                    pk.filter.clear();
+                    pk.sel = 0;
+                }
+            }
+            KeyCode::Enter => {
+                if let Some(r) = rows.get(pk.sel.min(n.saturating_sub(1))) {
+                    let ix = r.ix;
+                    self.choose_set(ix);
+                } else {
+                    self.picker = None;
+                }
+            }
+            KeyCode::Up | KeyCode::BackTab => pk.sel = pk.sel.checked_sub(1).unwrap_or(n.saturating_sub(1)),
+            KeyCode::Down | KeyCode::Tab => pk.sel = if pk.sel + 1 >= n { 0 } else { pk.sel + 1 },
+            KeyCode::Char('S') if pk.filter.is_empty() => pk.sel = if pk.sel + 1 >= n { 0 } else { pk.sel + 1 },
+            KeyCode::PageUp | KeyCode::Home => pk.sel = 0,
+            KeyCode::PageDown | KeyCode::End => pk.sel = n.saturating_sub(1),
+            KeyCode::Backspace => {
+                pk.filter.pop();
+                pk.sel = 0;
+            }
+            KeyCode::Char('u') if modded => {
+                pk.filter.clear();
+                pk.sel = 0;
+            }
+            KeyCode::Char(c) if !modded => {
+                pk.filter.push(c);
+                pk.sel = 0;
+            }
+            _ => {}
+        }
+    }
+
+    fn on_search_key(&mut self, k: KeyEvent, ctrl: bool, alt: bool) {
+        let mut cs: Vec<char> = self.search.chars().collect();
+        let cur = self.cursor.min(cs.len());
+        let before = self.search.clone();
+        match k.code {
+            KeyCode::Esc => {
+                self.searching = false;
+                cs.clear();
+                self.cursor = 0;
+            }
+            KeyCode::Enter => self.searching = false,
+            KeyCode::Backspace if cur > 0 => {
+                cs.remove(cur - 1);
+                self.cursor = cur - 1;
+            }
+            KeyCode::Delete if cur < cs.len() => {
+                cs.remove(cur);
+            }
+            KeyCode::Left => self.cursor = cur.saturating_sub(1),
+            KeyCode::Right => self.cursor = (cur + 1).min(cs.len()),
+            KeyCode::Home => self.cursor = 0,
+            KeyCode::End => self.cursor = cs.len(),
+            KeyCode::Char('a') if ctrl => self.cursor = 0,
+            KeyCode::Char('e') if ctrl => self.cursor = cs.len(),
+            KeyCode::Char('u') if ctrl => {
+                cs.drain(..cur);
+                self.cursor = 0;
+            }
+            KeyCode::Char('w') if ctrl => {
+                let mut i = cur;
+                while i > 0 && cs[i - 1].is_whitespace() {
+                    i -= 1;
+                }
+                while i > 0 && !cs[i - 1].is_whitespace() {
+                    i -= 1;
+                }
+                cs.drain(i..cur);
+                self.cursor = i;
+            }
+            KeyCode::Tab => {
+                if let Some((a, b, text)) = self.complete(&cs, cur) {
+                    cs.splice(a..b, text.chars());
+                    self.cursor = a + text.chars().count();
+                }
+            }
+            KeyCode::Up | KeyCode::Down => {
+                self.searching = false;
+                self.on_key(k);
+                return;
+            }
+            KeyCode::Char(c) if !ctrl && !alt => {
+                cs.insert(cur, c);
+                self.cursor = cur + 1;
+            }
+            _ => {}
+        }
+        let now: String = cs.into_iter().collect();
+        if now != before {
+            self.search = now;
+            self.hist = None;
+            if !self.coll.packs.is_empty() {
+                self.sel[self.pack] = 0;
+            }
+        }
+    }
+
+    /// Tab in the search: complete the word under the cursor. `set:evo` -> the set's id; `ra` -> `rarity:`.
+    fn complete(&self, cs: &[char], cur: usize) -> Option<(usize, usize, String)> {
+        let mut a = cur;
+        while a > 0 && !cs[a - 1].is_whitespace() {
+            a -= 1;
+        }
+        let word: String = cs[a..cur].iter().collect();
+        let lw = word.to_lowercase();
+        if let Some(v) = lw.strip_prefix("set:").filter(|v| !v.is_empty() && !v.starts_with('"')) {
+            let p = self.coll.packs.get(self.pack)?;
+            let s = query::resolve_sets(&p.sets, v).into_iter().next()?;
+            return Some((a, cur, format!("set:{} ", s.id)));
+        }
+        if !lw.contains(':') && lw.len() >= 2 {
+            let k = query::KEYS.iter().find(|k| k.starts_with(&lw))?;
+            return Some((a, cur, format!("{k}:")));
+        }
+        None
     }
 
     fn open_best(&mut self, i: usize) {
@@ -728,87 +1469,372 @@ impl App {
 
     fn on_mouse(&mut self, m: MouseEvent) {
         let pos = Position::new(m.column, m.row);
-        match m.kind {
-            MouseEventKind::ScrollDown | MouseEventKind::ScrollUp => {
-                let d = if m.kind == MouseEventKind::ScrollDown { 1 } else { -1 };
-                if self.hits.stats.contains(pos) {
-                    let n = self.best_pulls().len();
-                    self.best_sel = (self.best_sel as isize + d).clamp(0, n.saturating_sub(1) as isize) as usize;
-                } else if self.hits.card.contains(pos) {
-                    let n = self.selected().map(|s| self.coll.slot_pulls(s).len()).unwrap_or(0);
-                    let cur = if self.hist >= n { n.saturating_sub(1) } else { self.hist };
-                    self.hist = (cur as isize + d).clamp(0, n.saturating_sub(1) as isize) as usize;
-                } else {
-                    self.flip(d);
+        let wheel = match m.kind {
+            MouseEventKind::ScrollDown => 1,
+            MouseEventKind::ScrollUp => -1,
+            _ => 0,
+        };
+        if wheel != 0 {
+            self.dirty = true;
+            if self.help {
+                self.help_scroll = (self.help_scroll as isize + wheel * 3).max(0) as usize;
+            } else if self.picker.is_some() {
+                let n = self.set_rows().len();
+                if let Some(pk) = self.picker.as_mut() {
+                    pk.sel = (pk.sel as isize + wheel).clamp(0, n.saturating_sub(1) as isize) as usize;
                 }
-                self.dirty = true;
+            } else if self.hits.stats.contains(pos) {
+                let n = self.best_pulls().len();
+                self.best_sel = (self.best_sel as isize + wheel).clamp(0, n.saturating_sub(1) as isize) as usize;
+            } else if self.show_text && self.hits.text.contains(pos) {
+                if wheel > 0 && self.hits.text_more > 0 {
+                    self.text_scroll += 1;
+                } else if wheel < 0 {
+                    self.text_scroll = self.text_scroll.saturating_sub(1);
+                }
+            } else if self.hits.card.contains(pos) {
+                self.step_hist(wheel);
+            } else {
+                self.flip(wheel);
             }
-            MouseEventKind::Down(MouseButton::Left) => {
-                self.dirty = true;
-                if self.help {
-                    self.help = false;
-                    return;
+            return;
+        }
+        if m.kind != MouseEventKind::Down(MouseButton::Left) {
+            return;
+        }
+        self.dirty = true;
+        self.notice = None;
+        if self.help {
+            self.help = false;
+            return;
+        }
+        if self.picker.is_some() {
+            if let Some(&(_, row)) = self.hits.picker_rows.iter().find(|(r, _)| r.contains(pos)) {
+                if let Some(r) = self.set_rows().get(row) {
+                    let ix = r.ix;
+                    self.choose_set(ix);
                 }
-                if let Some(&(_, _, _, p)) = self.hits.tabs.iter().find(|t| t.2 == m.row as i32 && (t.0..=t.1).contains(&(m.column as i32))) {
-                    if p < self.coll.packs.len() {
-                        self.set_pack(p);
-                    } else {
-                        self.cycle_set(1);
-                    }
-                    return;
-                }
-                if self.hits.prev_page.is_some_and(|r| r.contains(pos)) {
-                    self.flip(-1);
-                    return;
-                }
-                if self.hits.next_page.is_some_and(|r| r.contains(pos)) {
-                    self.flip(1);
-                    return;
-                }
-                if let Some(&(_, i)) = self.hits.slots.iter().find(|(r, _)| r.contains(pos)) {
-                    self.sel[self.pack] = i;
-                    self.hist = usize::MAX;
-                    self.focus = Focus::Binder;
-                    return;
-                }
-                if let Some(&(_, pi)) = self.hits.best.iter().find(|(r, _)| r.contains(pos)) {
-                    if let Some(i) = self.best_pulls().iter().position(|b| b.0 == pi) {
-                        self.best_sel = i;
-                        self.open_best(i);
-                    }
-                    return;
-                }
-                if self.hits.card.contains(pos) {
-                    self.focus = Focus::Card;
-                } else if self.hits.stats.contains(pos) {
-                    self.focus = Focus::Stats;
-                } else if self.hits.binder.contains(pos) {
-                    self.focus = Focus::Binder;
-                }
+            } else if !self.hits.picker.contains(pos) {
+                self.picker = None;
             }
-            _ => {}
+            return;
+        }
+        self.number = None;
+        self.searching = false; // a click ends typing (the query stays)
+        if let Some(&(_, _, _, tab)) = self.hits.tabs.iter().find(|t| t.2 == m.row as i32 && (t.0..=t.1).contains(&(m.column as i32))) {
+            match tab {
+                Tab::Pack(p) => self.set_pack(p),
+                Tab::Set => self.open_picker(),
+            }
+            return;
+        }
+        if self.hits.prev_page.is_some_and(|r| r.contains(pos)) {
+            self.flip(-1);
+            return;
+        }
+        if self.hits.next_page.is_some_and(|r| r.contains(pos)) {
+            self.flip(1);
+            return;
+        }
+        if let Some(&(_, i)) = self.hits.slots.iter().find(|(r, _)| r.contains(pos)) {
+            self.sel[self.pack] = i;
+            self.focus = Focus::Binder;
+            return;
+        }
+        if let Some(&(_, pi)) = self.hits.best.iter().find(|(r, _)| r.contains(pos)) {
+            if let Some(i) = self.best_pulls().iter().position(|b| b.0 == pi) {
+                self.best_sel = i;
+                self.open_best(i);
+            }
+            return;
+        }
+        if self.hits.card.contains(pos) {
+            self.focus = Focus::Card;
+        } else if self.hits.stats.contains(pos) {
+            self.focus = Focus::Stats;
+        } else if self.hits.binder.contains(pos) {
+            self.focus = Focus::Binder;
         }
     }
 
     /// Shiny-only on/off; landing on an owned shiny when there is one.
     pub fn toggle_shiny(&mut self) {
-        self.shiny_only = !self.shiny_only;
-        self.hist = usize::MAX;
+        if self.coll.packs.is_empty() {
+            return;
+        }
+        self.keeping_selection(|a| a.shiny_only = !a.shiny_only);
         if self.shiny_only {
             let cur = self.selected();
             if cur.is_none_or(|k| self.coll.slot_state(k, true) == SlotState::Empty) {
-                let shiny = self.shiny_only;
                 let list = self.slots().to_vec();
-                let hit = list.iter().position(|k| self.coll.slot_state(*k, shiny) != SlotState::Empty);
-                if let Some(i) = hit {
+                if let Some(i) = list.iter().position(|k| self.coll.slot_state(*k, true) != SlotState::Empty) {
                     self.sel[self.pack] = i;
                 }
             }
         }
         self.dirty = true;
     }
+}
 
-    pub fn pending_count(&self) -> usize {
-        self.coll.pulls.iter().filter(|p| p.status == Status::Pending).count()
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::tests::{fixture_pack, ulid_now, write_log};
+
+    fn app(dir: &std::path::Path, set: &str, search: &str, start: Start) -> App {
+        App::new(
+            Opts {
+                root: dir.to_path_buf(),
+                log: dir.join("state/pulls.log"),
+                viewed: dir.join("state/viewed.txt"),
+                demo_pending: 0,
+                start,
+                readonly: true,
+                search: search.into(),
+                set: set.into(),
+            },
+            0,
+        )
+    }
+
+    fn sel_id(a: &mut App) -> String {
+        let k = a.selected().unwrap();
+        a.coll.packs[k.pack].card_list[k.card as usize].id.clone()
+    }
+
+    #[test]
+    fn newest_pull_lands_on_the_exact_card_in_every_view() {
+        // Lycanroc V (swsh7-91, rare-holo-v) and Lycanroc VMAX (swsh7-92, rare-holo-vmax): the newest pull is the
+        // VMAX. It must be selected, never the V, in the card view and in the dex view; also through --pull / --card.
+        let d = fixture_pack("land");
+        write_log(
+            &d,
+            &[
+                "2026-09-29T08:00:00\tp\tlycanroc\trare-ultra\tswsh7-187\t\t0\t",
+                "2026-09-29T08:01:00\tp\tlycanroc\trare-holo-v\tswsh7-91\t\t0\t",
+                "2026-09-29T08:02:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\tv-beam\t0\t",
+                "2026-09-29T08:03:00\tp\tpikachu\tcommon\tswsh7-49\t\t0\t",
+                "2026-09-29T08:04:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\tv-beam\t0\t",
+            ],
+        );
+        let mut a = app(&d, "", "", Start::Latest);
+        assert_eq!(a.views[0], View::Set, "a real-card pack opens on its cards");
+        assert_eq!(sel_id(&mut a), "swsh7-92");
+        let k = a.selected().unwrap();
+        assert_eq!(a.hist_pos(k), Some((1, 2)), "the newest of its two pulls");
+        // the dex view: the character's slot shows the pulled card (the rare-ultra V is the higher tier)
+        a.views[0] = View::Dex;
+        a.select_latest();
+        assert_eq!(sel_id(&mut a), "swsh7-92");
+        a.dex_focus[0] = None;
+        a.slots_key = None;
+        let ly = a.coll.packs[0].char_ix["lycanroc"];
+        let best = a.slots().iter().find(|k| k.ch == ly).copied().unwrap();
+        assert_eq!(a.coll.packs[0].card_list[best.card as usize].id, "swsh7-187", "unfocused, the dex slot is the best card");
+        // --card with a card id, and with character/tier
+        let mut a = app(&d, "", "", Start::Card("p/swsh7-91".into()));
+        assert_eq!(sel_id(&mut a), "swsh7-91");
+        let mut a = app(&d, "", "", Start::Card("p/lycanroc/rare-holo-vmax".into()));
+        assert_eq!(sel_id(&mut a), "swsh7-92");
+        a.views[0] = View::Dex;
+        assert!(a.select_card("p/swsh7-91"));
+        assert_eq!(sel_id(&mut a), "swsh7-91", "dex view too");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn search_lists_every_card_and_owned_excludes_pending() {
+        // the user's /pikachu: 3 earned Pikachu cards and 1 pending one; every one is listed, `owned` lists the 3
+        let d = fixture_pack("pika");
+        let (e1, e2, e3, p1) = (ulid_now("EEEEEEEEEEEEEEE1"), ulid_now("EEEEEEEEEEEEEEE2"), ulid_now("EEEEEEEEEEEEEEE3"), ulid_now("PPPPPPPPPPPPPPP1"));
+        let now_boot = crate::data::boot_id();
+        let lines = vec![
+            format!("2026-09-29T08:00:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\tpending\tid={e1}\tboot={now_boot}"),
+            format!("2026-09-29T08:00:01\tearned:{e1}"),
+            format!("2026-09-29T08:01:00\tp\tpikachu\tpikachu-rare\tme55-45\t\t0\tpending\tid={e2}\tboot={now_boot}"),
+            format!("2026-09-29T08:01:01\tearned:{e2}"),
+            format!("2026-09-29T08:02:00\tp\tpikachu\tpikachu-rare\tme55-48\t\t0\tpending\tid={e3}\tboot={now_boot}"),
+            format!("2026-09-29T08:02:01\tearned:{e3}"),
+            format!("2026-09-29T08:03:00\tp\tpikachu\tcommon\tswsh7-49\t\t0\tpending\tid={p1}\tboot={now_boot}"),
+            "2026-09-29T08:04:00\tp\tpikachu\tcommon\tcommon\t\t0\t".to_string(), // old art: hidden (not built)
+        ];
+        write_log(&d, &lines.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        for view in [View::Set, View::Dex] {
+            let mut a = app(&d, "", "pikachu", Start::Latest);
+            a.views[0] = view;
+            a.slots_key = None;
+            let ids: Vec<String> = a.slots().to_vec().iter().map(|k| a.coll.packs[0].card_list[k.card as usize].id.clone()).collect();
+            if view == View::Set {
+                for want in ["me55-28", "me55-45", "me55-48", "swsh7-49"] {
+                    assert!(ids.contains(&want.to_string()), "{want} in {ids:?}");
+                }
+                let st: Vec<SlotState> = ["me55-28", "swsh7-49"].iter().map(|id| {
+                    let i = a.coll.packs[0].card_list.iter().position(|c| c.id == *id).unwrap();
+                    a.coll.slot_state(a.coll.packs[0].key_of(0, i), false)
+                }).collect();
+                assert_eq!(st, vec![SlotState::Owned, SlotState::Pending]);
+            } else {
+                assert_eq!(ids.len(), 1, "one pikachu slot in the dex view: {ids:?}");
+                // S-02: a character matches if any of its cards does, and its slot shows a matching card (its
+                // representative, the common, doesn't match: before, this found nothing)
+                a.search = r#"set:30th rarity:"pikachu rare""#.into();
+                let k = a.slots().to_vec();
+                assert_eq!(k.len(), 1);
+                let c = &a.coll.packs[0].card_list[k[0].card as usize];
+                assert_eq!((c.set_id.as_str(), a.coll.packs[0].tiers[c.tier].id.as_str()), ("me55", "pikachu-rare"));
+                assert_eq!(a.coll.slot_state(k[0], false), SlotState::Owned, "an earned one first");
+                a.search = "lycanroc missing".into();
+                assert_eq!(a.slots().len(), 1, "a character never pulled: missing, on its first card");
+            }
+            a.search = "pikachu owned".into();
+            let n = a.slots().len();
+            assert_eq!(n, if view == View::Set { 3 } else { 1 }, "{view:?}");
+        }
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn set_arg_is_fuzzy_and_forces_the_checklist() {
+        let d = fixture_pack("setarg");
+        write_log(&d, &["2026-09-29T08:00:00\tp\tlycanroc\trare-holo-v\tswsh7-91\t\t0\t", "2026-09-29T08:01:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\t"]);
+        for q in ["me55", "30th", "30TH celebration", "celeb"] {
+            let mut a = app(&d, q, "", Start::Latest);
+            assert_eq!(a.current_set().map(|s| s.id.clone()), Some("me55".into()), "{q}");
+            assert_eq!(a.views[0], View::Set);
+            assert_eq!(sel_id(&mut a), "me55-28", "lands on the newest pull in the set");
+            assert!(a.notice.is_none());
+            // the checklist: that set's cards only, in printed order, one slot each
+            let nums: Vec<String> = a.slots().to_vec().iter().map(|k| a.coll.packs[0].card_list[k.card as usize].number.clone()).collect();
+            assert_eq!(nums, vec!["28/128", "45/128", "48/128", "B/128"]);
+        }
+        let mut a = app(&d, "evolving", "", Start::Latest);
+        assert_eq!(a.current_set().map(|s| s.id.clone()), Some("swsh7".into()));
+        assert_eq!(sel_id(&mut a), "swsh7-91");
+        let a = app(&d, "zzz", "", Start::Latest);
+        assert!(a.current_set().is_none());
+        assert!(a.notice.as_deref().unwrap_or("").starts_with("no set matches “zzz”"), "{:?}", a.notice);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn completion_excludes_pending() {
+        let d = fixture_pack("done");
+        let now_boot = crate::data::boot_id();
+        let p1 = ulid_now("PPPPPPPPPPPPPPP1");
+        write_log(
+            &d,
+            &[
+                "2026-09-29T08:00:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\t",
+                &format!("2026-09-29T08:03:00\tp\tpikachu\tpikachu-rare\tme55-45\t\t0\tpending\tid={p1}\tboot={now_boot}"),
+            ],
+        );
+        let a = app(&d, "me55", "", Start::Latest);
+        let c = a.view_completion();
+        assert_eq!((c.owned, c.pending, c.total), (1, 1, 4));
+        let rows = a.tier_rows();
+        let pr = rows.iter().find(|r| a.coll.packs[0].tiers[r.tier].id == "pikachu-rare").unwrap();
+        assert_eq!((pr.caught, pr.pending, pr.of, pr.pulls), (1, 1, 3, 2), "the tiers panel follows the set");
+        assert!(rows.iter().all(|r| a.coll.packs[0].tiers[r.tier].id != "rare-holo-v"), "only the set's rarities");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn picker_keys() {
+        let d = fixture_pack("picker");
+        write_log(&d, &["2026-09-29T08:00:00\tp\tpikachu\tpikachu-rare\tme55-28\t\t0\t"]);
+        let mut a = app(&d, "", "", Start::Latest);
+        let key = |c: KeyCode| Event::Key(KeyEvent::new(c, KeyModifiers::NONE));
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT)));
+        assert!(a.picker.is_some());
+        let rows = a.set_rows();
+        assert_eq!(rows[0].ix, 0, "every set first");
+        assert_eq!(rows[1].id, "me55", "the set you collect most next");
+        for c in "evo".chars() {
+            a.on_event(key(KeyCode::Char(c)));
+        }
+        assert_eq!(a.set_rows().iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["swsh7"]);
+        a.on_event(key(KeyCode::Enter));
+        assert!(a.picker.is_none());
+        assert_eq!(a.current_set().map(|s| s.id.clone()), Some("swsh7".into()));
+        // reopen, arrow up to "every set"
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT)));
+        a.on_event(key(KeyCode::Home));
+        a.on_event(key(KeyCode::Enter));
+        assert!(a.current_set().is_none());
+        // Esc closes without changing anything
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT)));
+        a.on_event(key(KeyCode::Down));
+        a.on_event(key(KeyCode::Esc));
+        assert!(a.picker.is_none() && a.current_set().is_none());
+        // # jumps to a printed number in the set
+        a.choose_set(2);
+        a.on_event(key(KeyCode::Char('#')));
+        for c in "b".chars() {
+            a.on_event(key(KeyCode::Char(c)));
+        }
+        a.on_event(key(KeyCode::Enter));
+        assert_eq!(sel_id(&mut a), "me55-B");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn filters_keep_the_selection_and_history() {
+        let d = fixture_pack("keep");
+        write_log(
+            &d,
+            &[
+                "2026-09-29T08:00:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\t\t0\t",
+                "2026-09-29T08:01:00\tp\tlycanroc\trare-holo-vmax\tswsh7-92\t\t0\t",
+                "2026-09-29T08:02:00\tp\tpikachu\tpikachu-rare\tme55-45\t\t0\t",
+            ],
+        );
+        let mut a = app(&d, "", "", Start::Card("p/swsh7-92".into()));
+        let k = a.selected().unwrap();
+        a.hist = Some((k, 0));
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::NONE)));
+        assert_eq!(sel_id(&mut a), "swsh7-92", "o keeps the card");
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)));
+        assert_eq!(sel_id(&mut a), "swsh7-92", "d keeps the card");
+        // the history cursor belongs to its slot: another card shows its own newest pull
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE)));
+        a.jump_to(a.coll.packs[0].key_of(0, a.coll.packs[0].card_list.iter().position(|c| c.id == "me55-45").unwrap()), None);
+        let k2 = a.selected().unwrap();
+        assert_eq!(a.hist_pos(k2), Some((0, 1)));
+        // ctrl+s is not s (K-01); AltGr (ctrl+alt) + / is / (layouts that type / [ ] # with AltGr)
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL)));
+        assert!(!a.shiny_only);
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::CONTROL | KeyModifiers::ALT)));
+        assert!(a.searching);
+        // search editing: a cursor, ctrl+w, ctrl+u (K-04)
+        for c in "pika chu".chars() {
+            a.on_event(Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE)));
+        }
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Left, KeyModifiers::NONE)));
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('X'), KeyModifiers::SHIFT)));
+        assert_eq!((a.search.as_str(), a.cursor), ("pika chXu", 8));
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('w'), KeyModifiers::CONTROL)));
+        assert_eq!(a.search, "pika u");
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL)));
+        assert_eq!(a.search, "u");
+        a.on_event(Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)));
+        assert!(!a.searching && a.search.is_empty());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn no_packs_no_panic() {
+        let d = std::env::temp_dir().join(format!("binder-test-nopacks-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("packs")).unwrap();
+        std::fs::create_dir_all(d.join("state")).unwrap();
+        let mut a = app(&d, "x", "y", Start::Latest);
+        assert!(a.coll.packs.is_empty());
+        assert!(a.selected().is_none());
+        for c in ['S', 'd', 's', 'o', 'm', 'g', 'G', ']', '#', '1'] {
+            a.on_event(Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE)));
+        }
+        let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
+        t.draw(|f| crate::ui::render(&mut a, f.buffer_mut())).unwrap();
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
