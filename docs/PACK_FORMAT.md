@@ -137,5 +137,10 @@ pull of a real-card pack the same way (`Resolve-PokeshellPull` in `scripts/lib/c
 2. else `retired["<character>/<tier>"]` is a card id: **that card**;
 3. else (`null`, or not listed): **hidden**. It stays in `pulls.log`, it just isn't shown or counted.
 
+A card whose art isn't built (`dist/<pack>/<character>-<card id>.ans` missing, `Test-PokeshellCardBuilt`) is
+**muted**: it never rolls, it is no binder slot (not in completion, set checklists or totals), and the rule above
+treats it as absent from `cards`, so a pull that would show it is hidden and counted with the retired ones. This is
+decided when a binder reads the log, so once the card's art is built its pulls come back.
+
 Pulls of packs without `cards` show as logged. `pokeshell binder` / `collection` applies this and says how many
 retired pulls it left out; binder-tui and the web export should do the same.

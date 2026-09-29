@@ -93,6 +93,7 @@ Assert ($c -and $c.id -eq 'set1-1') "an old common maps to the character's real 
 Assert ($null -eq (Resolve-PokeshellPull $p 'bob' 'holo' 'holo')) "retired art (null) is hidden"
 Assert ($null -eq (Resolve-PokeshellPull $p 'nido' 'common' 'common')) "old art with no retired entry is hidden too"
 Assert ($null -eq (Resolve-PokeshellPull $p 'bob' 'rare-ultra' 'set2-70')) "a card id with the wrong character is hidden"
+Assert ($null -eq (Resolve-PokeshellPull $p 'bob' 'hyper-rare' 'set3-99')) "a card whose art isn't built (set3-99) is hidden, like retired art"
 $legacy = Read-PokeshellPack $fx 'cardy'; $legacy.isCardPack = $false
 Assert ((Resolve-PokeshellPull $legacy 'bob' 'holo' 'holo') -eq 'legacy') "packs without cards: every pull shows as logged"
 

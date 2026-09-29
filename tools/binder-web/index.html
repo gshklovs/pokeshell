@@ -652,6 +652,7 @@ header.top {
 .tp__best { display: flex; gap: 3cqi; align-items: flex-end; }
 .tp__best .card { width: 17cqi; flex: none; }
 .tp__best-label { font: 700 2.8cqi/1 Silkscreen, monospace; color: var(--ink-soft); margin-bottom: 1.4cqi; }
+.tp__best-since { opacity: .6; font-weight: 400; }
 
 .page--title.pk-pokemon { background: linear-gradient(90deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05)), linear-gradient(160deg, color-mix(in oklab, #ffcb05 22%, var(--paper)), var(--paper) 60%); --rc: #e3350d; }
 .page--title.pk-onepiece { --rc: #b3261e; }
@@ -1350,8 +1351,9 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         h('td', { class: 'num', style: { paddingLeft: '2cqi' } }, `${st.tierFilled[i]}/${tot}`)));
     });
     tp.append(h('table', { class: 'odds' }, h('thead', {}, h('tr', {}, h('th', {}, 'RARITY'), h('th', { style: { textAlign: 'right' } }, 'ODDS'), h('th', { style: { textAlign: 'right' } }, 'PER PULL'), h('th', { colspan: 2, style: { textAlign: 'right' } }, 'GOT'))), tb));
-    // best pulls
-    const best = pulls.filter(p => p.pack === pk.id && (!set || pk.cardById?.[p.card]?.set_id === set.id)).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
+    // best pulls: since DATA.best_since (config.txt best_since; default: when the real cards went live)
+    const since = DATA.best_since || '';
+    const best = pulls.filter(p => p.pack === pk.id && p.time >= since && (!set || pk.cardById?.[p.card]?.set_id === set.id)).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
     if (best.length) {
       const row = h('div', { class: 'tp__best' });
       for (const b of best) {
@@ -1359,7 +1361,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         card.addEventListener('click', () => openDetail(slotOf(b), b));
         row.append(card);
       }
-      tp.append(h('div', {}, h('div', { class: 'tp__best-label' }, 'BEST PULLS'), row));
+      const sinceLabel = since ? ` · SINCE ${['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][+since.slice(5, 7) - 1]} ${+since.slice(8, 10)}` : '';
+      tp.append(h('div', {}, h('div', { class: 'tp__best-label' }, 'BEST PULLS', h('span', { class: 'tp__best-since' }, sinceLabel)), row));
     }
     const note = pk.active_packs > 1 ? `pokeshell picks 1 of ${pk.active_packs} packs per tab, so each tab lands here 1 time in ${pk.active_packs}.` : '';
     tp.append(h('div', { class: 'note' }, (isDex ? 'Compact pages: 16 pockets each. ' : '') + note));
