@@ -1,0 +1,119 @@
+{
+ "name": "Brilliant Stars",
+ "set_id": "swsh9",
+ "subsets": [
+  {
+   "set_id": "swsh9tg",
+   "name": "Brilliant Stars Trainer Gallery",
+   "group_prefix": "tg_"
+  }
+ ],
+ "prefix": "swsh9",
+ "printed_total": "172",
+ "lookbook": {
+  "section_prefix": "brsset_",
+  "anchor": "brs",
+  "place": "after"
+ },
+ "groups": {
+  "Common": "commons",
+  "Uncommon": "uncommon",
+  "Rare": "rare",
+  "Rare Holo": "holo",
+  "Rare Holo V": "v",
+  "Rare Holo VMAX": "v",
+  "Rare Holo VSTAR": "vstar",
+  "Rare Ultra": "ultra",
+  "Rare Rainbow": "rainbow",
+  "Rare Secret": "secret"
+ },
+ "tg_groups": {
+  "Trainer Gallery Rare Holo": "tg",
+  "Rare Holo V": "tg_v",
+  "Rare Holo VMAX": "tg_v",
+  "Rare Secret": "secret"
+ },
+ "split": {
+  "v": [
+   "v_a",
+   "v_b"
+  ],
+  "commons": [
+   "commons_a",
+   "commons_b"
+  ],
+  "rare": [
+   "rare_a",
+   "rare_b"
+  ]
+ },
+ "labels": {
+  "commons_a": "Common (1/2)",
+  "commons_b": "Common (2/2)",
+  "uncommon": "Uncommon",
+  "rare_a": "Rare (1/2)",
+  "rare_b": "Rare (2/2)",
+  "holo": "Rare Holo",
+  "v_a": "Rare Holo V + VMAX (1/2)",
+  "v_b": "Rare Holo V + VMAX (2/2)",
+  "vstar": "Rare Holo VSTAR",
+  "ultra": "Rare Ultra (full art + alt-art painting)",
+  "rainbow": "Rare Rainbow",
+  "secret": "Rare Secret (gold)",
+  "tg": "Trainer Gallery: Trainer Gallery Rare Holo",
+  "tg_v": "Trainer Gallery: Rare Holo V + VMAX (alt-art painting)"
+ },
+ "ladder": [
+  "swsh9-6",
+  "swsh9-7",
+  "swsh9-51",
+  "swsh9-8",
+  "swsh9-17",
+  "swsh9-29",
+  "swsh9-18",
+  "swsh9-152",
+  "swsh9-154",
+  "swsh9-174",
+  "swsh9-184",
+  "swsh9tg-TG11",
+  "swsh9tg-TG22",
+  "swsh9tg-TG23",
+  "swsh9tg-TG29"
+ ],
+ "forms": {
+  "swsh9-13": "shaymin-sky",
+  "swsh9-14": "shaymin-sky",
+  "swsh9-152": "shaymin-sky",
+  "swsh9-173": "shaymin-sky",
+  "swsh9-77": "wormadam-sandy",
+  "swsh9-98": "wormadam-trash",
+  "swsh9-95": "morpeko-hangry",
+  "swsh9tg-TG18": "urshifu",
+  "swsh9tg-TG19": "urshifu-gmax",
+  "swsh9tg-TG29": "urshifu-gmax",
+  "swsh9tg-TG21": "urshifu-rapid-strike-gmax",
+  "swsh9tg-TG30": "urshifu-rapid-strike-gmax"
+ },
+ "flip_commons": [
+  "swsh9-49",
+  "swsh9-53",
+  "swsh9-60",
+  "swsh9-63",
+  "swsh9-67",
+  "swsh9-80",
+  "swsh9-81",
+  "swsh9-90",
+  "swsh9-92",
+  "swsh9-107",
+  "swsh9-116",
+  "swsh9-117",
+  "swsh9-124"
+ ],
+ "notes": {
+  "swsh9tg-TG20": "Rapid Strike Urshifu V: the vendor has no non-Gigantamax Rapid Strike sprite (only urshifu-rapid-strike-gmax); skipped rather than serve the Single Strike form",
+  "swsh9-154": "alt-art painting (Umbreon 215 treatment)",
+  "swsh9-156": "alt-art painting",
+  "swsh9-162": "alt-art painting",
+  "swsh9-166": "alt-art painting"
+ }
+}
