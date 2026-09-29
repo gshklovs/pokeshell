@@ -10,8 +10,10 @@ Every new Windows Terminal PowerShell tab is a trading-card pack pull.
 Every pull is a **real printed card**: the Pokemon's pixel sprite over that card's scene, framed like a card with
 its name, printed number and rarity. Most tabs pull a common, which prints right there. Rarer cards (rare holo,
 rare ultra, illustration rare, rare secret, hyper rare, ...) reopen the tab (same folder) wearing an animated
-holofoil pixel-shader skin that matches the rarity (cosmos, sunpillar, illustration rare, gold, ...). Every pull
-goes into your binder (`pokeshell binder`).
+holofoil pixel-shader skin that matches the rarity (cosmos, sunpillar, illustration rare, gold, ...). A card with an
+approved effect animation (its `.anim`, built with the card) then plays it over its art while the tab is idle: the
+card prints at once, the effect loops at 12 fps until you type (at most 30 s), and the key you pressed is the first
+character at the prompt. Every pull goes into your binder (`pokeshell binder`).
 
 It's a fan project, not affiliated with the owners of the characters (see [Disclaimer](#disclaimer)).
 
@@ -290,7 +292,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 
 | file | |
 |---|---|
-| `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), `earn` (`first-command`, `minutes:N` or `off`), and `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.) |
+| `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), `earn` (`first-command`, `minutes:N` or `off`), `anim` (`untilkey`, the default: a card's effect loops until you type, at most 30 s; `intro`: one loop; `off`: the static card only; `$env:POKESHELL_NO_ANIM = 1` turns it off for one shell), and `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.) |
 | `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, flags (`pending`, notes), `id=<ulid>`, `boot=<n>` (for a real card, tier is its rarity tier and art its card id); plus `earned:<id>` / `expired:<id>` lines. Append-only: older lines without an id count as earned, and pulls of art that no longer exists stay in it (the binders hide them: `retired` in `docs/PACK_FORMAT.md`) |
 | `viewed.txt` | pull ids the binder has shown (no more NEW sticker) |
 | `web/` | the web binder (`binder --web`) |
@@ -299,6 +301,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 | `installed.tsv` | the skin profiles install added (what uninstall removes) |
 | `roll.tsv` | the roll table cache (rebuilt automatically when a pack, its art, or the install changes) |
 | `spawn-gate.txt` | recent foil spawns for the rate limit |
+| `pokeshell-core-*.dll`, `pokeshell-anim-*.dll` | the compiled roll core and card-animation player (`scripts/lib/Pokeshell.cs`, `scripts/lib/Anim.cs`), built by install or the first tab that needs them |
 | `backups/` | `settings.json` copies taken before every install/uninstall |
 | `errors.log` | anything that went wrong at startup (the hook never throws into your profile) |
 | `current/` | module installs only: the runtime new tabs use (hook, core source, shaders, art), refreshed by `pokeshell install` |

@@ -132,6 +132,8 @@ function Invoke-Install {
   # compile the startup core now (so no tab has to), and drop older builds that no tab has loaded
   $core = New-PokeshellCore $State
   Get-ChildItem $State -Filter 'pokeshell-core-*.dll' | Where-Object { $_.FullName -ne $core } | ForEach-Object { try { $_.Delete() } catch { } }
+  . (Join-Path $PSScriptRoot 'lib\anim.ps1'); $animCore = New-PokeshellAnimCore $State   # the card animation player, likewise
+  Get-ChildItem $State -Filter 'pokeshell-anim-*.dll' | Where-Object { $_.FullName -ne $animCore } | ForEach-Object { try { $_.Delete() } catch { } }
 
   $tsv = @("# pack`tskin`tguid`tsettings.json (written by pokeshell install)") + @($skins | ForEach-Object { "$($_.pack)`t$($_.skin)`t$($_.guid)`t$path" })
   [IO.File]::WriteAllLines((Join-Path $State 'installed.tsv'), [string[]]$tsv)

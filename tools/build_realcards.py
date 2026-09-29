@@ -13,6 +13,9 @@ For each card it writes (all local-only, git-ignored: they embed Nintendo sprite
   packs/pokemon/cards/<id>.json                 the text half, from the API (tools/fetch_cards.py, docs/CARD_FORMAT.md)
   packs/pokemon/art/<id>.json                   the art (docs/ART_FORMAT.md): one variant named after the card id
   dist/pokemon/<character>-<id>[-shiny].ans     the prebuilt ANSI the runtime prints (tools/build_art.py)
+  dist/pokemon/<character>-<id>[-shiny].anim    the card's approved effect loop, copied from the batch when it has one
+                                                (<batch>/anim/<id>[_shiny]/, suite3: anim/<variant>_<character>[_shiny]/)
+                                                and its final frame is exactly the .ans; played by scripts/lib/anim.ps1
 and records the card in pack.json "cards" (character, tier, name, number, rarity, set, source): the one tracked
 file. A card's tier is its printed rarity: the pack tier whose "rarity" matches the API's `rarity` field. A card
 whose rarity no tier names is refused (add the tier to pack.json first).
@@ -36,6 +39,7 @@ import argparse
 import importlib.util
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -242,8 +246,60 @@ def rarity_entry(rarities, tier, api_rarity):
 
 
 # ---------------------------------------------------------------- import / build
-def write_card(pack, pj, cid, character, art, card, source, opts, rarities, effects):
-    """save one card: art JSON, dist ANSI, pack.json entry. Returns the pack.json entry."""
+def anim_bundles(folder, cid, vname, character):
+    """the batch's effect-loop bundles for a card: {"": <.anim>, "-shiny": <.anim>} (either may be missing).
+    evs: <batch>/anim/<card id>[_shiny]/<card id>[_shiny].anim; suite3: <batch>/anim/<variant>_<character>[_shiny]/..."""
+    out = {}
+    for name in [cid] + ([f"{vname}_{character}"] if vname and character else []):
+        for suffix, sub in (("", name), ("-shiny", f"{name}_shiny")):
+            f = folder / "anim" / sub / f"{sub}.anim"
+            if suffix not in out and f.is_file():
+                out[suffix] = f
+    return out
+
+
+def anim_final(anim_file):
+    """the final frame of an .anim bundle (JSON header line, then frames after form feeds): what it must end on"""
+    parts = anim_file.read_text(encoding="utf-8").split("\f")
+    hdr = json.loads(parts[0])
+    frames = parts[1:]
+    if len(frames) != int(hdr.get("frames", len(frames))) or not frames:
+        raise ValueError(f"{anim_file.name}: {len(frames)} frames, header says {hdr.get('frames')}")
+    return frames[int(hdr.get("final", len(frames) - 1))]
+
+
+def copy_anims(pack, character, cid, anims, dry_run):
+    """copy a card's effect loops next to its .ans (dist/<pack>/<character>-<card id>[-shiny].anim), each only if
+    its final frame is exactly that .ans (the runtime ends the loop on it); stale ones are removed. Returns notes."""
+    notes = []
+    for suffix in ("", "-shiny"):
+        dst = ROOT / "dist" / pack / f"{character}-{cid}{suffix}.anim"
+        ans = ROOT / "dist" / pack / f"{character}-{cid}{suffix}.ans"
+        src = anims.get(suffix)
+        ok = False
+        if src and dry_run:
+            notes.append(f"anim{suffix}")
+            continue
+        if src and ans.exists():
+            try:
+                ok = anim_final(src) == ans.read_text(encoding="utf-8")
+            except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                notes.append(f"anim{suffix} unreadable ({e})")
+            else:
+                if not ok:
+                    notes.append(f"anim{suffix} skipped: its final frame is not the card's .ans")
+        if ok:
+            if not dst.exists() or dst.read_bytes() != src.read_bytes():
+                shutil.copyfile(src, dst)
+            notes.append(f"anim{suffix}")
+        elif dst.exists() and not dry_run:
+            dst.unlink()
+            notes.append(f"removed stale {dst.name}")
+    return notes
+
+
+def write_card(pack, pj, cid, character, art, card, source, opts, rarities, effects, anims=None):
+    """save one card: art JSON, dist ANSI (+ the batch's effect loops, if any), pack.json entry. Returns the pack.json entry."""
     tier = card.get("tier")
     if not tier:
         raise SystemExit(f"{cid}: printed rarity '{card.get('rarity')}' has no tier in pack.json (add one with that \"rarity\")")
@@ -259,8 +315,10 @@ def write_card(pack, pj, cid, character, art, card, source, opts, rarities, effe
     size = f"{len(v['rows'][0])}x{len(v['rows'])}px"
     if opts.dry_run:
         big = len(v["rows"][0]) > build_art.MAX_W or len(v["rows"]) > build_art.MAX_H
+        notes = copy_anims(pack, character, cid, anims or {}, True)
         print(f"  would build {cid:12s} {character:11s} {tier:20s} {size:9s} {card['name']} [{source}]"
-              + (f"  TOO BIG (max {build_art.MAX_W}x{build_art.MAX_H}, tools/build_art.py)" if big else ""))
+              + (f"  TOO BIG (max {build_art.MAX_W}x{build_art.MAX_H}, tools/build_art.py)" if big else "")
+              + (f"  + {', '.join(notes)}" if notes else ""))
         return entry
     adir = ROOT / "packs" / pack / "art"
     adir.mkdir(parents=True, exist_ok=True)
@@ -268,7 +326,9 @@ def write_card(pack, pj, cid, character, art, card, source, opts, rarities, effe
     af.write_text(json.dumps(art, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     files = build_art.build_file(af, previews=not opts.no_previews)
     kb = sum(f.stat().st_size for f in files if not f.stem.endswith("-shiny")) / 1024
-    print(f"  built {cid:12s} {character:11s} {tier:20s} {size:9s} {kb:5.1f} KB  {card['name']} [{source}]")
+    notes = copy_anims(pack, character, cid, anims or {}, False)
+    print(f"  built {cid:12s} {character:11s} {tier:20s} {size:9s} {kb:5.1f} KB  {card['name']} [{source}]"
+          + (f"  + {', '.join(notes)}" if notes else ""))
     pj.setdefault("cards", {})[cid] = entry
     return entry
 
@@ -309,14 +369,16 @@ def import_batch(batch, opts, pj, rarities, effects):
             rows, pal, sh = sprite_rows(opts.vendor, ch)
             src = f"{batch}:sprite"
             art = card_art(ch, cid, card["name"], rows, pal, sh, src)
+            anims = {}   # commons have no effect loop
         elif cid in by_id:
             _, ch, vname, rows, pal, sh, f = by_id[cid]
             art = card_art(ch, cid, card["name"], rows, pal, sh, f"{batch}:{f.name}#{vname}")
             src = f"{batch}:{f.name}#{vname}"
+            anims = anim_bundles(folder, cid, vname, ch)
         else:
             skipped.append(f"{cid} ({card['name']}, {card.get('rarity')}): no art in the batch yet")
             continue
-        write_card(opts.pack, pj, cid, ch, art, card, src, opts, rarities, effects)
+        write_card(opts.pack, pj, cid, ch, art, card, src, opts, rarities, effects, anims)
         done.append(cid)
     for s in skipped:
         print(f"  skip {s}")
@@ -352,7 +414,7 @@ def prune(pack, pj, dry_run):
     cards = pj.get("cards") or {}
     keep = {f"{v['character']}-{cid}" for cid, v in cards.items()}
     gone = []
-    for f in sorted((ROOT / "dist" / pack).glob("*.ans")):
+    for f in sorted([*(ROOT / "dist" / pack).glob("*.ans"), *(ROOT / "dist" / pack).glob("*.anim")]):
         stem = f.stem[:-6] if f.stem.endswith("-shiny") else f.stem
         if stem not in keep:
             gone.append(f)

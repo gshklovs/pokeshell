@@ -20,7 +20,15 @@ function global:binder { & "$PSScriptRoot\pokeshell.ps1" binder @args }   # the 
         $r = [Pokeshell.Core]::Startup($ExecutionContext, $root, $d, $env:WT_PROFILE_ID, $a, $lib, -1)
       }
       $act = 'stale'; if ($r) { $act = $r.Action }
-      if ($act -eq 'common' -or $act -eq 'foil-denied') { $Host.UI.Write($r.Text) }   # (Startup also hooked the prompt: this tab's first command earns the pull)
+      if ($act -eq 'common' -or $act -eq 'foil-denied') {   # (Startup also hooked the prompt: this tab's first command earns the pull)
+        $Host.UI.Write($r.Text)
+        # a foil tier printed here (its skin isn't installed): play its effect loop over it (= Start-PokeshellCardAnim, lib\roll.ps1)
+        if ([IO.File]::Exists("$root\dist\$($r.Pack)\$($r.Character)-$($r.Art).anim")) {
+          $t = [Diagnostics.Stopwatch]::GetTimestamp(); $ad = "$d\pokeshell-anim-" + [IO.File]::GetLastWriteTimeUtc("$lib\Anim.cs").Ticks + "-$PSEdition.dll"
+          if ([IO.File]::Exists($ad)) { [void][Reflection.Assembly]::LoadFile($ad) } else { . "$lib\anim.ps1"; Import-PokeshellAnimCore $d }
+          [void][Pokeshell.Anim]::Run($root, $d, $r.Pack, $r.Character, $r.Art, $r.Shiny, $r.Text, $Host.Name, $t)
+        }
+      }
       elseif ($act -eq 'foil') { . "$lib\roll.ps1"; [void](Complete-PokeshellPull $r $d) }
       elseif ($act -eq 'stale') { . "$lib\roll.ps1"; [void](Invoke-PokeshellRoll -Root $root -StateDir $d -Argv $a) }   # compile / rebuild, then roll
     }

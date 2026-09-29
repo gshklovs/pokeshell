@@ -23,7 +23,7 @@ $Root = Split-Path $PSScriptRoot
 
 # ---- which files
 $include = '^(pokeshell\.psd1|pokeshell\.psm1|LICENSE|README\.md|docs/[^/]+\.md|scripts/.+|' +
-           'packs/[^/]+/pack\.json|packs/[^/]+/art/[^/]+\.json|packs/[^/]+/shaders/[^/]+\.hlsl|dist/[^/]+/[^/]+\.ans)$'
+           'packs/[^/]+/pack\.json|packs/[^/]+/art/[^/]+\.json|packs/[^/]+/shaders/[^/]+\.hlsl|dist/[^/]+/[^/]+\.(ans|anim))$'
 $git = Get-Command git -ErrorAction SilentlyContinue
 if ($git -and (Test-Path (Join-Path $Root '.git'))) {
   & git -C $Root rev-parse --verify -q HEAD *> $null

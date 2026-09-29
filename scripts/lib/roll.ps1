@@ -42,8 +42,11 @@ function Show-PokeshellPull([string]$Root, [string]$Pack, [string]$Character, [s
                             [string]$StateDir = '') {
   if (-not $StateDir) { $StateDir = Get-PokeshellStateDir }
   Import-PokeshellCore $StateDir
-  $Host.UI.Write([Pokeshell.Core]::WithFooter([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty), $PullId))
+  $text = [Pokeshell.Core]::WithFooter([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty), $PullId)
+  $Host.UI.Write($text); $at = [Diagnostics.Stopwatch]::GetTimestamp()
   if ($PullId) { [Pokeshell.Earn]::Register($ExecutionContext, $PullId, $StateDir, $Earn, $PullTicks, $Name, $Label, [bool]$Shiny) }
+  # the pulled tab (called from its startup command, not a script like `pokeshell show`): play the card's effect loop
+  if (-not $MyInvocation.ScriptName) { Start-PokeshellCardAnim $Root $StateDir $Pack $Character $Art ([bool]$Shiny) $text $at }
 }
 
 <#
@@ -95,8 +98,13 @@ records the wt.exe call in dryrun-spawns.log instead of making it and doesn't ex
 function Complete-PokeshellPull($R, [string]$StateDir, [switch]$DryRun, [switch]$Quiet) {
   if ($env:POKESHELL_DRYRUN -eq '1') { $DryRun = $true }
   if ($R.Action -ne 'foil') {
-    if ($R.Text -and -not $Quiet) { $Host.UI.Write($R.Text) }
-    if (-not $Quiet) { Start-PokeshellEarn $R $StateDir }
+    if ($R.Text -and -not $Quiet) {
+      $Host.UI.Write($R.Text); $at = [Diagnostics.Stopwatch]::GetTimestamp()
+      Start-PokeshellEarn $R $StateDir
+      # a foil tier printed here (its skin isn't installed): play its effect loop too
+      Start-PokeshellCardAnim (Split-Path (Split-Path $PSScriptRoot)) $StateDir $R.Pack $R.Character $R.Art $R.Shiny $R.Text $at
+    }
+    elseif (-not $Quiet) { Start-PokeshellEarn $R $StateDir }
     return $R
   }
   if (-not $DryRun -or $env:POKESHELL_PLACEMENT -eq '1') {
@@ -156,4 +164,21 @@ function Invoke-PokeshellRoll([string]$Root, [string]$StateDir, [string]$Profile
     if ($r.Action -eq 'stale') { $r.Action = 'skip'; $r.Reason = 'cache-unreadable'; return $r }
   }
   Complete-PokeshellPull $r $StateDir -DryRun:$DryRun -Quiet:$Quiet
+}
+
+<#
+Play a just-printed card's effect loop over it, if it has one (dist\<pack>\<character>-<art>.anim; the player is
+lib\Anim.cs, see lib\anim.ps1). $Text is exactly what was written and $At the Stopwatch timestamp right after it.
+Loads the player's DLL directly when it's built, so no script is parsed on the way to the first frame. Never throws.
+#>
+function Start-PokeshellCardAnim([string]$Root, [string]$StateDir, [string]$Pack, [string]$Character, [string]$Art,
+                                 [bool]$Shiny, [string]$Text, [long]$At) {
+  if (-not [IO.File]::Exists("$Root\dist\$Pack\$Character-$Art.anim")) { return }   # commons and non-foil tiers: none
+  try {
+    $dll = "$StateDir\pokeshell-anim-" + [IO.File]::GetLastWriteTimeUtc("$PSScriptRoot\Anim.cs").Ticks + "-$PSEdition.dll"   # = Get-PokeshellAnimCorePath
+    if ([IO.File]::Exists($dll)) { [void][Reflection.Assembly]::LoadFile($dll) } else { . "$PSScriptRoot\anim.ps1"; Import-PokeshellAnimCore $StateDir }
+    [void][Pokeshell.Anim]::Run($Root, $StateDir, $Pack, $Character, $Art, $Shiny, $Text, $Host.Name, $At)
+  } catch {
+    try { [IO.File]::AppendAllText("$StateDir\errors.log", [DateTime]::Now.ToString('s') + "`tanim: $($_.Exception.Message)`r`n") } catch { }
+  }
 }

@@ -239,7 +239,7 @@ shaders, and the prebuilt art.
 #>
 function Get-PokeshellRuntimeFiles([string]$Root) {
   $rel = 'scripts\pokeshell-profile.ps1', 'scripts\tab-color-watch.ps1', 'scripts\pokeshell.cmd',
-         'scripts\lib\roll.ps1', 'scripts\lib\common.ps1', 'scripts\lib\Pokeshell.cs'
+         'scripts\lib\roll.ps1', 'scripts\lib\common.ps1', 'scripts\lib\Pokeshell.cs', 'scripts\lib\anim.ps1', 'scripts\lib\Anim.cs'
   foreach ($r in $rel) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } }
   [pscustomobject]@{ from = Join-Path $Root 'scripts\lib\pokeshell-shim.ps1'; to = 'scripts\pokeshell.ps1' }
   foreach ($id in Get-PokeshellPackIds $Root) {
@@ -251,6 +251,9 @@ function Get-PokeshellRuntimeFiles([string]$Root) {
       }
     }
     foreach ($f in Get-ChildItem (Join-Path $Root "dist\$id") -Filter *.ans -File -ErrorAction SilentlyContinue) {
+      [pscustomobject]@{ from = $f.FullName; to = "dist\$id\$($f.Name)" }
+    }
+    foreach ($f in Get-ChildItem (Join-Path $Root "dist\$id") -Filter *.anim -File -ErrorAction SilentlyContinue) {   # effect loops (lib\anim.ps1)
       [pscustomobject]@{ from = $f.FullName; to = "dist\$id\$($f.Name)" }
     }
   }
