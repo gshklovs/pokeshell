@@ -25,7 +25,7 @@ One JSON file per character (real-card packs: per card, see below): `packs/<pack
 
 ## Size limits (the art prints at the top of every new tab, so keep it compact)
 
-`tools/build_art.py` refuses anything larger than **88 x 72 px** (88 columns x 36 lines: `MAX_W`, `MAX_H`).
+`tools/build_art.py` refuses anything larger than **140 x 110 px** (140 columns x 55 lines; the biggest Evolving Skies cards, Rayquaza and Duraludon, are ~136 x 106: `MAX_W`, `MAX_H`).
 
 | art | pixels (w x h) | prints as |
 |---|---|---|

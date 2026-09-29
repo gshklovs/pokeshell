@@ -20,9 +20,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 ESC = "\x1b"
 UPPER, LOWER = "▀", "▄"  # ▀ ▄
-# the largest art a card may have (docs/ART_FORMAT.md): 88 x 72 px = 88 columns x 36 lines. Real-card scenes
+# the largest art a card may have (docs/ART_FORMAT.md): 140 x 110 px = 140 columns x 55 lines. Real-card scenes
 # (the colorscripts sprite over the card's scene) go up to that; pixel-art sprites stay far smaller.
-MAX_W, MAX_H = 88, 72
+MAX_W, MAX_H = 140, 110
 
 
 def hex_rgb(h):

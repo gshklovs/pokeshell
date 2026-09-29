@@ -83,8 +83,12 @@ def character_of(name):
 
 
 def name_matches(character, name):
-    squash = lambda s: re.sub(r"[^a-z0-9]", "", s.lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
-    return squash(character) in squash(name)
+    import unicodedata
+    fold = lambda s: "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))  # Flabébé -> Flabebe  # noqa: E731
+    squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
+    # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
+    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*)$", "", character)
+    return squash(character) in squash(name) or squash(base) in squash(name)
 
 
 def tag_of(card):
@@ -191,7 +195,8 @@ def sprite_rows(vendor, character):
     n, s = load_sprite(vendor, character), load_sprite(vendor, character, True)
     if len(n) != len(s) or len(n[0]) != len(s[0]):
         raise SystemExit(f"{character}: regular and shiny sprites differ in size")
-    keys = "abcdefghijmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    # palette keys may be any single code point (docs/ART_FORMAT.md); some sprites pair up >60 regular/shiny colours
+    keys = "abcdefghijmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" + "".join(chr(c) for c in range(0x3B1, 0x3CA)) + "".join(chr(c) for c in range(0x430, 0x450))
     pairs, pal, sh, rows = {}, {}, {}, []
     for rn, rs in zip(n, s):
         row = ""
