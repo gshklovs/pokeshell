@@ -107,6 +107,7 @@ $rel = @(Get-ChildItem $v1 -Recurse -File | ForEach-Object { $_.FullName.Substri
 Assert (-not @($rel | Where-Object { $_ -match '^(tests|tools|\.venv|previews|\.git)\\' })) "no tests, tools, .venv, previews or .git in the module ($($rel.Count) files)"
 Assert (@($rel | Where-Object { $_ -like 'packs\*\shaders\*.hlsl' }).Count -gt 0 -and (Test-Path (Join-Path $v1 'packs\pokemon\pack.json'))) "ships the shaders and packs\pokemon\pack.json"
 Assert (-not @($rel | Where-Object { $_ -like 'dist\pokemon\*' -or $_ -like 'packs\pokemon\art\*' -or $_ -like 'packs\pokemon\cards\*' })) "no Pokemon card art or card text (local-only, git-ignored)"
+Assert ((Test-Path (Join-Path $v1 'bin\binder.exe')) -and (Test-Path (Join-Path $v1 'bin\binder-link.exe'))) "ships the binder and its link launcher in bin\ (no art in them)"
 Add-FixturePack $v1
 Assert ((Get-Content (Join-Path $v1 'packaged.txt')) -contains 'version=0.1.0') "packaged.txt marks it as a module"
 $ignored = @(Get-ChildItem (Join-Path $v1 'packs') -Directory | ForEach-Object Name | Where-Object { & git -C $RepoRoot check-ignore -q "packs/$_/pack.json"; $LASTEXITCODE -eq 0 })
@@ -124,6 +125,8 @@ Assert (-not @($paths | Where-Object { -not $_.StartsWith("$cur\") })) "every pi
 Assert (-not @($paths | Where-Object { -not (Test-Path $_) })) "every shader file exists"
 Assert ([IO.File]::ReadAllText((Join-Path $cur 'version.txt')) -eq '0.1.0') "current\version.txt = 0.1.0"
 Assert (-not (Test-Path (Join-Path $cur 'tests')) -and (Test-Path (Join-Path $cur 'scripts\lib\Pokeshell.cs'))) "current holds the runtime only"
+Assert ((Test-Path (Join-Path $cur 'bin\binder.exe')) -and (Test-Path (Join-Path $cur 'bin\binder-link.exe'))) "current\bin has binder.exe and binder-link.exe"
+Assert ($out -match 'ctrl\+shift\+b' -and $out -match 'Ctrl\+click') "a module install sets up the binder key and the card link"
 $afterV1 = [IO.File]::ReadAllBytes($settings)
 $dll = Join-Path $state ("pokeshell-core-" + [IO.File]::GetLastWriteTimeUtc((Join-Path $cur 'scripts\lib\Pokeshell.cs')).Ticks + '-Desktop.dll')
 Assert (Test-Path $dll) "the core DLL the hook looks for (named after current's Pokeshell.cs) is compiled"

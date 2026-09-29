@@ -394,7 +394,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish.ps1 -Publish  
 ```
 
 `tools\publish.ps1` stages exactly what the module ships (manifest, `scripts\`, `packs\` json + shaders, `art.json`,
-docs, README, LICENSE; files git ignores never ship, so no Pokemon art) into a temp folder. Bump `ModuleVersion` in
+docs, README, LICENSE, and the built `binder.exe` + `binder-link.exe` in `bin\` so a Gallery install gets the binder, its
+Ctrl+Shift+B pane and the card link; files git ignores never ship, so no Pokemon art) into a temp folder. Build the
+binder first (`binder\build.ps1`): staging refuses exes older than the binder source. Bump `ModuleVersion` in
 `pokeshell.psd1` before each release.
 
 **The card art** is released separately, to [gshklovs/pokeshell-art](https://github.com/gshklovs/pokeshell-art):

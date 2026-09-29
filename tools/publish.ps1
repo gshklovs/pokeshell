@@ -50,6 +50,17 @@ foreach ($f in $files) {
   [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($to))
   Copy-Item -LiteralPath (Join-Path $Root $f) -Destination $to
 }
+# the binder app and its windowless link launcher (no art in them): built by binder\build.ps1, shipped in bin\ so a
+# module install gets the binder, its Ctrl+Shift+B pane and the card's Ctrl+click link (common.ps1 looks there first)
+$rel = Join-Path $Root 'binder\target\release'
+foreach ($exe in 'binder.exe', 'binder-link.exe') {
+  $src = Join-Path $rel $exe
+  if (-not [IO.File]::Exists($src)) { throw "staging: $exe isn't built (powershell -File binder\build.ps1)" }
+  $newest = Get-ChildItem (Join-Path $Root 'binder\src'), (Join-Path $Root 'binder\Cargo.toml') -Recurse -File | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+  if ($newest.LastWriteTimeUtc -gt (Get-Item $src).LastWriteTimeUtc) { throw "staging: $exe is older than $($newest.Name) (rebuild: powershell -File binder\build.ps1)" }
+  [void][IO.Directory]::CreateDirectory((Join-Path $OutDir 'bin'))
+  Copy-Item -LiteralPath $src -Destination (Join-Path $OutDir "bin\$exe")
+}
 $psd1 = Join-Path $OutDir 'pokeshell.psd1'
 if ($Version) {
   $t = [IO.File]::ReadAllText($psd1)
