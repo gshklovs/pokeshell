@@ -72,6 +72,8 @@ BATCHES = {
     "base": {"dir": "base", "globs": ["art/*.json"], "skip_variants": []},
     # Brilliant Stars (swsh9 + its Trainer Gallery swsh9tg, one data folder, artlab/sets/brs): as cz
     "brs": {"dir": "brs", "globs": ["art/*.json"], "skip_variants": []},
+    # Neo Genesis (neo1, 2000, artlab/sets/neo1): as base (the same WotC layout and recipes)
+    "neo1": {"dir": "neo1", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
