@@ -166,12 +166,26 @@ fn pack_completion(app: &App, pi: usize) -> (&'static str, usize, usize) {
     let c = &app.coll;
     let p = &c.packs[pi];
     if p.is_big() {
-        let caught = (0..p.chars.len()).filter(|&ch| c.best_tier(pi, ch, false).is_some()).count();
+        let caught = (0..p.chars.len()).filter(|&ch| c.best_slot(pi, ch, false).is_some()).count();
         ("dex", caught, p.chars.len())
     } else {
         let owned = c.by_slot.keys().filter(|k| k.pack == pi && c.slot_state(**k, false) != SlotState::Empty).count();
         ("set", owned, p.slot_count())
     }
+}
+
+/// A set's checklist: its cards in pack.json, and how many you have (or have pending).
+fn set_completion(app: &App, pi: usize, set: &str) -> (&'static str, usize, usize) {
+    let p = &app.coll.packs[pi];
+    let cards: Vec<usize> = (0..p.card_list.len()).filter(|&i| p.card_list[i].set_id == set).collect();
+    let owned = cards
+        .iter()
+        .filter(|&&i| {
+            let c = &p.card_list[i];
+            app.coll.slot_state(SlotKey { pack: pi, ch: c.ch, tier: c.tier, card: i as u32 }, false) != SlotState::Empty
+        })
+        .count();
+    ("set", owned, cards.len())
 }
 
 fn odds(p: f64) -> String {
@@ -314,7 +328,7 @@ fn header(app: &App, buf: &mut Buffer, r: Rect, t: &Theme, st: &Stats) {
         let (name, tier, tc) = match app.coll.slot_of[li] {
             Some(k) => {
                 let pk = &app.coll.packs[k.pack];
-                (pk.slot_name(k.ch, k.tier), pk.tiers[k.tier].label.clone(), pk.tiers[k.tier].color)
+                (pk.name_for(k.ch, k.card), pk.tiers[k.tier].label.clone(), pk.tiers[k.tier].color)
             }
             None => (p.ch.clone(), p.tier.clone(), t.fg),
         };
@@ -372,6 +386,14 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
         g.push(if active { segb(label, t.title) } else { seg(label, t.dim) });
         ti.tl.push(g);
     }
+    // real-card packs: the set tab (S or a click cycles: every set / one set's checklist)
+    if !app.coll.packs[app.pack].sets.is_empty() {
+        let (lab, c) = match app.current_set() {
+            Some(s) => (trunc(&s.name, if wide { 22 } else { 10 }), t.title),
+            None => ("all sets".to_string(), t.dim),
+        };
+        ti.tl.push(vec![seg("set ", t.faint), segb(lab, c)]);
+    }
     let view = app.views[app.pack];
     let mut tr = vec![seg(if view == View::Set { "set" } else { "dex" }, t.accent)];
     if app.shiny_only {
@@ -385,7 +407,10 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
     let pages = app.pages();
     let page = app.page();
     let sel = app.sel_ix();
-    let (_, owned, total) = pack_completion(app, app.pack);
+    let (_, owned, total) = match app.current_set().map(|s| s.id.clone()) {
+        Some(set) => set_completion(app, app.pack, &set),
+        None => pack_completion(app, app.pack),
+    };
     if app.searching || !app.search.is_empty() {
         let mut g = vec![seg("/", t.hi), segb(app.search.clone(), t.title)];
         if app.searching {
@@ -445,8 +470,7 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
         };
         // empty slots show the base art's silhouette (full-art tiers would be solid rectangles)
         // empty slots show a silhouette: the base art (legacy packs; full-art tiers would be solid) or the slot's card
-        let newest = app.coll.slot_pulls(*k).last().map(|&i| app.coll.pulls[i].card.as_str());
-        let art = if state == SlotState::Empty && !pack.is_cards { pack.tiers[0].art.clone() } else { pack.art_for(k.ch, k.tier, newest) };
+        let art = if state == SlotState::Empty && !pack.is_cards { pack.tiers[0].art.clone() } else { pack.art_at(*k) };
         // (a real card's art is a whole scene, whose silhouette would be a solid block: empty real-card slots show "?")
         let img = if state == SlotState::Empty && pack.is_cards {
             None
@@ -463,6 +487,7 @@ fn binder(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme) {
             count,
             thumb: true,
             new: app.coll.slot_new(*k, app.shiny_only),
+            card: k.card,
         };
         card::draw(buf, sr, &c, img.as_deref(), &theme);
     }
@@ -529,27 +554,21 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     let (list, h) = shown_pull(app, k);
     let shown = h.map(|h| list[h]);
     let shiny = shown.is_some_and(|i| app.coll.pulls[i].shiny) || (app.shiny_only && state != SlotState::Empty);
-    let text = if app.show_text && state != SlotState::Empty {
-        let pc = shown.map(|i| {
-            let p = &app.coll.pulls[i];
-            if !p.card.is_empty() { p.card.clone() } else { p.ch.clone() }
-        });
-        app.card_text(k, pc)
-    } else {
-        None
-    };
+    // (the text half shows for any card with card data, pulled or not: a set checklist can be read too)
+    let text = if app.show_text { app.card_text(k) } else { None };
     let new = app.coll.slot_new(k, app.shiny_only);
     let pack = &app.coll.packs[k.pack];
     let tier = &pack.tiers[k.tier];
-    let art = pack.art_for(k.ch, k.tier, shown.map(|i| app.coll.pulls[i].card.as_str()));
+    let art = pack.art_at(k);
     let (pw, ph) = card::frame_pad(&tier.frame, false);
     let aw = area.width.saturating_sub(2) as usize;
-    let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count: list.len(), thumb: false, new };
+    let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count: list.len(), thumb: false, new, card: k.card };
     // the art as big as fits over `reserve` rows kept free under the card
     let place = |reserve: u16| {
         let ah = area.height.saturating_sub(reserve) as usize;
         let fit = (aw.saturating_sub(pw), ah.saturating_sub(ph).max(2));
-        let img = app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1);
+        // (an empty real-card slot shows "?": its scene's silhouette would be a solid block)
+        let img = if state == SlotState::Empty && pack.is_cards { None } else { app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1) };
         let (iw, ir) = img.as_ref().map(|i| (i.w, i.rows())).unwrap_or((16, 8));
         let (cw, ch) = card::card_size(&c, iw, ir);
         (fit, img, cw.min(area.width), ch.min(area.height))
@@ -569,7 +588,7 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
             (fit, img, cw, ch) = place(reserve);
         }
         th = th.min(area.height.saturating_sub(ch));
-    } else if app.show_text && state != SlotState::Empty && area.height > ch {
+    } else if app.show_text && area.height > ch {
         th = 1; // "no card text" note
     }
     // center the card (and its text half) together with the info block under it
@@ -613,10 +632,10 @@ pub fn render_card(app: &mut App, buf: &mut Buffer) {
     let (list, h) = shown_pull(app, k);
     let shiny = h.is_some_and(|h| app.coll.pulls[list[h]].shiny) || (app.shiny_only && state != SlotState::Empty);
     let fit = app.hits.card_fit;
-    let art = pack.art_for(k.ch, k.tier, h.map(|h| app.coll.pulls[list[h]].card.as_str()));
-    let img = app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1);
+    let art = pack.art_at(k);
+    let img = if state == SlotState::Empty && pack.is_cards { None } else { app.art.fitted(pack, &pack.chars[k.ch], &art, shiny, fit.0, fit.1) };
     let new = app.coll.slot_new(k, app.shiny_only);
-    let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count: list.len(), thumb: false, new };
+    let c = Card { pack, ch: k.ch, tier: k.tier, shiny, state, selected: false, count: list.len(), thumb: false, new, card: k.card };
     card::draw(buf, r, &c, img.as_deref(), &t);
     if state == SlotState::Owned && card::is_foil(pack, k.tier, shiny) {
         card::shimmer(buf, r, &tier.frame, shiny, app.anim_phase());
@@ -643,13 +662,32 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
     skins.dedup();
     let cp = pack.card_p(k.tier, shiny);
     let tp = pack.tier_p(k.tier);
+    // a real card's tags (search them with `/`: set:swsh7 rarity:"rare rainbow" type:water ...)
+    let card = pack.card_at(k.card).cloned();
+    let kinds = card.as_ref().map(|c| c.types.iter().chain(c.subtypes.iter()).cloned().collect::<Vec<_>>().join(" · ")).unwrap_or_default();
     if side {
+        let mut tag_rows: Vec<(&str, String, Rgb, bool)> = vec![];
+        if let Some(c) = &card {
+            let set = if c.set_name.is_empty() { c.set_id.clone() } else { format!("{} ({})", c.set_name, c.set_id) };
+            tag_rows.push(("set", set, t.fg, false));
+            if !c.rarity.is_empty() {
+                tag_rows.push(("rarity", c.rarity.clone(), tier.color, false));
+            }
+            if !kinds.is_empty() {
+                tag_rows.push(("kind", kinds.clone(), t.fg, false));
+            }
+            if !c.artist.is_empty() {
+                tag_rows.push(("artist", c.artist.clone(), t.dim, false));
+            }
+        }
         let rows: Vec<(&str, String, Rgb, bool)> = vec![
-            ("", pack.slot_name(k.ch, k.tier), t.title, true),
-            ("", format!("{} {}", pack.slot_tag(k.ch, k.tier), if shiny { "✦ shiny" } else { "" }), t.dim, false),
+            ("", pack.name_for(k.ch, k.card), t.title, true),
+            ("", format!("{} {}", pack.tag_for(k.ch, k.card), if shiny { "✦ shiny" } else { "" }), t.dim, false),
             ("", String::new(), t.fg, false),
             ("status", badge.clone(), bc, true),
             ("tier", tier.label.clone(), tier.color, true),
+        ];
+        let rows: Vec<(&str, String, Rgb, bool)> = rows.into_iter().chain(tag_rows).chain(vec![
             ("pulls", if list.is_empty() { "-".into() } else { format!("×{}", list.len()) }, t.title, true),
             ("first", first.clone().unwrap_or("-".into()), t.fg, false),
             ("last", last.clone().unwrap_or("-".into()), t.fg, false),
@@ -659,7 +697,7 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
             ("odds", odds(cp), t.hi, true),
             ("tier", odds(tp), t.fg, false),
             ("rolls", if pack.is_cards { format!("shiny {}", if pack.shiny > 0.0 { odds_short(pack.shiny) } else { "-".into() }) } else { format!("foil {:.0}% · shiny {}", pack.foil * 100.0, if pack.shiny > 0.0 { odds_short(pack.shiny) } else { "-".into() }) }, t.dim, false),
-        ];
+        ]).collect();
         for (i, (l, v, c, b)) in rows.iter().enumerate() {
             let y = y0 + i as i32;
             if i as u16 >= r.height {
@@ -683,6 +721,17 @@ fn card_info(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, k: SlotKey, si
         l1.push((format!("  {span}"), t.dim, false));
     }
     lines.push((l1, vec![("odds ".into(), t.dim, false), (odds(cp), t.hi, true)]));
+    if let Some(c) = &card {
+        let mut l: Vec<(String, Rgb, bool)> = vec![(if c.set_name.is_empty() { c.set_id.clone() } else { c.set_name.clone() }, t.fg, false)];
+        l.push((format!(" {}", c.number), t.dim, false));
+        if !c.rarity.is_empty() {
+            l.push((format!(" · {}", c.rarity), tier.color, false));
+        }
+        if !kinds.is_empty() {
+            l.push((format!(" · {kinds}"), t.dim, false));
+        }
+        lines.push((l, if c.artist.is_empty() { vec![] } else { vec![(c.artist.clone(), t.faint, false)] }));
+    }
     // skins of this tier: the one on the shown pull highlighted, seen ones lit, the rest dim
     let mut l2: Vec<(String, Rgb, bool)> = vec![("skins".into(), t.dim, false)];
     if tier.skins.is_empty() {
@@ -794,8 +843,13 @@ fn tiers_panel(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, focused: boo
         if y >= (inner.y + inner.height) as i32 {
             break;
         }
-        let caught = (0..p.chars.len()).filter(|&ch| c.slot_state(SlotKey { pack: pi, ch, tier: i }, false) != SlotState::Empty).count();
-        let of = (0..p.chars.len()).filter(|&ch| p.has_slot(ch, i)).count();
+        let (caught, of) = if p.is_cards {
+            let cards: Vec<usize> = (0..p.card_list.len()).filter(|&x| p.card_list[x].tier == i).collect();
+            let got = cards.iter().filter(|&&x| c.slot_state(SlotKey { pack: pi, ch: p.card_list[x].ch, tier: i, card: x as u32 }, false) != SlotState::Empty).count();
+            (got, cards.len())
+        } else {
+            ((0..p.chars.len()).filter(|&ch| c.slot_state(SlotKey::legacy(pi, ch, i), false) != SlotState::Empty).count(), p.chars.len())
+        };
         let frac = caught as f32 / of.max(1) as f32;
         put(buf, x0, y, "●", Some(tier.color), None, false);
         puts(buf, x0 + 2, y, &trunc(&tier.label, lw - 2), t.fg, None, false, lw - 2);
@@ -923,7 +977,7 @@ fn best_panel(app: &mut App, buf: &mut Buffer, r: Rect, t: &Theme, focused: bool
         puts(buf, x, y, &rank, if i < 3 { t.hi } else { t.faint }, bg, i < 3, 2);
         put(buf, x + 3, y, "●", Some(tier.color), bg, false);
         let od = odds_short(p);
-        let name = format!("{}{}", if pull.shiny { "✦" } else { "" }, pk.slot_name(k.ch, k.tier));
+        let name = format!("{}{}", if pull.shiny { "✦" } else { "" }, pk.name_for(k.ch, k.card));
         let right = format!(" {od}");
         let lab_w = w.saturating_sub(5 + right.len());
         let name_w = (width(&name)).min(lab_w);
@@ -949,7 +1003,9 @@ fn help(buf: &mut Buffer, area: Rect, t: &Theme) {
         ("tab   shift-tab", "cycle panels: binder › card › stats"),
         ("← →   in card", "step through this card's pulls"),
         ("↑ ↓ ⏎   in stats", "pick a best pull and open it"),
-        ("/", "search: name, #tag or tier"),
+        ("/", "search: words, set:swsh7 rarity:\"rare rainbow\""),
+        ("  type:water vmax", "  artist:… subtype:… char:… shiny foil new pending"),
+        ("S", "sets: every set / one set's checklist"),
         ("s", "shiny-only binder"),
         ("o", "owned-only"),
         ("v", "the card's text half (moves, HP, weakness) under the art"),

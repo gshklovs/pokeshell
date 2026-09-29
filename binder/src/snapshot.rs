@@ -63,7 +63,9 @@ fn frame(app: &mut App, w: u16, h: u16) -> Buffer {
 fn find(app: &App, pack: &str, ch: &str, tier: &str) -> Option<SlotKey> {
     let pi = app.coll.packs.iter().position(|p| p.id == pack)?;
     let p = &app.coll.packs[pi];
-    Some(SlotKey { pack: pi, ch: *p.char_ix.get(ch)?, tier: p.tier_ix(tier)? })
+    let (ci, ti) = (*p.char_ix.get(ch)?, p.tier_ix(tier)?);
+    let card = p.card_list.iter().position(|c| c.ch == ci && c.tier == ti).map(|i| i as u32).unwrap_or(crate::data::NO_CARD);
+    Some(SlotKey { pack: pi, ch: ci, tier: ti, card })
 }
 
 fn save(dir: &Path, name: &str, buf: &Buffer) -> io::Result<()> {
@@ -156,6 +158,17 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
     save(dir, "text-120x40", &frame(&mut app, 120, 40))?;
     save(dir, "text-80x24", &frame(&mut app, 80, 24))?;
 
+    // a set's checklist and a tag search
+    let mut app = mk(0);
+    if let Some(pi) = app.coll.packs.iter().position(|p| !p.sets.is_empty()) {
+        app.pack = pi;
+        app.cycle_set(1);
+    }
+    save(dir, "set-120x40", &frame(&mut app, 120, 40))?;
+    let mut app = mk(0);
+    app.search = "type:darkness vmax".into();
+    save(dir, "tags-120x40", &frame(&mut app, 120, 40))?;
+
     let mut app = mk(0);
     app.search = "char".into();
     app.searching = true;
@@ -222,7 +235,7 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
         key(KeyCode::Right), key(KeyCode::Down), key(KeyCode::PageDown), key(KeyCode::Char('2')), key(KeyCode::Left),
         key(KeyCode::Tab), key(KeyCode::Right), key(KeyCode::Tab), key(KeyCode::Down), key(KeyCode::Enter),
         key(KeyCode::Char('/')), key(KeyCode::Char('z')), key(KeyCode::Char('o')), key(KeyCode::Enter), key(KeyCode::Esc),
-        key(KeyCode::Char('s')), key(KeyCode::Char('3')), key(KeyCode::Char('d')), key(KeyCode::Char('v')), key(KeyCode::End), key(KeyCode::Char('s')),
+        key(KeyCode::Char('s')), key(KeyCode::Char('3')), key(KeyCode::Char('d')), key(KeyCode::Char('v')), key(KeyCode::Char('S')), key(KeyCode::End), key(KeyCode::Char('s')),
         key(KeyCode::Char('t')), key(KeyCode::Char('?')), key(KeyCode::Char('x')), key(KeyCode::Char('o')), key(KeyCode::Char('L')),
     ];
     let sizes = [(120u16, 40u16), (80, 24), (60, 20), (45, 16), (200, 60), (100, 30), (20, 6), (10, 3)];
@@ -235,7 +248,7 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
     };
     let keys = [
         KeyCode::Left, KeyCode::Right, KeyCode::Up, KeyCode::Down, KeyCode::PageUp, KeyCode::PageDown, KeyCode::Tab, KeyCode::BackTab,
-        KeyCode::Enter, KeyCode::Char('s'), KeyCode::Char('o'), KeyCode::Char('v'), KeyCode::Char('d'), KeyCode::Char('1'), KeyCode::Char('2'),
+        KeyCode::Enter, KeyCode::Char('s'), KeyCode::Char('o'), KeyCode::Char('v'), KeyCode::Char('d'), KeyCode::Char('S'), KeyCode::Char('1'), KeyCode::Char('2'),
         KeyCode::Char('3'), KeyCode::Char('/'), KeyCode::Char('a'), KeyCode::Backspace, KeyCode::Esc, KeyCode::Char('?'),
         KeyCode::Char('g'), KeyCode::Char('G'), KeyCode::Char(']'), KeyCode::Char('t'),
     ];

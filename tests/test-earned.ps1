@@ -210,6 +210,13 @@ if (Test-Path $exe) {
   $frame = Strip (& $exe --root $RepoRoot --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
+  # tags and sets: a set's checklist (every pack.json card of the set, pulled or not) and a tag search
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --set sv3pt5 --first-frame | Out-String)
+  Assert ($frame -match 'set 151' -and $frame -match '2/3' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled, one of them pending)"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --search 'set:base1 owned' --first-frame | Out-String)
+  Assert ($frame -match '/set:base1 owned 2') "--search 'set:base1 owned': tag filter + state word (2 cards)"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --search 'rarity:\"illustration rare\" pending' --first-frame | Out-String)
+  Assert ($frame -match 'pending 1') "--search with a quoted tag value and a state word"
   $out = & $exe --root $RepoRoot --state $rs --selftest | Out-String
   Assert ($out -match 'selftest ok') "binder --selftest (keys incl. v / d, mouse, resizes): $($out.Trim())"
 } else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
@@ -223,6 +230,10 @@ if ($py) {
   Assert ($st2 -eq 'squirtle/collected pikachu/collected+new squirtle/pending bulbasaur/collected' -and $data.hidden -eq 1) "data.json marks earned vs pending (expired left out, retired art hidden): $st2"
   Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'earned' } | Select-Object -First 1).Trim()))"
   Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
+  $pk = $data.packs | Where-Object id -eq 'pokemon'
+  Assert ($pk.layout -eq 'cards' -and @($pk.cards).Count -eq 12 -and (@($pk.sets | ForEach-Object id) -join ',') -match 'base1' -and @($pk.cards | Where-Object set_id -eq 'sv3pt5').Count -eq 3) "real cards: every card with its set (the checklists) in data.json"
+  $html = Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8
+  Assert ($html.Contains('id="setTabs"') -and $html.Contains('id="search"') -and $html.Contains('tagchip')) "the page has set tabs, the search box and tag chips"
 } else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
 
 Write-Host "8. the Ctrl+Shift+B hotkey, on settings.json copies" -ForegroundColor Cyan

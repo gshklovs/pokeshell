@@ -21,6 +21,8 @@ pub struct Card<'a> {
     pub thumb: bool,
     /// An earned pull not viewed yet: the NEW sticker.
     pub new: bool,
+    /// real-card packs: the card (SlotKey.card; its name and printed number go on the frame)
+    pub card: u32,
 }
 
 /// How much room the frame takes around the art: (cols, rows).
@@ -40,8 +42,8 @@ pub fn card_size(c: &Card, img_w: usize, img_rows: usize) -> (u16, u16) {
     let ch = &c.pack.chars[c.ch];
     let min_w = match &t.frame {
         FrameSpec::Box(_) => {
-            let title = width(&c.pack.slot_name(c.ch, c.tier)) + if c.shiny { 2 } else { 0 };
-            let tag = width(&c.pack.slot_tag(c.ch, c.tier));
+            let title = width(&c.pack.name_for(c.ch, c.card)) + if c.shiny { 2 } else { 0 };
+            let tag = width(&c.pack.tag_for(c.ch, c.card));
             (title + 2 + if tag > 0 { tag + 2 } else { 0 } + 3).max(width(&t.label) + 5)
         }
         FrameSpec::Wanted(_) => {
@@ -144,7 +146,7 @@ fn draw_empty(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Th
         put(buf, cx, cy, q, Some(theme.faint), None, true);
     }
     let _ch = &c.pack.chars[c.ch];
-    let tag = c.pack.slot_tag(c.ch, c.tier);
+    let tag = c.pack.tag_for(c.ch, c.card);
     let dim = if c.selected { theme.dim } else { theme.faint };
     let label = if !tag.is_empty() { tag.to_string() } else { "???".into() };
     let w = r.width as usize;
@@ -156,7 +158,7 @@ fn draw_empty(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Th
         crate::draw::puts(buf, tx, y1, &tl, dim, None, false, 40);
     }
     if c.selected {
-        let name = trunc(&c.pack.slot_name(c.ch, c.tier), w.saturating_sub(4));
+        let name = trunc(&c.pack.name_for(c.ch, c.card), w.saturating_sub(4));
         crate::draw::puts(buf, x0 + 2, y0, &name, theme.dim, None, false, w - 4);
     }
 }
@@ -231,7 +233,7 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
     let tier = &c.pack.tiers[c.tier];
     if c.thumb {
         // top: name; bottom: ×count left, tier label right
-        let name = c.pack.slot_name(c.ch, c.tier);
+        let name = c.pack.name_for(c.ch, c.card);
         let room = rw.saturating_sub(4 + if c.shiny { 2 } else { 0 } + if c.new && !pending { 4 } else { 0 });
         let name = trunc(&name, room);
         let mut tx = x0 + 1;
@@ -263,8 +265,8 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
             put(buf, x1 - 2, y1, " ", None, None, false);
         }
     } else {
-        let title = format!("{}{}", if c.shiny { "✦ " } else { "" }, c.pack.slot_name(c.ch, c.tier));
-        let tag = c.pack.slot_tag(c.ch, c.tier);
+        let title = format!("{}{}", if c.shiny { "✦ " } else { "" }, c.pack.name_for(c.ch, c.card));
+        let tag = c.pack.tag_for(c.ch, c.card);
         edge_text(buf, x0 + 2, y0, &format!(" {title} "), tone(text_col(0.15, true)), true);
         if !tag.is_empty() {
             let s = format!(" {tag} ");

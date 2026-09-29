@@ -308,6 +308,29 @@ pub struct CardDef {
     pub tier: usize,
     pub name: String,
     pub number: String,
+    /// from packs/<pack>/cards/<id>.json (docs/CARD_FORMAT.md) when it exists, else pack.json's card fields
+    pub set_id: String,
+    pub set_name: String,
+    pub rarity: String,
+    pub subtypes: Vec<String>,
+    pub types: Vec<String>,
+    pub artist: String,
+}
+
+impl CardDef {
+    /// The number within its set, for checklist order ("215/203" -> 215; "SV6" -> 6).
+    pub fn number_key(&self) -> (u32, String) {
+        let n = self.number.split('/').next().unwrap_or("");
+        let digits: String = n.chars().filter(|c| c.is_ascii_digit()).collect();
+        (digits.parse().unwrap_or(u32::MAX), n.to_string())
+    }
+}
+
+/// A set of a real-card pack, in the order its first card appears in pack.json.
+#[derive(Clone, Debug)]
+pub struct SetDef {
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Debug)]
@@ -335,6 +358,8 @@ pub struct Pack {
     slot_cards: HashMap<(usize, usize), Vec<usize>>,
     /// pack.json `retired`: an old "character/tier" -> the card it shows now, or None (hidden)
     pub retired: HashMap<String, Option<String>>,
+    /// real-card packs: the sets their cards come from
+    pub sets: Vec<SetDef>,
 }
 
 const PRESETS: &[(&str, &[u32])] = &[
@@ -400,6 +425,31 @@ fn tier_color(frame: &FrameSpec, ti: usize, ntiers: usize) -> Rgb {
     }
 }
 
+/// The card's tag fields from its card-data JSON (docs/CARD_FORMAT.md), when the file exists.
+fn read_card_text(path: &Path, c: &mut CardDef) {
+    let Ok(b) = std::fs::read(path) else { return };
+    let Ok(v) = serde_json::from_slice::<Value>(b.strip_prefix(b"\xef\xbb\xbf".as_slice()).unwrap_or(&b)) else { return };
+    let s = |x: Option<&Value>| x.and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let list = |k: &str| v.get(k).and_then(|x| x.as_array()).map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
+    if let Some(set) = v.get("set") {
+        if !s(set.get("id")).is_empty() {
+            c.set_id = s(set.get("id"));
+        }
+        if !s(set.get("name")).is_empty() {
+            c.set_name = s(set.get("name"));
+        }
+    }
+    if !s(v.get("rarity")).is_empty() {
+        c.rarity = s(v.get("rarity"));
+    }
+    if c.name.is_empty() {
+        c.name = s(v.get("name"));
+    }
+    c.subtypes = list("subtypes");
+    c.types = list("types");
+    c.artist = s(v.get("artist"));
+}
+
 fn str_map(v: &Value, key: &str) -> HashMap<String, String> {
     v.get(key)
         .and_then(|m| m.as_object())
@@ -460,7 +510,28 @@ impl Pack {
             for (cid, c) in cm {
                 let s = |k: &str| c.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
                 let (Some(&ch), Some(tier)) = (char_ix.get(&s("character")), tier_of(&s("tier"))) else { continue };
-                card_list.push(CardDef { id: cid.clone(), ch, tier, name: s("name"), number: s("number") });
+                let mut card = CardDef {
+                    id: cid.clone(),
+                    ch,
+                    tier,
+                    name: s("name"),
+                    number: s("number"),
+                    set_id: cid.rsplit_once('-').map(|(a, _)| a.to_string()).unwrap_or_default(),
+                    set_name: s("set"),
+                    rarity: s("rarity"),
+                    subtypes: vec![],
+                    types: vec![],
+                    artist: String::new(),
+                };
+                read_card_text(&dir.join("cards").join(format!("{cid}.json")), &mut card);
+                card_list.push(card);
+            }
+        }
+        let mut sets: Vec<SetDef> = Vec::new();
+        for c in &card_list {
+            if !c.set_id.is_empty() && !sets.iter().any(|s| s.id == c.set_id) {
+                let name = if c.set_name.is_empty() { c.set_id.clone() } else { c.set_name.clone() };
+                sets.push(SetDef { id: c.set_id.clone(), name });
             }
         }
         let card_ix = card_list.iter().enumerate().map(|(i, c)| (c.id.clone(), i)).collect();
@@ -494,6 +565,7 @@ impl Pack {
             card_ix,
             slot_cards,
             retired,
+            sets,
         })
     }
 
@@ -527,11 +599,6 @@ impl Pack {
         self.card_ix.get(id).map(|&i| &self.card_list[i])
     }
 
-    /// Real-card packs: the cards in a (character, tier) slot (usually one). Other packs: none.
-    pub fn slot_cards(&self, ch: usize, tier: usize) -> impl Iterator<Item = &CardDef> {
-        self.slot_cards.get(&(ch, tier)).into_iter().flatten().map(|&i| &self.card_list[i])
-    }
-
     /// Is there a card in this slot? (always, outside real-card packs)
     pub fn has_slot(&self, ch: usize, tier: usize) -> bool {
         !self.is_cards || self.slot_cards.contains_key(&(ch, tier))
@@ -547,34 +614,74 @@ impl Pack {
         if self.is_cards { self.slot_cards.len() } else { self.chars.len() * self.tiers.len() }
     }
 
-    /// The card a slot shows: the given pull's card, else the slot's first card (real-card packs).
-    pub fn slot_card(&self, ch: usize, tier: usize, pull_card: Option<&str>) -> Option<&CardDef> {
-        pull_card.and_then(|c| self.card(c)).filter(|c| c.ch == ch && c.tier == tier).or_else(|| self.slot_cards(ch, tier).next())
-    }
-
-    /// The art variant a slot draws: the card id (real-card packs: dist/<pack>/<character>-<card id>.ans), else
-    /// the tier's art.
-    pub fn art_for(&self, ch: usize, tier: usize, pull_card: Option<&str>) -> String {
-        match self.slot_card(ch, tier, pull_card) {
-            Some(c) => c.id.clone(),
-            None => self.tiers[tier].art.clone(),
-        }
+    /// The card of a slot (real-card packs: SlotKey.card), if any.
+    pub fn card_at(&self, card: u32) -> Option<&CardDef> {
+        if card == NO_CARD { None } else { self.card_list.get(card as usize) }
     }
 
     /// The name on a slot's frame: the card's printed name (e.g. "Pikachu V"), else the character's.
-    pub fn slot_name(&self, ch: usize, tier: usize) -> String {
-        match self.slot_card(ch, tier, None) {
+    pub fn name_for(&self, ch: usize, card: u32) -> String {
+        match self.card_at(card) {
             Some(c) if !c.name.is_empty() => c.name.clone(),
             _ => self.name_of(&self.chars[ch]),
         }
     }
 
     /// The tag on a slot's frame: the card's printed number (e.g. "170/185"), else the character's tag.
-    pub fn slot_tag(&self, ch: usize, tier: usize) -> String {
-        match self.slot_card(ch, tier, None) {
+    pub fn tag_for(&self, ch: usize, card: u32) -> String {
+        match self.card_at(card) {
             Some(c) => c.number.clone(),
             None => self.tag_of(&self.chars[ch]).to_string(),
         }
+    }
+
+    /// The art variant a slot draws: its card id (dist/<pack>/<character>-<card id>.ans), else the tier's art.
+    pub fn art_at(&self, k: SlotKey) -> String {
+        match self.card_at(k.card) {
+            Some(c) => c.id.clone(),
+            None => self.tiers[k.tier].art.clone(),
+        }
+    }
+
+    /// Every tag of a slot (search, the card panel): (key, value). Keys: pack, char, name, tier, rarity, set, setname,
+    /// subtype, type, artist, number, id. The state tags (shiny, foil, new, pending, owned) come from the collection.
+    pub fn slot_tags(&self, k: SlotKey) -> Vec<(&'static str, String)> {
+        let mut v: Vec<(&'static str, String)> = vec![
+            ("pack", self.id.clone()),
+            ("pack", self.name.clone()),
+            ("char", self.chars[k.ch].clone()),
+            ("name", self.name_for(k.ch, k.card)),
+            ("tier", self.tiers[k.tier].id.clone()),
+            ("tier", self.tiers[k.tier].label.clone()),
+        ];
+        match self.card_at(k.card) {
+            Some(c) => {
+                v.push(("id", c.id.clone()));
+                v.push(("number", c.number.clone()));
+                if !c.rarity.is_empty() {
+                    v.push(("rarity", c.rarity.clone()));
+                }
+                if !c.set_id.is_empty() {
+                    v.push(("set", c.set_id.clone()));
+                }
+                if !c.set_name.is_empty() {
+                    v.push(("set", c.set_name.clone()));
+                }
+                v.extend(c.subtypes.iter().map(|s| ("subtype", s.clone())));
+                v.extend(c.types.iter().map(|s| ("type", s.clone())));
+                if !c.artist.is_empty() {
+                    v.push(("artist", c.artist.clone()));
+                }
+            }
+            None => {
+                v.push(("rarity", self.tiers[k.tier].label.clone()));
+                let tag = self.tag_of(&self.chars[k.ch]);
+                if !tag.is_empty() {
+                    v.push(("number", tag.to_string()));
+                }
+            }
+        }
+        v
     }
 
     /// Is this tier a foil (gets the shimmer; counts as a foil pull)? Real-card packs: a tier with skins or a foil
@@ -587,15 +694,15 @@ impl Pack {
         !t.skins.is_empty() || !(t.family.is_empty() || t.family == "non-foil")
     }
 
-    /// The card-data file (docs/CARD_FORMAT.md) for a slot: packs/<pack>/cards/<card id>.json, the card being the
-    /// pull's (or the slot's); packs without real cards: <character>-<tier>.json or <character>.json there.
-    pub fn card_file(&self, ch: usize, tier: usize, pull_card: Option<&str>) -> Option<PathBuf> {
+    /// The card-data file (docs/CARD_FORMAT.md) for a slot: packs/<pack>/cards/<card id>.json; packs without real
+    /// cards: <character>-<tier>.json or <character>.json there.
+    pub fn card_file(&self, k: SlotKey) -> Option<PathBuf> {
         let dir = self.dir.join("cards");
         let mut ids: Vec<String> = Vec::new();
-        if let Some(c) = self.slot_card(ch, tier, pull_card) {
+        if let Some(c) = self.card_at(k.card) {
             ids.push(c.id.clone());
         }
-        let (cid, tid) = (&self.chars[ch], &self.tiers[tier].id);
+        let (cid, tid) = (&self.chars[k.ch], &self.tiers[k.tier].id);
         ids.push(format!("{cid}-{tid}"));
         ids.push(cid.clone());
         ids.into_iter().map(|id| dir.join(format!("{id}.json"))).find(|p| p.is_file())
@@ -675,6 +782,17 @@ pub struct SlotKey {
     pub pack: usize,
     pub ch: usize,
     pub tier: usize,
+    /// real-card packs: the card (an index into Pack::card_list); NO_CARD for other packs
+    pub card: u32,
+}
+
+/// SlotKey.card of a pack without real cards
+pub const NO_CARD: u32 = u32::MAX;
+
+impl SlotKey {
+    pub fn legacy(pack: usize, ch: usize, tier: usize) -> SlotKey {
+        SlotKey { pack, ch, tier, card: NO_CARD }
+    }
 }
 
 pub struct Collection {
@@ -700,7 +818,8 @@ impl Collection {
         for mut p in pulls {
             let key = pack_ix.get(p.pack.as_str()).and_then(|&pi| {
                 let (ch, tier, card) = packs[pi].resolve(&p.ch, &p.tier, &p.art, &p.card)?;
-                Some((SlotKey { pack: pi, ch, tier }, card))
+                let ci = card.as_deref().and_then(|c| packs[pi].card_ix.get(c)).map(|&i| i as u32).unwrap_or(NO_CARD);
+                Some((SlotKey { pack: pi, ch, tier, card: ci }, card))
             });
             let Some((k, card)) = key else {
                 hidden += 1;
@@ -745,11 +864,13 @@ impl Collection {
         if pend { SlotState::Pending } else { SlotState::Empty }
     }
 
-    /// Highest tier this character is owned in (for the one-slot-per-character "dex" view).
-    pub fn best_tier(&self, pack: usize, ch: usize, shiny_only: bool) -> Option<usize> {
-        (0..self.packs[pack].tiers.len())
-            .rev()
-            .find(|&t| self.slot_state(SlotKey { pack, ch, tier: t }, shiny_only) != SlotState::Empty)
+    /// The highest-tier slot this character is owned (or pending) in: the one-slot-per-character "dex" view.
+    pub fn best_slot(&self, pack: usize, ch: usize, shiny_only: bool) -> Option<SlotKey> {
+        self.by_slot
+            .keys()
+            .filter(|k| k.pack == pack && k.ch == ch && self.slot_state(**k, shiny_only) != SlotState::Empty)
+            .max_by_key(|k| (k.tier, std::cmp::Reverse(k.card)))
+            .copied()
     }
 }
 
@@ -840,7 +961,12 @@ mod tests {
                  "retired": { "pikachu/common": "base1-58", "pikachu/holo": null } }"#,
         )
         .unwrap();
-        std::fs::write(d.join("packs/p/cards/swsh4-170.json"), "{}").unwrap();
+        std::fs::write(
+            d.join("packs/p/cards/swsh4-170.json"),
+            r#"{ "id": "swsh4-170", "name": "Pikachu V", "subtypes": ["Basic", "V"], "types": ["Lightning"],
+                 "set": { "id": "swsh4", "name": "Vivid Voltage" }, "rarity": "Rare Ultra", "artist": "Ryota Murayama" }"#,
+        )
+        .unwrap();
         let p = Pack::load(&d, "p").unwrap();
         assert!(p.is_cards);
         assert_eq!(p.chars, vec!["pikachu".to_string(), "bulbasaur".to_string()], "characters come from the cards");
@@ -852,18 +978,36 @@ mod tests {
         assert_eq!(p.resolve("bulbasaur", "rare-ultra", "swsh4-170", ""), None, "a card of another character doesn't count");
         assert!(p.has_slot(pk, 2) && !p.has_slot(pk, 1) && p.slot_count() == 3);
         assert_eq!(p.live_tiers(), vec![0, 2]);
-        assert_eq!(p.slot_name(pk, 2), "Pikachu V");
-        assert_eq!(p.slot_tag(pk, 2), "170/185");
-        assert_eq!(p.art_for(pk, 2, None), "swsh4-170");
+        let v = p.card_list.iter().position(|c| c.id == "swsh4-170").unwrap() as u32;
+        let kv = SlotKey { pack: 0, ch: pk, tier: 2, card: v };
+        assert_eq!(p.name_for(pk, v), "Pikachu V");
+        assert_eq!(p.tag_for(pk, v), "170/185");
+        assert_eq!(p.art_at(kv), "swsh4-170");
         assert!(!p.foil_tier(0) && p.foil_tier(1) && p.foil_tier(2));
         assert!((p.tier_p(2) - 650.0 / 50650.0).abs() < 1e-9, "odds among the tiers that have cards");
-        assert!(p.card_file(pk, 2, None).unwrap().ends_with("swsh4-170.json"));
-        assert!(p.card_file(pk, 0, None).is_none());
+        assert!(p.card_file(kv).unwrap().ends_with("swsh4-170.json"));
+        let base = p.card_list.iter().position(|c| c.id == "base1-58").unwrap() as u32;
+        assert!(p.card_file(SlotKey { pack: 0, ch: pk, tier: 0, card: base }).is_none());
+        // tags: from cards/<id>.json (set, rarity, subtypes, types, artist) and pack.json
+        let c = &p.card_list[v as usize];
+        assert_eq!((c.set_id.as_str(), c.set_name.as_str(), c.rarity.as_str(), c.artist.as_str()), ("swsh4", "Vivid Voltage", "Rare Ultra", "Ryota Murayama"));
+        assert_eq!(c.types, vec!["Lightning".to_string()]);
+        let tags = p.slot_tags(kv);
+        for want in [("set", "swsh4"), ("set", "Vivid Voltage"), ("subtype", "V"), ("type", "Lightning"), ("char", "pikachu"), ("tier", "rare-ultra"), ("pack", "p")] {
+            assert!(tags.iter().any(|(k, x)| *k == want.0 && x == want.1), "tag {want:?}");
+        }
+        use crate::query::{Flags, matches, parse};
+        assert!(matches(&parse(r#"set:swsh4 type:lightning "pikachu v""#), &tags, Flags::default()));
+        assert!(!matches(&parse("set:swsh7"), &tags, Flags::default()));
+        // without card text: the set id comes from the card id, the set name from pack.json
+        assert_eq!(p.card_list[base as usize].set_id, "base1");
+        assert_eq!(p.sets.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), vec!["base1", "swsh4"]);
         // a pack without cards: pulls show as logged (tier by id or label)
         std::fs::create_dir_all(d.join("packs/l")).unwrap();
         std::fs::write(d.join("packs/l/pack.json"), r#"{ "id": "l", "characters": ["a"], "tiers": [ { "id": "common" }, { "id": "rare-holo", "label": "rare holo" } ] }"#).unwrap();
         let l = Pack::load(&d, "l").unwrap();
         assert_eq!(l.resolve("a", "rare holo", "holo", ""), Some((0, 1, None)));
+        assert!(l.slot_tags(SlotKey::legacy(0, 0, 1)).iter().any(|(k, v)| *k == "tier" && v == "rare holo"));
         assert_eq!(l.resolve("b", "common", "common", ""), None);
         let _ = std::fs::remove_dir_all(&d);
     }

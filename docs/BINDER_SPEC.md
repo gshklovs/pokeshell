@@ -1,6 +1,32 @@
-# Binder UX spec (draft)
+# Binder UX spec
 
-Status: draft, decisions from 2026-09-28. The prototypes are in `style-lab/binder-tui` (Rust, ratatui) and `style-lab/binder-web` (static HTML).
+Status: **built** on branch `binder-earned` (2026-09-29): the earned rule, all four entry points, tags and search.
+The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` prototype), the web binder is
+`tools/binder_web.py` + `tools/binder-web/index.html` (from `style-lab/binder-web`). Still open: the backend (below),
+`collection.json` (not needed so far: reading `pulls.log` takes a few ms), and the open questions at the end.
+
+## Implementation notes
+- **Pull log** (`pulls.log`, append-only, docs in `scripts/lib/Pokeshell.cs`): a pull line keeps its 8 columns and adds
+  `pending` to the flags column plus `id=<ulid>` and `boot=<unix s of the last boot>` columns (`key=value`, so more can
+  follow). Events are 2-column lines: `<time> earned:<id>` / `<time> expired:<id>`. A line without an id is earned.
+  A pending pull with no event is expired after 24 h or when `boot=` differs from this boot session's by more than
+  2 minutes; the CLI then writes its `expired:<id>` line. One rule, three readers: `Core.ReadPulls` (C#),
+  `binder/src/data.rs`, `tools/binder_web.py`. Real-card packs then resolve each pull (`retired`, docs/PACK_FORMAT.md).
+- **First use**: a `PreCommandLookupAction` delegate in the core, registered by `Core.Startup` itself (no extra
+  PowerShell on the tab-open path), hands the host a small wrapper whenever it looks up `prompt`: it checks
+  `Get-History`, and runs whatever `prompt` exists then (so a `function prompt` later in `$PROFILE` still works). The
+  foil tab registers it from `Show-PokeshellPull`. Removed once the pull is earned or expired.
+- **Use rule**: config `earn` = `first-command` (default) | `minutes:N` (earned at the first prompt after the tab has
+  been open N minutes) | `off` (logged earned, no hook).
+- **Viewed**: the app appends a card's ids to `viewed.txt` when it shows it; its NEW sticker stays until you move on.
+- **Click**: the OSC 8 link is on the `binder ⏎` footer only (Windows Terminal underlines link text, which would stripe
+  the art). The `pokeshell://` handler (`pokeshell urlhandler on`) runs `binder.exe --url "%1"`, which accepts only
+  `pokeshell://binder?pull=<ulid>` or `?card=<pack/char/tier>`. Windows Terminal may refuse non-http(s) link schemes;
+  then the hint is the way in.
+- **Hotkey**: `pokeshell hotkey on` adds a `splitPane` action (`User.pokeshell.binder`) and its `ctrl+shift+b`
+  keybinding to settings.json (WT 1.21+ `actions` + `keybindings`; inline `keys` for older files), verified and backed
+  up like the skins; refuses keys that are already bound; `off` / `pokeshell uninstall` restore the file byte for byte.
+- **Text half**: `v` in the app, from `packs/<pack>/cards/<card id>.json` (CARD_FORMAT); the view toggle moved to `d`.
 
 ## Entry points (all four ship)
 | How | What happens |
@@ -23,8 +49,20 @@ Status: draft, decisions from 2026-09-28. The prototypes are in `style-lab/binde
 
 Storage stays append-only: `pulls.log` gets `pending` / `earned:<id>` / `expired:<id>` lines. `collection.json` is a derived cache the binder rebuilds when it's stale. `viewed.txt` holds the ids already seen, which is what clears NEW stickers.
 
+## Tags and search (both binders)
+- **Tags per card**: set id and name, printed rarity and our tier id, subtypes, Pokémon types (from the card's
+  `cards/<id>.json`, else pack.json's card fields), character, artist, pack; state tags `shiny`, `foil`, `new`,
+  `pending` (and `owned`, `missing`) from the pulls.
+- **Search** (`/`): words match any tag; `key:value` / `key:"a b"` filter one tag (keys: set, rarity, tier, type,
+  subtype, char, artist, pack, name, number, id); state words stand alone. Example: `set:swsh7 rarity:"rare rainbow"`.
+  Same parser in `binder/src/query.rs` and the page.
+- **Sets**: real-card packs get a set tab (app: next to the pack tabs, `S` cycles; web: a divider tab per set). A set
+  page is its checklist: every card of that set in pack.json `cards`, in printed-number order, with empty pockets for
+  the cards not pulled. A real card is its own slot (a character can have several cards per rarity across sets).
+- **Web**: a card's page lists its tags as chips; a click runs that search.
+
 ## Web binder
-- **Now:** a static file, rebuilt on open (`style-lab/binder-web/export.py`, which moves to `tools/`). Nothing stays running.
+- **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running.
 - **Soon: hosted backend** for sync and battles; see below.
 
 ## Backend (next phase: sync + battles)

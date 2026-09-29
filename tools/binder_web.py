@@ -304,6 +304,7 @@ def card_pack_info(pid, p, n_active_packs):
             name = frame if isinstance(frame, str) and frame in FRAME_PRESETS else "plain"
             fr = {"style": "card", "preset": name, "colors": FRAME_PRESETS[name]}
         out_tiers.append({"id": t["id"], "label": t.get("label", t["id"]), "art": t["id"], "frame": fr,
+                          "family": t.get("family") or "", "rarity": t.get("rarity") or "",
                           "odds": pr, "card_odds": pr / n if n else 0,
                           "skins": [{"id": s, "weight": int(w), "odds": pr * int(w) / sw} for s, w in skins.items()]})
     order = []
@@ -312,10 +313,54 @@ def card_pack_info(pid, p, n_active_packs):
             order.append(c["character"])
     chars = [{"id": ch, "no": i + 1, "name": (p.get("names") or {}).get(ch) or ch.replace("-", " ").title(),
               "tag": "", "poster": None, "bounty": None} for i, ch in enumerate(order)]
+    # every card with its tags (docs/BINDER_SPEC.md "Tags and search"), set by set in checklist (printed number) order
+    tier_ix = {t["id"]: i for i, t in enumerate(p["tiers"])}
+    card_list = []
+    for cid, c in cards.items():
+        if c.get("tier") not in tier_ix or not c.get("character"):
+            continue
+        card_list.append(card_meta(pid, cid, c))
+    sets = []
+    for c in card_list:
+        if c["set_id"] and c["set_id"] not in [s["id"] for s in sets]:
+            sets.append({"id": c["set_id"], "name": c["set_name"] or c["set_id"]})
+    set_ix = {s["id"]: i for i, s in enumerate(sets)}
+    card_list.sort(key=lambda c: (set_ix.get(c["set_id"], 1 << 30), number_key(c["number"]), c["id"]))
+    for s in sets:
+        s["total"] = sum(1 for c in card_list if c["set_id"] == s["id"])
     return {"id": pid, "name": p.get("name", pid), "about": p.get("about"), "foil_chance": 0,
-            "shiny_chance": float(p.get("shiny_chance", 0)), "layout": "grid", "tiers": out_tiers,
-            "characters": chars, "active_packs": n_active_packs,
-            "cards": {cid: {k: c.get(k) for k in ("character", "tier", "name", "number", "rarity", "set")} for cid, c in cards.items()}}
+            "shiny_chance": float(p.get("shiny_chance", 0)), "layout": "cards", "tiers": out_tiers,
+            "characters": chars, "active_packs": n_active_packs, "cards": card_list, "sets": sets}
+
+
+def number_key(n):
+    """checklist order: "215/203" -> 215, "SV6/SV94" -> 6"""
+    head = (n or "").split("/")[0]
+    digits = "".join(ch for ch in head if ch.isdigit())
+    return (int(digits) if digits else 1 << 30, head)
+
+
+def card_meta(pid, cid, c):
+    """a real card's display fields and tags: pack.json's card entry, completed from packs/<pack>/cards/<id>.json
+    (docs/CARD_FORMAT.md) when it exists: set id and name, printed rarity, subtypes, types, artist"""
+    m = {"id": cid, "character": c["character"], "tier": c["tier"], "name": c.get("name") or "", "number": c.get("number") or "",
+         "rarity": c.get("rarity") or "", "set_id": cid.rsplit("-", 1)[0] if "-" in cid else "", "set_name": c.get("set") or "",
+         "subtypes": [], "types": [], "artist": ""}
+    f = ROOT / "packs" / pid / "cards" / f"{cid}.json"
+    if f.exists():
+        try:
+            d = json.loads(f.read_text(encoding="utf-8-sig"))
+        except ValueError:
+            d = {}
+        s = d.get("set") or {}
+        m["set_id"] = s.get("id") or m["set_id"]
+        m["set_name"] = s.get("name") or m["set_name"]
+        m["rarity"] = d.get("rarity") or m["rarity"]
+        m["name"] = m["name"] or d.get("name") or ""
+        m["subtypes"] = [x for x in d.get("subtypes") or [] if isinstance(x, str)]
+        m["types"] = [x for x in d.get("types") or [] if isinstance(x, str)]
+        m["artist"] = d.get("artist") or ""
+    return m
 
 
 def pack_info(pid, n_active_packs):
@@ -485,18 +530,16 @@ def export_art(packs, pulls, do_art):
                 im.save(IMG / pid / "_silhouettes.png", optimize=True)
             atlas = {"file": f"img/{pid}/_silhouettes.png", "cell": [cw, chh], "cols": cols, "rows": rows}
             continue
-        if pk.get("cards"):
-            # real cards: each (character, tier) slot shows its card's prebuilt art, dist/<pack>/<character>-<card id>.ans
-            # (the pulled card when there is one), converted back to pixels
-            pulled = {(p["char"], p["tier"]): p["card"] for p in pulls if p["pack"] == pid and p.get("card")}
+        if pk.get("layout") == "cards":
+            # real cards: one image per card, from its prebuilt art dist/<pack>/<character>-<card id>.ans converted
+            # back to pixels; keyed by card id (img/<pack>/<character>/<card id>[-shiny].png)
             for ch in pk["characters"]:
                 c = ch["id"]
                 entry = {"tint": "#9aa4b0", "img": {}}
-                for t in pk["tiers"]:
-                    ids = [cid for cid, x in pk["cards"].items() if x["character"] == c and x["tier"] == t["id"]]
-                    if not ids:
+                for card in pk["cards"]:
+                    if card["character"] != c:
                         continue
-                    cid = pulled.get((c, t["id"])) if pulled.get((c, t["id"])) in ids else ids[0]
+                    cid = card["id"]
                     for shiny in ([False, True] if pk["shiny_chance"] > 0 else [False]):
                         src = ROOT / "dist" / pid / f"{c}-{cid}{'-shiny' if shiny else ''}.ans"
                         if not src.exists():
@@ -504,8 +547,8 @@ def export_art(packs, pulls, do_art):
                         g = ansi_grid(src.read_text(encoding="utf-8"))
                         if entry["tint"] == "#9aa4b0":
                             entry["tint"] = tint_of(g)
-                        key = f"{t['id']}{'-shiny' if shiny else ''}"
-                        entry["img"][key] = place(pid, c, t["id"], shiny, g) if do_art else [len(g[0]), len(g)]
+                        key = f"{cid}{'-shiny' if shiny else ''}"
+                        entry["img"][key] = place(pid, c, cid, shiny, g) if do_art else [len(g[0]), len(g)]
                 art[pid][c] = entry
             continue
         for ch in pk["characters"]:

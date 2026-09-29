@@ -1,7 +1,7 @@
 //! App state: which pack/page/card is selected, filters, focus, and input handling.
 
 use crate::art::ArtStore;
-use crate::data::{Collection, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
+use crate::data::{Collection, NO_CARD, ReadCtx, SlotKey, SlotState, Status, boot_id, load_packs, mark_viewed, now_local, now_utc, read_pulls, read_viewed};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Position, Rect};
 use serde_json::Value;
@@ -61,6 +61,9 @@ pub struct Opts {
     pub start: Start,
     /// never write viewed.txt (snapshots, bench, selftest)
     pub readonly: bool,
+    /// start with this search (--search) / on this set's checklist (--set <set id>)
+    pub search: String,
+    pub set: String,
 }
 
 pub struct App {
@@ -73,8 +76,11 @@ pub struct App {
     pub sel: Vec<usize>,
     pub shiny_only: bool,
     pub owned_only: bool,
+    /// `/`: free text and tag filters (query.rs)
     pub search: String,
     pub searching: bool,
+    /// per pack: 0 = every set, i + 1 = pack.sets[i] (the set's checklist)
+    pub set_sel: Vec<usize>,
     pub focus: Focus,
     pub help: bool,
     pub hist: usize,
@@ -86,7 +92,7 @@ pub struct App {
     pub hits: Hits,
     pub quit: bool,
     pub log_mtime: Option<SystemTime>,
-    slots_key: (usize, View, bool, bool, String, usize),
+    slots_key: (usize, View, bool, bool, String, usize, usize),
     slots: Vec<SlotKey>,
     /// Set when anything but the animation changed: the next draw repaints everything.
     pub dirty: bool,
@@ -127,6 +133,7 @@ impl App {
             shiny_only: false,
             owned_only: false,
             search: String::new(),
+            set_sel: vec![0; n],
             searching: false,
             focus: Focus::Binder,
             help: false,
@@ -137,7 +144,7 @@ impl App {
             phase_override: None,
             hits: Hits::default(),
             quit: false,
-            slots_key: (usize::MAX, View::Set, false, false, String::new(), 0),
+            slots_key: (usize::MAX, View::Set, false, false, String::new(), 0, 0),
             slots: Vec::new(),
             dirty: true,
             compact_right: Focus::Card,
@@ -146,6 +153,22 @@ impl App {
             viewed,
             seen_slot: None,
         };
+        // --set / --search: open on that set (in its pack) / with that search, on its first card
+        let set = app.opts.set.clone();
+        if !set.is_empty() {
+            for (pi, p) in app.coll.packs.iter().enumerate() {
+                if let Some(si) = p.sets.iter().position(|s| s.id.eq_ignore_ascii_case(&set) || s.name.eq_ignore_ascii_case(&set)) {
+                    app.pack = pi;
+                    app.set_sel[pi] = si + 1;
+                    break;
+                }
+            }
+        }
+        app.search = app.opts.search.clone();
+        if !set.is_empty() || !app.search.is_empty() {
+            app.hist = usize::MAX;
+            return app;
+        }
         let start = app.opts.start.clone();
         let landed = match &start {
             Start::Latest => false,
@@ -181,8 +204,9 @@ impl App {
         let Some(pi) = self.coll.packs.iter().position(|p| p.id.eq_ignore_ascii_case(pack)) else { return false };
         let pk = &self.coll.packs[pi];
         // a card id (pokemon/swsh4-170), or a character and a tier (by id or label; none: its lowest tier with a card)
-        let (ci, ti) = if let Some(c) = pk.card(ch) {
-            (c.ch, c.tier)
+        let k = if let Some(ix) = pk.card_list.iter().position(|c| c.id.eq_ignore_ascii_case(ch)) {
+            let c = &pk.card_list[ix];
+            SlotKey { pack: pi, ch: c.ch, tier: c.tier, card: ix as u32 }
         } else {
             let Some(&ci) = pk.char_ix.get(ch) else { return false };
             let ti = if tier.is_empty() {
@@ -191,17 +215,21 @@ impl App {
                 pk.tier_ix(tier).or_else(|| pk.tiers.iter().position(|t| t.label.eq_ignore_ascii_case(tier)))
             };
             let Some(ti) = ti else { return false };
-            (ci, ti)
+            // real-card packs: that character's first card in that tier
+            let card = pk.card_list.iter().position(|c| c.ch == ci && c.tier == ti).map(|i| i as u32).unwrap_or(NO_CARD);
+            if pk.is_cards && card == NO_CARD {
+                return false;
+            }
+            SlotKey { pack: pi, ch: ci, tier: ti, card }
         };
-        let k = SlotKey { pack: pi, ch: ci, tier: ti };
         let newest = self.coll.slot_pulls(k).last().copied();
         self.jump_to(k, newest);
         true
     }
 
     /// The card-data JSON for a slot (cached; None when the pack has no card text for it).
-    pub fn card_text(&mut self, k: SlotKey, pull_card: Option<String>) -> Option<Rc<Value>> {
-        let path = self.coll.packs[k.pack].card_file(k.ch, k.tier, pull_card.as_deref())?;
+    pub fn card_text(&mut self, k: SlotKey) -> Option<Rc<Value>> {
+        let path = self.coll.packs[k.pack].card_file(k)?;
         self.text_cache
             .entry(path.clone())
             .or_insert_with(|| {
@@ -268,7 +296,7 @@ impl App {
 
     /// The slots of the current pack after filters (cached).
     pub fn slots(&mut self) -> &[SlotKey] {
-        let key = (self.pack, self.views[self.pack], self.shiny_only, self.owned_only, self.search.to_lowercase(), self.slots_key.5);
+        let key = (self.pack, self.views[self.pack], self.shiny_only, self.owned_only, self.search.to_lowercase(), self.slots_key.5, self.set_sel[self.pack]);
         if key != self.slots_key {
             self.slots = self.compute_slots(&key.4);
             self.slots_key = key;
@@ -276,29 +304,66 @@ impl App {
         &self.slots
     }
 
+    /// The set the current pack's binder is showing (None: every set).
+    pub fn current_set(&self) -> Option<&crate::data::SetDef> {
+        let s = *self.set_sel.get(self.pack)?;
+        if s == 0 { None } else { self.coll.packs[self.pack].sets.get(s - 1) }
+    }
+
+    /// `S`: every set -> each set's checklist in turn -> every set.
+    pub fn cycle_set(&mut self, d: isize) {
+        let n = self.coll.packs.get(self.pack).map(|p| p.sets.len()).unwrap_or(0) as isize;
+        if n == 0 {
+            return;
+        }
+        let s = &mut self.set_sel[self.pack];
+        *s = (*s as isize + d).rem_euclid(n + 1) as usize;
+        self.sel[self.pack] = 0;
+        self.hist = usize::MAX;
+        self.dirty = true;
+    }
+
+    /// The state words of a slot for the search (query.rs).
+    pub fn slot_flags(&self, k: SlotKey) -> crate::query::Flags {
+        let st = self.coll.slot_state(k, false);
+        crate::query::Flags {
+            shiny: self.coll.slot_pulls(k).iter().any(|&i| self.coll.pulls[i].shiny),
+            foil: self.coll.packs[k.pack].foil_tier(k.tier),
+            new: self.coll.slot_new(k, false),
+            pending: st == SlotState::Pending,
+            owned: st == SlotState::Owned,
+        }
+    }
+
     fn compute_slots(&self, q: &str) -> Vec<SlotKey> {
         let pi = self.pack;
         let Some(p) = self.coll.packs.get(pi) else { return vec![] };
-        let matches = |ch: usize, tier: usize| {
-            if q.is_empty() {
-                return true;
-            }
-            let id = &p.chars[ch];
-            id.contains(q)
-                || p.slot_name(ch, tier).to_lowercase().contains(q)
-                || p.tiers[tier].label.contains(q)
-                || p.slot_tag(ch, tier).to_lowercase().contains(q)
-                || p.slot_cards(ch, tier).any(|c| c.id.to_lowercase().contains(q))
-        };
+        let terms = crate::query::parse(q);
+        let set = self.current_set().map(|s| s.id.clone());
         let keep = |k: SlotKey| {
-            p.has_slot(k.ch, k.tier) && matches(k.ch, k.tier) && (!self.owned_only || self.coll.slot_state(k, self.shiny_only) != SlotState::Empty)
+            (terms.is_empty() || crate::query::matches(&terms, &p.slot_tags(k), self.slot_flags(k)))
+                && (!self.owned_only || self.coll.slot_state(k, self.shiny_only) != SlotState::Empty)
         };
         let mut out = Vec::new();
         match self.views[pi] {
+            // real cards: one slot per card, set by set in checklist (printed number) order; a set picked with `S`
+            // is that set's whole checklist, pulled or not
+            View::Set if p.is_cards => {
+                let mut ix: Vec<usize> = (0..p.card_list.len()).filter(|&i| set.as_ref().is_none_or(|s| &p.card_list[i].set_id == s)).collect();
+                let set_order = |i: usize| p.sets.iter().position(|s| s.id == p.card_list[i].set_id).unwrap_or(usize::MAX);
+                ix.sort_by_key(|&i| (set_order(i), p.card_list[i].number_key(), i));
+                for i in ix {
+                    let c = &p.card_list[i];
+                    let k = SlotKey { pack: pi, ch: c.ch, tier: c.tier, card: i as u32 };
+                    if keep(k) {
+                        out.push(k);
+                    }
+                }
+            }
             View::Set => {
                 for tier in 0..p.tiers.len() {
                     for ch in 0..p.chars.len() {
-                        let k = SlotKey { pack: pi, ch, tier };
+                        let k = SlotKey::legacy(pi, ch, tier);
                         if keep(k) {
                             out.push(k);
                         }
@@ -307,10 +372,21 @@ impl App {
             }
             View::Dex => {
                 for ch in 0..p.chars.len() {
-                    // unowned: the character's lowest tier that has a card
-                    let first = (0..p.tiers.len()).find(|&t| p.has_slot(ch, t)).unwrap_or(0);
-                    let tier = self.coll.best_tier(pi, ch, self.shiny_only).unwrap_or(first);
-                    let k = SlotKey { pack: pi, ch, tier };
+                    // the best card pulled; unowned: the character's lowest-tier card (legacy packs: tier 0)
+                    let first = || {
+                        let c = (0..p.card_list.len())
+                            .filter(|&i| p.card_list[i].ch == ch && set.as_ref().is_none_or(|s| &p.card_list[i].set_id == s))
+                            .min_by_key(|&i| p.card_list[i].tier)?;
+                        Some(SlotKey { pack: pi, ch, tier: p.card_list[c].tier, card: c as u32 })
+                    };
+                    let k = match self.coll.best_slot(pi, ch, self.shiny_only) {
+                        Some(k) if set.as_ref().is_none_or(|s| p.card_at(k.card).is_some_and(|c| &c.set_id == s)) => k,
+                        _ if p.is_cards => match first() {
+                            Some(k) => k,
+                            None => continue,
+                        },
+                        _ => SlotKey::legacy(pi, ch, 0),
+                    };
                     if keep(k) {
                         out.push(k);
                     }
@@ -353,6 +429,7 @@ impl App {
             None => {
                 // filtered out: clear filters and retry
                 self.search.clear();
+                self.set_sel[k.pack] = 0;
                 self.owned_only = false;
                 if self.shiny_only && !pull.is_some_and(|i| self.coll.pulls[i].shiny) {
                     self.shiny_only = false;
@@ -541,6 +618,7 @@ impl App {
             KeyCode::Char('s') => self.toggle_shiny(),
             KeyCode::Char('o') => self.owned_only = !self.owned_only,
             KeyCode::Char('v') => self.show_text = !self.show_text,
+            KeyCode::Char('S') => self.cycle_set(1),
             KeyCode::Char('d') => {
                 let v = &mut self.views[self.pack];
                 *v = if *v == View::Set { View::Dex } else { View::Set };
@@ -658,7 +736,11 @@ impl App {
                     return;
                 }
                 if let Some(&(_, _, _, p)) = self.hits.tabs.iter().find(|t| t.2 == m.row as i32 && (t.0..=t.1).contains(&(m.column as i32))) {
-                    self.set_pack(p);
+                    if p < self.coll.packs.len() {
+                        self.set_pack(p);
+                    } else {
+                        self.cycle_set(1);
+                    }
                     return;
                 }
                 if self.hits.prev_page.is_some_and(|r| r.contains(pos)) {

@@ -86,3 +86,13 @@ $env:PSGALLERY_API_KEY = '<key>'; powershell -NoProfile -ExecutionPolicy Bypass 
 ```
 
 It stages only the files the module ships (see the header of the script); `tests\test-module.ps1` checks the staged module.
+
+## binder_web.py: the web binder
+
+`pokeshell binder --web` runs it (Python with Pillow: `POKESHELL_PYTHON`, the repo's `.venv`, or `py -3`). It reads
+`pulls.log` with the earned rule, the packs, card data and the prebuilt art, and writes `data.json`, `img/` and the baked
+`binder.html` (`tools/binder-web/index.html` with the data inlined) into `<state>\web`:
+
+```powershell
+.venv\Scripts\python tools\binder_web.py [--state <dir>] [--out <dir>] [--root <checkout>] [--no-art]
+```

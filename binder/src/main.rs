@@ -4,6 +4,8 @@
 //!   binder --pull <id>         open on that pull (its id is the tab's POKESHELL_PULL)
 //!   binder --card <pack/character/tier>   open on that card
 //!   binder --url pokeshell://binder?pull=<id>   what the pokeshell:// link handler runs (also ?card=...)
+//!   binder --search <query>    open with a search: words and tag filters (set:swsh7 rarity:"rare rainbow" type:water shiny)
+//!   binder --set <set id>      open on a set's checklist (e.g. swsh7)
 //!   binder --state <dir>       the state folder (default: $POKESHELL_HOME, else %LOCALAPPDATA%\pokeshell)
 //!   binder --root <dir>        the pokeshell checkout (default: $POKESHELL_ROOT, else found from the exe / cwd)
 //!   binder --theme btop        start with a theme (holo | btop | gameboy | term)
@@ -20,6 +22,7 @@ mod cardtext;
 mod color;
 mod data;
 mod draw;
+mod query;
 mod snapshot;
 mod theme;
 mod ui;
@@ -98,6 +101,8 @@ struct Args {
     log: Option<String>,
     state: Option<String>,
     start: Start,
+    search: String,
+    set: String,
     theme: String,
     snapshot: Option<String>,
     bench: bool,
@@ -112,6 +117,8 @@ fn parse_args() -> Args {
         log: None,
         state: None,
         start: Start::Latest,
+        search: String::new(),
+        set: String::new(),
         theme: "holo".into(),
         snapshot: None,
         bench: false,
@@ -125,6 +132,8 @@ fn parse_args() -> Args {
             "--root" => a.root = it.next(),
             "--log" => a.log = it.next(),
             "--state" => a.state = it.next(),
+            "--search" => a.search = it.next().unwrap_or_default(),
+            "--set" => a.set = it.next().unwrap_or_default(),
             "--pull" => {
                 if let Some(v) = it.next() {
                     a.start = Start::Pull(v)
@@ -173,7 +182,16 @@ fn main() -> io::Result<()> {
     let log = args.log.clone().map(PathBuf::from).unwrap_or_else(|| state.join("pulls.log"));
     let viewed = log.parent().map(|d| d.join("viewed.txt")).unwrap_or_else(|| state.join("viewed.txt"));
     let headless = args.snapshot.is_some() || args.selftest || args.bench;
-    let opts = Opts { root, log, viewed, demo_pending: args.demo_pending, start: args.start.clone(), readonly: headless };
+    let opts = Opts {
+        root,
+        log,
+        viewed,
+        demo_pending: args.demo_pending,
+        start: args.start.clone(),
+        readonly: headless,
+        search: args.search.clone(),
+        set: args.set.clone(),
+    };
     let theme = theme::by_name(&args.theme);
 
     if let Some(dir) = args.snapshot {

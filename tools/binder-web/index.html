@@ -746,6 +746,23 @@ header.top {
 .leaf > .page.back { transform: rotateY(180deg); }
 .leaf__shade { position: absolute; inset: 0; pointer-events: none; border-radius: 6px; background: linear-gradient(90deg, rgba(0,0,0,.0), rgba(0,0,0,.25)); opacity: 0; }
 
+/* set dividers (real-card packs): a second row of tabs on the left, one per set */
+.dividers--sets { right: auto; left: 8px; max-width: calc(100% - 360px); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-top: 8px; top: -42px; }
+.binder.is-single .dividers--sets { position: static; margin: 0 0 6px; flex-wrap: wrap; }
+.dividers--sets[hidden] { display: none; }
+.tab--set { --tc: #d9d2c3; --tk: #2b2620; font-size: 12.5px; padding: 6px 10px 12px; }
+.tab--set[aria-selected="true"] { --tc: #fff4d6; }
+
+/* search + tag chips */
+.searchbar { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; margin-top: 4px; }
+.searchbar input { width: min(520px, 86vw); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); font: 500 14px/1.2 Fredoka; }
+.searchbar small { color: var(--ink-soft); font: 600 13px/1 Fredoka; min-width: 5em; }
+.d-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tagchip { border: 1px solid var(--chip-line); background: var(--chip); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: 600 12.5px/1.2 Fredoka; cursor: pointer; }
+.tagchip small { color: var(--ink-soft); font-weight: 500; margin-right: 2px; }
+.tagchip:hover { transform: translateY(-1px); border-color: var(--ink-soft); }
+.ghost__label b { display: block; font-weight: 700; }
+
 /* ---------------------------------------------------------------- pager */
 .pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; max-width: 100%; }
 .pager__btn {
@@ -874,6 +891,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
   <div class="binder is-closed" id="binder">
     <div class="board"></div>
     <nav class="dividers" id="dividers" role="tablist" aria-label="Packs"></nav>
+    <nav class="dividers dividers--sets" id="setTabs" role="tablist" aria-label="Sets" hidden></nav>
     <div class="spread" id="spread">
       <div class="slot-page left" id="leftSlot"></div>
       <div class="slot-page right" id="rightSlot"></div>
@@ -906,8 +924,12 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
       <input type="range" id="scrubRange" min="0" max="0" value="0" aria-label="Jump to page">
       <label><input type="checkbox" id="caughtOnly"> caught only</label>
     </div>
+    <div class="searchbar">
+      <input type="search" id="search" placeholder='search: evolving skies · set:swsh7 · rarity:"rare rainbow" · type:water · shiny' aria-label="Search cards: words and tag filters" autocomplete="off" spellcheck="false">
+      <small id="searchCount"></small>
+    </div>
   </div>
-  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">1</span>–<span class="kbd">3</span> packs · click a card for details</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">1</span>–<span class="kbd">3</span> packs · <span class="kbd">/</span> search · click a card for details (its tags filter)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
 </main>
 
 <dialog class="detail" id="detail" aria-labelledby="dName"></dialog>
@@ -961,6 +983,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   for (const p of packs) {
     p.charById = Object.fromEntries(p.characters.map(c => [c.id, c]));
     p.tierIdx = Object.fromEntries(p.tiers.map((t, i) => [t.id, i]));
+    // real-card packs (layout 'cards'): every card of pack.json, with its tags (set, rarity, types, artist...)
+    if (p.layout === 'cards') p.cardById = Object.fromEntries(p.cards.map(c => [c.id, c]));
   }
   const pulls = DATA.pulls.slice().sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : a.id - b.id);
   // preview the earned rule: ?pending=N marks the N newest pulls pending
@@ -974,9 +998,19 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (!slots.has(k)) slots.set(k, { key: k, pack, char, tier: packById[pack]?.layout === 'dex' ? null : tier, pulls: [] });
     return slots.get(k);
   }
+  // a real card is its own slot (a character can have cards in several sets, even in one rarity)
+  function getCardSlot(pack, id) {
+    const k = `${pack}|card|${id}`;
+    if (!slots.has(k)) { const c = packById[pack].cardById[id]; slots.set(k, { key: k, pack, char: c.character, tier: c.tier, card: id, pulls: [] }); }
+    return slots.get(k);
+  }
+  function slotOf(p) {
+    const pk = packById[p.pack];
+    return pk?.layout === 'cards' && p.card && pk.cardById[p.card] ? getCardSlot(p.pack, p.card) : getSlot(p.pack, p.char, p.tier);
+  }
   for (const p of pulls) {
     if (!packById[p.pack] || !packById[p.pack].charById[p.char]) continue;
-    getSlot(p.pack, p.char, p.tier).pulls.push(p);
+    slotOf(p).pulls.push(p);
   }
   function summarize(slot) {
     const pk = packById[slot.pack];
@@ -992,9 +1026,13 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
              shiny: pool.some(p => p.shiny), tier, show, all: slot.pulls };
   }
 
-  function packSlots(pk, caughtOnly) {
-    const out = [];
-    if (pk.layout === 'dex') {
+  // o: { caughtOnly, set, query } (pagesFor passes the view's; stats pass only a set)
+  function packSlots(pk, o = {}) {
+    const caughtOnly = o.caughtOnly;
+    let out = [];
+    if (pk.layout === 'cards') {
+      out = pk.cards.filter(c => !o.set || c.set_id === o.set).map(c => getCardSlot(pk.id, c.id));
+    } else if (pk.layout === 'dex') {
       for (const c of pk.characters) {
         const s = slots.get(`${pk.id}|${c.id}`) || { key: `${pk.id}|${c.id}`, pack: pk.id, char: c.id, tier: null, pulls: [] };
         if (caughtOnly && !s.pulls.length) continue;
@@ -1003,19 +1041,69 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     } else {
       for (const t of pk.tiers) for (const c of pk.characters) out.push(slots.get(`${pk.id}|${c.id}|${t.id}`) || { key: `${pk.id}|${c.id}|${t.id}`, pack: pk.id, char: c.id, tier: t.id, pulls: [] });
     }
+    if (o.query) { const terms = parseQuery(o.query); out = out.filter(s => matchQuery(terms, slotTags(s), slotFlags(s))); }
     return out;
   }
-  function packStats(pk) {
-    const all = packSlots(pk);
+  function packStats(pk, set) {
+    const all = packSlots(pk, { set });
     const sums = all.map(summarize);
     const filled = sums.filter(s => s.owned).length;
-    const pk_pulls = pulls.filter(p => p.pack === pk.id);
+    const inSet = p => !set || pk.cardById?.[p.card]?.set_id === set;
+    const pk_pulls = pulls.filter(p => p.pack === pk.id && inSet(p));
     const tierFilled = pk.tiers.map(t => pk.layout === 'dex'
       ? new Set(pk_pulls.filter(p => p.tier === t.id && p.status === 'collected').map(p => p.char)).size
       : all.filter((s, i) => s.tier === t.id && sums[i].owned).length);
+    const tierTotal = pk.tiers.map(t => pk.layout === 'cards' ? all.filter(s => s.tier === t.id).length : pk.characters.length);
     return { total: all.length, filled, pct: all.length ? filled / all.length : 0, pulls: pk_pulls.length,
              collected: pk_pulls.filter(p => p.status === 'collected').length, pending: pk_pulls.filter(p => p.status === 'pending').length,
-             shinies: pk_pulls.filter(p => p.shiny).length, tierFilled };
+             shinies: pk_pulls.filter(p => p.shiny).length, tierFilled, tierTotal };
+  }
+
+  /* -------------------------------------------------------------- tags + search (the syntax of binder/src/query.rs)
+     words match anywhere; key:value / key:"a b" filter one tag; shiny foil new pending owned missing test the card */
+  const STATES = ['shiny', 'foil', 'new', 'pending', 'owned', 'missing'];
+  const KEYMAP = { sub: 'subtype', subtypes: 'subtype', character: 'char', pokemon: 'char', types: 'type', card: 'id', no: 'number', num: 'number', setname: 'set', series: 'set' };
+  function parseQuery(q) {
+    const out = [], re = /(?:([A-Za-z]+):)?(?:"([^"]*)"?|(\S+))/g;
+    let m;
+    while ((m = re.exec(q || ''))) {
+      if (!m[0]) { re.lastIndex++; continue; }
+      let key = m[1] ? m[1].toLowerCase() : null;
+      if (key) key = KEYMAP[key] || key;
+      if (key === 'is' || key === 'state') key = null;
+      const v = (m[2] ?? m[3] ?? '').trim().toLowerCase();
+      if (v) out.push({ key, v });
+    }
+    return out;
+  }
+  function matchQuery(terms, tags, flags) {
+    return terms.every(({ key, v }) => key === null && STATES.includes(v) ? !!flags[v]
+      : tags.some(([k, x]) => (key === null || k === key) && String(x).toLowerCase().includes(v)));
+  }
+  const termFor = (k, v) => /\s/.test(v) ? `${k}:"${v}"` : `${k}:${v}`;
+  function isFoil(pk, tierId) {
+    const t = pk.tiers[pk.tierIdx[tierId]];
+    if (!t) return false;
+    return pk.layout === 'cards' ? (t.skins.length > 0 || (t.family && t.family !== 'non-foil')) : pk.tierIdx[tierId] > 0;
+  }
+  // every tag of a slot: [key, value]; real cards add set, rarity, subtypes, types, artist from their card data
+  function slotTags(slot) {
+    const pk = packById[slot.pack], c = pk.charById[slot.char];
+    const cd = slot.card ? pk.cardById[slot.card] : null;
+    const tierId = slot.tier || summarize(slot).tier;
+    const t = pk.tiers[pk.tierIdx[tierId]];
+    const tags = [['pack', pk.id], ['pack', pk.name], ['char', slot.char], ['char', c?.name]];
+    if (t) tags.push(['tier', t.id], ['tier', t.label]);
+    if (cd) {
+      tags.push(['name', cd.name], ['id', cd.id], ['number', cd.number], ['rarity', cd.rarity], ['set', cd.set_id], ['set', cd.set_name], ['artist', cd.artist]);
+      for (const x of cd.subtypes || []) tags.push(['subtype', x]);
+      for (const x of cd.types || []) tags.push(['type', x]);
+    } else tags.push(['name', c?.name], ['number', c?.tag], ['rarity', t?.label]);
+    return tags.filter(([, v]) => v);
+  }
+  function slotFlags(slot) {
+    const s = summarize(slot), pk = packById[slot.pack];
+    return { owned: s.owned, pending: s.pending, new: s.isNew, shiny: slot.pulls.some(p => p.shiny), foil: isFoil(pk, s.tier || slot.tier), missing: !s.owned && !s.pending };
   }
 
   /* -------------------------------------------------------------- formatting */
@@ -1081,7 +1169,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const pk = packById[o.pack], c = pk.charById[o.char], t = pk.tiers[pk.tierIdx[o.tier]] || pk.tiers[0];
     const ti = pk.tierIdx[t.id];
     const foil = ti > 0;
-    const info = imgInfo(o.pack, o.char, t.id, o.shiny);
+    const cd = o.card && pk.cardById ? pk.cardById[o.card] : null;   // a real card: its own art, name and number
+    const info = imgInfo(o.pack, o.char, cd ? cd.id : t.id, o.shiny);
     const fc = t.frame.colors || [];
     const style = { '--tint': c.tint || '#9aa4b0', '--delay': (-hash(o.char + t.id) * 7).toFixed(2) + 's', '--idle': (6 + hash(t.id + o.char) * 4).toFixed(1) + 's' };
     fc.slice(0, 5).forEach((col, i) => style['--f' + i] = col);
@@ -1090,7 +1179,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (o.skin) cls.push(`skin-${o.skin}`);
     if (o.pending) cls.push('pending');
     let face;
-    const label = `${c.name}, ${t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}`;
+    const label = `${cd ? cd.name : c.name}, ${t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}`;
 
     if (t.frame.style === 'wanted') {
       const pal = t.frame.palette;
@@ -1124,13 +1213,13 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       face = h('div', { class: 'card__face' },
         h('div', { class: 'card__panel' },
           full ? h('div', { class: 'card__wash', style: { 'background-image': `url("${info.src}")` } }) : null,
-          h('div', { class: 'card__head' }, h('span', { class: 'card__name' }, (o.shiny ? '✦ ' : '') + c.name), h('span', { class: 'card__tag' }, c.tag || '')),
+          h('div', { class: 'card__head' }, h('span', { class: 'card__name' }, (o.shiny ? '✦ ' : '') + (cd ? cd.name : c.name)), h('span', { class: 'card__tag' }, cd ? cd.number : (c.tag || ''))),
           h('div', { class: 'card__art' }, pixImg(info)),
           h('div', { class: 'card__box' },
             h('div', { class: 'card__move' }, h('b', {}, skinTxt), h('span', {}, foil ? 'foil' : 'tab')),
             h('div', { class: 'card__rule' }),
             h('div', { class: 'card__move' }, h('b', {}, titleCase(t.label)), h('span', {}, o.count ? '×' + o.count : ''))),
-          h('div', { class: 'card__foot' }, h('span', {}, 'PKSH'), h('span', {}, `${String(c.no).padStart(3, '0')}/${String(pk.characters.length).padStart(3, '0')}`), h('span', { class: 'rar' }, rar(o.pack, t.id)))));
+          h('div', { class: 'card__foot' }, h('span', {}, cd ? (cd.set_id || 'PKSH').toUpperCase() : 'PKSH'), h('span', {}, cd ? cd.number : `${String(c.no).padStart(3, '0')}/${String(pk.characters.length).padStart(3, '0')}`), h('span', { class: 'rar' }, rar(o.pack, t.id)))));
     }
     const card = h(o.static ? 'div' : 'button', { class: cls.join(' '), style, type: o.static ? null : 'button', 'aria-label': o.static ? null : label, title: o.static ? null : label },
       h('div', { class: 'card__inner' }, face, h('div', { class: 'card__shine' }), h('div', { class: 'card__glare' })));
@@ -1166,6 +1255,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
         '--m': `url("${a.file}")`, '--ms': `${a.cols * 100}% ${a.rows * 100}%`,
         '--mp': `${(i % a.cols) / (a.cols - 1) * 100}% ${Math.floor(i / a.cols) / (a.rows - 1) * 100}%` } }));
       g.append(h('div', { class: 'ghost__label' }, h('small', {}, c.tag || '')));
+    } else if (slot.card) {
+      const cd = pk.cardById[slot.card], t = pk.tiers[pk.tierIdx[cd.tier]];
+      g.append(h('div', { class: 'ghost__q' }, '?'));
+      g.append(h('div', { class: 'ghost__label' }, h('small', {}, `${rar(slot.pack, cd.tier)} ${cd.number}`), h('b', {}, cd.name), t ? t.label : ''));
     } else {
       const info = imgInfo(slot.pack, slot.char, pk.tiers[0].id, false);
       g.append(h('div', { class: 'ghost__sil', style: { '--m': `url("${info.src}")` } }));
@@ -1179,18 +1272,18 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   function slotCard(slot, extra = {}) {
     const s = summarize(slot);
     if (!s.owned && !s.pending) return null;
-    return cardEl({ pack: slot.pack, char: slot.char, tier: s.tier, shiny: s.show?.shiny || false, skin: s.show?.skin,
+    return cardEl({ pack: slot.pack, char: slot.char, tier: s.tier, card: slot.card, shiny: s.show?.shiny || false, skin: s.show?.skin,
                     count: s.count || s.pendingCount, pending: s.pending, isNew: s.isNew, ...extra });
   }
 
   /* -------------------------------------------------------------- pages */
-  const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false };
+  const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false, set: null, query: '' };
   const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot');
   const mq = matchMedia('(max-width: 760px)');
 
   function pagesFor(pk) {
     const per = pk.layout === 'dex' ? 16 : 9;
-    const list = packSlots(pk, pk.layout === 'dex' && state.caughtOnly);
+    const list = packSlots(pk, { caughtOnly: pk.layout === 'dex' && state.caughtOnly, set: pk.layout === 'cards' ? state.set : null, query: state.query });
     const pages = [{ kind: 'title', pack: pk.id }];
     for (let i = 0; i < list.length; i += per) pages.push({ kind: 'pockets', pack: pk.id, slots: list.slice(i, i + per), n: pages.length });
     if (list.length === 0) pages.push({ kind: 'pockets', pack: pk.id, slots: [], n: 1 });
@@ -1230,23 +1323,25 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   }
 
   function titlePage(pk) {
-    const st = packStats(pk);
+    const set = pk.layout === 'cards' && state.set ? pk.sets.find(s => s.id === state.set) : null;
+    const st = packStats(pk, set?.id);
     const tp = h('div', { class: 'tp' });
     const isDex = pk.layout === 'dex';
-    tp.append(h('div', { class: 'tp__kicker' }, isDex ? 'DIVIDER · LOCAL PACK' : 'DIVIDER'));
-    tp.append(h('h2', { class: 'tp__title' }, pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name));
+    tp.append(h('div', { class: 'tp__kicker' }, set ? `SET · ${set.id.toUpperCase()} · CHECKLIST` : isDex ? 'DIVIDER · LOCAL PACK' : 'DIVIDER'));
+    tp.append(h('h2', { class: 'tp__title' }, set ? set.name : pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name));
     const pctv = Math.round(st.pct * 1000) / 10;
     tp.append(h('div', { class: 'tp__hero' },
       h('div', { class: 'ring', style: { '--p': Math.max(st.pct * 100, st.filled ? 1.5 : 0) } }, h('span', {}, `${pctv}`, h('small', {}, '%'))),
       h('div', { class: 'tp__facts' },
-        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : 'card slots filled')),
+        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : set ? 'cards of the set' : 'card slots filled')),
         h('div', { class: 'fact' }, h('b', {}, st.pulls), h('span', {}, 'pulls logged')),
         h('div', { class: 'fact' }, h('b', {}, Math.max(0, st.collected - st.filled)), h('span', {}, 'duplicates')),
         h('div', { class: 'fact' }, h('b', {}, pk.shiny_chance > 0 ? '✦ ' + st.shinies : '—'), h('span', {}, pk.shiny_chance > 0 ? 'shinies' : 'no shinies here')))));
     // rarity table
     const tb = h('tbody');
     pk.tiers.forEach((t, i) => {
-      const tot = isDex ? pk.characters.length : pk.characters.length;
+      const tot = st.tierTotal[i];
+      if (pk.layout === 'cards' && !tot) return;
       tb.append(h('tr', {},
         h('td', {}, h('span', { class: 'rar' }, rar(pk.id, t.id)), ' ', t.label),
         h('td', { class: 'num' }, pct(t.odds)),
@@ -1256,12 +1351,12 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     });
     tp.append(h('table', { class: 'odds' }, h('thead', {}, h('tr', {}, h('th', {}, 'RARITY'), h('th', { style: { textAlign: 'right' } }, 'ODDS'), h('th', { style: { textAlign: 'right' } }, 'PER PULL'), h('th', { colspan: 2, style: { textAlign: 'right' } }, 'GOT'))), tb));
     // best pulls
-    const best = pulls.filter(p => p.pack === pk.id).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
+    const best = pulls.filter(p => p.pack === pk.id && (!set || pk.cardById?.[p.card]?.set_id === set.id)).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
     if (best.length) {
       const row = h('div', { class: 'tp__best' });
       for (const b of best) {
-        const card = cardEl({ pack: b.pack, char: b.char, tier: b.tier, shiny: b.shiny, skin: b.skin, pending: b.status === 'pending', isNew: b.new });
-        card.addEventListener('click', () => openDetail(getSlot(b.pack, b.char, b.tier), b));
+        const card = cardEl({ pack: b.pack, char: b.char, tier: b.tier, card: b.card, shiny: b.shiny, skin: b.skin, pending: b.status === 'pending', isNew: b.new });
+        card.addEventListener('click', () => openDetail(slotOf(b), b));
         row.append(card);
       }
       tp.append(h('div', {}, h('div', { class: 'tp__best-label' }, 'BEST PULLS'), row));
@@ -1292,13 +1387,17 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     }
     $('#coverBack').replaceChildren(pageEl(pages[0], 'left', 0, pages.length));
     // tabs
-    for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-selected', String(b.dataset.pack === state.pack));
+    for (const b of document.querySelectorAll('.tab[data-pack]')) b.setAttribute('aria-selected', String(b.dataset.pack === state.pack));
+    renderSetTabs();
+    const nMatch = state.query ? packSlots(pk, { set: pk.layout === 'cards' ? state.set : null, query: state.query }).length : null;
+    $('#searchCount').textContent = nMatch == null ? '' : `${nMatch} match${nMatch === 1 ? '' : 'es'}`;
     // pager
     const step = state.single ? 1 : 2;
     const n = pages.length;
     const first = state.page + 1, last = Math.min(n, state.page + step);
     const lbl = $('#pageLbl');
-    lbl.replaceChildren(h('b', {}, pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name), state.single || first === last ? `page ${first} of ${n}` : `pages ${first}–${last} of ${n}`);
+    const setName = pk.layout === 'cards' && state.set ? ' · ' + (pk.sets.find(s => s.id === state.set)?.name || state.set) : '';
+    lbl.replaceChildren(h('b', {}, (pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name) + setName), state.single || first === last ? `page ${first} of ${n}` : `pages ${first}–${last} of ${n}`);
     const atStart = state.page === 0 && packs[0].id === state.pack;
     $('#prevBtn').disabled = !state.open;
     $('#nextBtn').disabled = state.open && state.page + step >= n && packs[packs.length - 1].id === state.pack;
@@ -1322,6 +1421,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     if (state.busy) return;
     const oldPages = currentPages(), oldPage = state.page, oldPack = state.pack;
     state.pack = packId;
+    if (packId !== oldPack) state.set = null;
     const newPages = currentPages();
     if (state.single) page = Math.max(0, Math.min(page, newPages.length - 1));
     else page = Math.max(0, Math.min(page - (page % 2), newPages.length - 2));
@@ -1420,11 +1520,36 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     dividers.append(b);
   });
 
+  // set dividers (real-card packs): every set, or one set's checklist
+  const setTabs = $('#setTabs');
+  function renderSetTabs() {
+    const pk = packById[state.pack];
+    if (pk.layout !== 'cards' || !pk.sets?.length) { setTabs.hidden = true; setTabs.replaceChildren(); return; }
+    setTabs.hidden = false;
+    const mk = (id, label) => {
+      const st = packStats(pk, id);
+      const b = h('button', { class: 'tab tab--set', type: 'button', role: 'tab', 'aria-selected': String((state.set || null) === id), title: `${label}: ${st.filled}/${st.total}` },
+        label, h('small', {}, `${st.filled}/${st.total}`));
+      b.addEventListener('click', () => { state.set = id; state.page = 0; if (!state.open) openBinder(); else render(); });
+      return b;
+    };
+    setTabs.replaceChildren(mk(null, 'All sets'), ...pk.sets.map(s => mk(s.id, s.name)));
+  }
+  // search: applies to the pack (and set) on screen
+  const searchBox = $('#search');
+  function applyQuery(q) {
+    state.query = q.trim(); searchBox.value = q;
+    state.page = 0;
+    if (!state.open) openBinder(); else render();
+  }
+  searchBox.addEventListener('input', () => { state.query = searchBox.value.trim(); state.page = 0; if (state.open) render(); });
+  searchBox.addEventListener('keydown', e => { if (e.key === 'Enter' && !state.open) openBinder(); if (e.key === 'Escape') applyQuery(''); });
+
   const total = pulls.length;
   const collected = pulls.filter(p => p.status === 'collected').length;
   const uniq = [...slots.values()].filter(s => summarize(s).owned).length;
   const shinies = pulls.filter(p => p.shiny).length;
-  const foils = pulls.filter(p => packById[p.pack] && packById[p.pack].tierIdx[p.tier] > 0).length;
+  const foils = pulls.filter(p => packById[p.pack] && isFoil(packById[p.pack], p.tier)).length;
   $('#chips').append(
     h('span', { class: 'chip' }, h('b', {}, total), 'pulls'),
     h('span', { class: 'chip' }, h('b', {}, uniq), 'cards'),
@@ -1439,8 +1564,8 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   const rail = $('#recent');
   const recent = pulls.slice().reverse().slice(0, 18);
   recent.forEach((p, i) => {
-    const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
-    card.addEventListener('click', () => openDetail(getSlot(p.pack, p.char, p.tier), p));
+    const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, card: p.card, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
+    card.addEventListener('click', () => openDetail(slotOf(p), p));
     const isNew = p.new || Date.now() - when(p.time).getTime() < 3600e3;
     rail.append(h('div', { class: 'recent__item' + (isNew ? ' is-new' : ''), style: { '--r': ((hash(p.time + i) - .5) * 9).toFixed(1) + 'deg' } }, card,
       h('time', { class: 'recent__when', datetime: p.time, title: fmtDate(p.time) }, ago(p.time))));
@@ -1451,6 +1576,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   const dlg = $('#detail');
   function openDetail(slot, focusPull) {
     const pk = packById[slot.pack], c = pk.charById[slot.char];
+    const cd = slot.card ? pk.cardById[slot.card] : null;
     const s = summarize(slot);
     const tierId = focusPull?.tier || s.tier || slot.tier || pk.tiers[0].id;
     const t = pk.tiers[pk.tierIdx[tierId]];
@@ -1463,7 +1589,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     const status = got.length ? 'collected' : inTier.length ? 'pending' : 'none';
 
     const stage = h('div', { class: 'detail__stage' });
-    const mkCard = () => cardEl({ pack: slot.pack, char: slot.char, tier: tierId, shiny: showShiny, skin, count: got.length, pending: status === 'pending', isNew: got.some(p => p.new) });
+    const mkCard = () => cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: got.length, pending: status === 'pending', isNew: got.some(p => p.new) });
     let big = mkCard();
     stage.append(big);
     if (hasShiny && hasPlain) {
@@ -1475,15 +1601,27 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       sw.append(b1, b2); stage.append(sw);
     }
 
-    const nameTxt = pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
+    const nameTxt = cd ? cd.name : pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
     const info = h('div', { class: 'detail__info' });
     info.append(h('div', { class: 'd-kicker' },
-      h('span', {}, (pk.id === 'pokemon' ? 'POKÉMON' : pk.id === 'pokedex' ? 'POKÉDEX' : pk.name.toUpperCase()) + ` · ${c.tag || '#' + c.no}`),
+      h('span', {}, cd ? `${(cd.set_name || cd.set_id).toUpperCase()} · ${cd.number}` : (pk.id === 'pokemon' ? 'POKÉMON' : pk.id === 'pokedex' ? 'POKÉDEX' : pk.name.toUpperCase()) + ` · ${c.tag || '#' + c.no}`),
       status === 'collected' ? h('span', { class: 'pill pill--ok' }, '✓ collected')
         : status === 'pending' ? h('span', { class: 'pill pill--pending' }, '⏳ pending: use that tab to keep it')
         : h('span', { class: 'pill pill--none' }, 'not pulled yet')));
     info.append(h('h2', { class: 'd-name', id: 'dName' }, (showShiny ? '✦ ' : '') + nameTxt));
-    info.append(h('div', { class: 'd-sub' }, h('span', { class: 'rar' }, rar(pk.id, t.id)), ` ${titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : ''));
+    info.append(h('div', { class: 'd-sub' }, h('span', { class: 'rar' }, rar(pk.id, t.id)), ` ${cd?.rarity || titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : '',
+      cd?.artist ? ` · illus. ${cd.artist}` : ''));
+    // tags: a click shows every card with that tag (the search box)
+    const seenTag = new Set(), chips = h('div', { class: 'd-tags' });
+    const fl = slotFlags(slot);
+    for (const w of STATES) if (fl[w] && w !== 'missing') chips.append(h('button', { class: 'tagchip', type: 'button', title: `every ${w} card`, onclick: () => { dlg.close(); applyQuery(w); } }, w));
+    for (const [k, v] of slotTags(slot)) {
+      if (k === 'pack' || k === 'id' || k === 'number' || seenTag.has(k + '|' + v)) continue;
+      seenTag.add(k + '|' + v);
+      const q = termFor(k, v);
+      chips.append(h('button', { class: 'tagchip', type: 'button', title: `search ${q}`, onclick: () => { dlg.close(); applyQuery(q); } }, h('small', {}, k), ' ', v));
+    }
+    info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'TAGS'), chips));
     const firstP = inTier[0], lastP = inTier[inTier.length - 1];
     info.append(h('div', { class: 'd-grid' },
       h('div', { class: 'd-stat' }, h('b', {}, '×' + inTier.length), h('span', {}, inTier.length === 1 ? 'pulled once' : 'times pulled')),
@@ -1508,7 +1646,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     pk.tiers.forEach(tt => tb.append(h('tr', { class: tt.id === t.id ? 'me' : '' }, h('td', {}, `${rar(pk.id, tt.id)} ${tt.label}`), h('td', {}, `${pct(tt.odds)} · ${oneIn(tt.odds)}`))));
     if (pk.shiny_chance > 0) tb.append(h('tr', { class: showShiny ? 'me' : '' }, h('td', {}, '✦ shiny (any tier)'), h('td', {}, `${pct(pk.shiny_chance)} · ${oneIn(pk.shiny_chance)}`)));
     const exact = t.card_odds * (showShiny ? pk.shiny_chance : 1);
-    tb.append(h('tr', { class: 'me' }, h('td', {}, `this card: ${c.name}${showShiny ? ' ✦' : ''}, ${t.label}`), h('td', {}, `${oneIn(exact)} pulls`)));
+    tb.append(h('tr', { class: 'me' }, h('td', {}, `this card: ${cd ? cd.name : c.name}${showShiny ? ' ✦' : ''}, ${t.label}`), h('td', {}, `${oneIn(exact)} pulls`)));
     if (pk.active_packs > 1) tb.append(h('tr', {}, h('td', {}, `…counting tabs (1 of ${pk.active_packs} packs per tab)`), h('td', {}, `${oneIn(exact / pk.active_packs)} tabs`)));
     info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'ODDS FROM PACK.JSON'), h('table', { class: 'd-odds' }, tb)));
 
@@ -1562,6 +1700,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
     else if (/^[1-9]$/.test(e.key) && packs[+e.key - 1]) { const pk = packs[+e.key - 1]; if (!state.open) { state.pack = pk.id; state.page = 0; openBinder(); } else if (pk.id !== state.pack) goTo(pk.id, 0, +e.key - 1 > packs.findIndex(p => p.id === state.pack) ? 1 : -1); }
     else if (e.key === 'Home' && state.open) goTo(state.pack, 0, -1);
+    else if (e.key === '/') { e.preventDefault(); searchBox.focus(); }
   });
   // swipe on touch
   { let x0 = null, y0 = 0;
@@ -1591,11 +1730,14 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   if (params.get('pack') && packById[params.get('pack')]) state.pack = params.get('pack');
   if (params.get('page')) state.page = +params.get('page') || 0;
   if (params.get('caught')) { state.caughtOnly = true; $('#caughtOnly').checked = true; }
+  if (params.get('set')) state.set = params.get('set');
+  if (params.get('q')) { state.query = params.get('q'); searchBox.value = state.query; }
   if (params.get('open')) { state.open = true; binder.classList.remove('is-closed'); binder.classList.add('cover-gone'); }
   render();
   if (params.get('card')) {
     const [pp, cc, tt] = params.get('card').split('/');
-    if (packById[pp]?.charById[cc]) openDetail(getSlot(pp, cc, tt || packById[pp].tiers[0].id));
+    if (packById[pp]?.cardById?.[cc]) openDetail(getCardSlot(pp, cc));   // ?card=pokemon/swsh7-215
+    else if (packById[pp]?.charById[cc]) openDetail(getSlot(pp, cc, tt || packById[pp].tiers[0].id));
   }
 })();
 </script>
