@@ -647,6 +647,8 @@ frequencies must match the weights.
 5. Each new rarity has a tier with a weight, a text-half frame colour and its own tab skin first.
 6. `tests\test-cards.ps1` passes.
 7. The lookbook's Decided list is updated.
+8. The set is in `SETS` in `tools/skipped_report.py` (with a `why` for any Pokémon card skipped on purpose), and
+   `docs/SKIPPED.md` is regenerated, so the user can see every card that is not served and why.
 
 ## 20. Worked example: Leafeon V, swsh7-7 (Rare Holo V)
 

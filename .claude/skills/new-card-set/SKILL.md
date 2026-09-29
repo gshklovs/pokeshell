@@ -28,6 +28,8 @@ Checklist for a new Pokémon set (ART_METHOD section numbers in brackets):
    - If `packs\pokemon\pack.json` changed only in line endings, restore it.
    - Add the tier, weight, frame colour and own tab skin for each new rarity. [17, 18]
 10. **Test** from PowerShell: `powershell -NoProfile -File tests\test-cards.ps1`. Then check the definition of done. [19]
+11. **Skipped list**: add the set to `SETS` in `tools/skipped_report.py` (a `why` for Pokémon skipped on purpose) and
+    run it, so `docs/SKIPPED.md` lists every card not served and why. [19]
 
 Rebuilding one card: run the **highest** module that lists it (ladder < group batch < rainbow_secret / altart <
 batch_fixes; section 14), in an isolated `$env:ARTLAB_DATA` first when you only need to check it (section 21).
