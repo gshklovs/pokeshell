@@ -138,6 +138,30 @@ Assert (-not (Test-Path (Join-Path $st 'dryrun-spawns.log'))) "no tab opened"
 $logged = (Get-Content (Join-Path $st 'pulls.log') | Select-Object -Last 1).Split("`t")
 Assert ($logged[3] -eq 'common' -and $logged[7] -like 'foil-not-placed:*') "logged as the common it showed ($($logged[3]), $($logged[7]))"
 
+Write-Host "7. coexistence with opshell: both hooks in one `$PROFILE, one pull per tab" -ForegroundColor Cyan
+$st = New-TestState 'coexist'
+$c = Start-SimTab $st $PlainGuid @('powershell.exe') $t0 @{ CARDSHELL_ROLLED = '1' }
+Assert ($c.action -eq 'skip' -and $c.reason -eq 'marker:CARDSHELL_ROLLED') "CARDSHELL_ROLLED (set by opshell's hook) alone: $($c.reason)"
+$x = Invoke-Fresh { $r = Invoke-PokeshellRoll -Root $RepoRoot -StateDir $st -ProfileId $PlainGuid -Argv @('powershell.exe') -Now ($t0 + 3600 * $tps) -FoilChance 0 -DryRun -Quiet; [pscustomobject]@{ action = $r.Action; marker = $env:CARDSHELL_ROLLED } }
+Assert ($x.action -eq 'common' -and $x.marker -eq '1') "a pull sets CARDSHELL_ROLLED, so an opshell hook after this one skips ($($x.action), CARDSHELL_ROLLED=$($x.marker))"
+$x = Invoke-Fresh { Invoke-PokeshellRoll -Root $RepoRoot -StateDir $st -ProfileId $PlainGuid -Argv @('powershell.exe') -Now ($t0 + 7200 * $tps) -FoilChance 1 -DryRun -Quiet }
+$cmd = if ($x.WtArgs) { [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($x.WtArgs[-1])) } else { '' }
+Assert ($x.Action -eq 'foil' -and $cmd.Contains("`$env:CARDSHELL_ROLLED='1'")) "the skinned foil tab's command sets CARDSHELL_ROLLED too"
+# the real hook text as a fresh plain tab runs it (no argv), forced to a common
+$h = [IO.File]::ReadAllText((Join-Path $RepoRoot 'scripts\pokeshell-profile.ps1'))
+if (-not $h.Contains('$lib, -1)') -or -not $h.Contains('-Argv $a)')) { throw 'hook layout changed' }
+$hook = "`$__hookDir = '$RepoRoot\scripts'`r`n" + $h.Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')").Replace('$lib, -1)', '$lib, 0)').Replace('-Argv $a)', '-Argv $a -FoilChance 0)')
+$fake = '$env:CARDSHELL_ROLLED = ''1''   # stand-in for an opshell hook that rolled first'
+$probe = Join-Path $st 'coexist.ps1'
+foreach ($case in @(@('other hook first', "$fake`r`n$hook", 0), @('pokeshell first', "$hook`r`n", 1))) {
+  $sd = Join-Path $st ("s-" + $case[2]); [void][IO.Directory]::CreateDirectory($sd)
+  [IO.File]::WriteAllText($probe, "`$env:WT_PROFILE_ID = '$PlainGuid'; `$env:POKESHELL_HOME = '$sd'; `$env:POKESHELL_DRYRUN = '1'`r`n" + $case[1] +
+    "`r`n'CARDSHELL=' + `$env:CARDSHELL_ROLLED; 'POKESHELL=' + `$env:POKESHELL_ROLLED")
+  $out = & powershell.exe -NoProfile -File $probe 2>&1 | Out-String
+  $pulls = @(Get-Content (Join-Path $sd 'pulls.log') -ErrorAction SilentlyContinue).Count
+  if ($case[2] -eq 0) { Assert ($pulls -eq 0 -and $out -match 'POKESHELL=\r?\n' -and $out -match 'CARDSHELL=1') "real hook, $($case[0]): pokeshell skips (pulls logged: $pulls)" }
+  else { Assert ($pulls -eq 1 -and $out -match 'POKESHELL=1' -and $out -match 'CARDSHELL=1') "real hook, $($case[0]): pokeshell rolls once and leaves CARDSHELL_ROLLED=1 for the next hook (pulls logged: $pulls)" }
+}
 Get-ChildItem ([IO.Path]::GetTempPath()) -Directory -Filter "pokeshell-test-*-$PID" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host ''
 if ($script:Failures) { Write-Host "no-loop: $script:Failures FAILED" -ForegroundColor Red; exit 1 }

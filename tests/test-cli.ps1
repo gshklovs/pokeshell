@@ -63,11 +63,11 @@ Assert ($roll[1] -eq "select`tpokemon" -and @($roll | Where-Object { $_ -like 's
 Write-Host "3. collection" -ForegroundColor Cyan
 Import-PokeshellCore $st
 $lines = foreach ($i in 1..300) {
-  $env:POKESHELL_ROLLED = $null; $env:POKESHELL_PULL = $null
+  $env:POKESHELL_ROLLED = $null; $env:POKESHELL_PULL = $null; $env:CARDSHELL_ROLLED = $null
   $r = [Pokeshell.Core]::Roll($RepoRoot, $st, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.AddMinutes(-1000 + $i * 3).Ticks, $i, -1, 'x', 'C:\', 'C:\')
   if ($r.Action -eq 'foil') { $r.LogLine }   # commons log themselves; foils are logged by PowerShell after the tab opens
 }
-Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL -ErrorAction SilentlyContinue
+Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL, Env:CARDSHELL_ROLLED -ErrorAction SilentlyContinue
 [IO.File]::AppendAllLines((Join-Path $st 'pulls.log'), [string[]]@($lines))
 $total = @(Get-Content (Join-Path $st 'pulls.log')).Count
 $out = Strip (Invoke-Cli collection)
@@ -131,7 +131,7 @@ Assert ($r.Action -eq 'common' -and $r.Frame -eq 'plain' -and (Strip $r.Text).Co
 $r = Invoke-Fresh { [Pokeshell.Core]::Roll($fr, $fst, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, 7, 1, 'x', 'C:\', 'C:\') }
 $cmd = if ($r.WtArgs) { [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($r.WtArgs[-1])) } else { '' }
 Assert ($r.Action -eq 'foil' -and $r.Frame -eq '#ff0000,#0000ff' -and $cmd.Contains("-Frame '#ff0000,#0000ff'") -and (Strip $r.FallbackText).Contains('common')) "a foil passes its frame (and tag) to the skinned tab; the fallback is the framed common"
-Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL -ErrorAction SilentlyContinue
+Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL, Env:CARDSHELL_ROLLED -ErrorAction SilentlyContinue
 
 Write-Host "5b. frame styles: the wanted poster (a throwaway pack with style-object frames, poster_names, bounties)" -ForegroundColor Cyan
 foreach ($d in 'packs\posters', 'dist\posters') { [void][IO.Directory]::CreateDirectory((Join-Path $fr $d)) }
@@ -185,7 +185,7 @@ Assert ($r.Action -eq 'common' -and $r.Poster -eq $bobPoster -and $r.Bounty -eq 
 $r = $null; foreach ($seed in 1..40) { [IO.File]::Delete((Join-Path $pst 'spawn-gate.txt')); $r = Invoke-Fresh { [Pokeshell.Core]::Roll($fr, $pst, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, $seed, 1, 'x', 'C:\', 'C:\') }; if ($r.Character -eq 'bob') { break } }
 $cmd = if ($r.WtArgs) { [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($r.WtArgs[-1])) } else { '' }
 Assert ($r.Action -eq 'foil' -and $cmd.Contains("-Frame 'wanted;palette=manga;seed=manga-rare'") -and $cmd.Contains("-Poster '$bobPoster' -Bounty '3,000,000,000'") -and $r.FallbackText -eq $wt) "a foil passes frame, poster name and bounty to the skinned tab; the fallback is the tier-0 poster"
-Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL -ErrorAction SilentlyContinue
+Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL, Env:CARDSHELL_ROLLED -ErrorAction SilentlyContinue
 # the One Piece pack (local only): byte-identical to the style-lab prototype's output
 $proto = Join-Path $RepoRoot 'style-lab\op-frames\out'
 if ((Test-Path (Join-Path $RepoRoot 'packs\onepiece\pack.json')) -and (Test-Path $proto)) {
@@ -215,7 +215,7 @@ Assert ($r.Action -eq 'common' -and $r.Display -eq 'picture' -and -not (Strip $r
 $r = Invoke-Fresh { [Pokeshell.Core]::Roll($fr, $fst, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, 7, 1, 'x', 'C:\', 'C:\') }
 $cmd = if ($r.WtArgs) { [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($r.WtArgs[-1])) } else { '' }
 Assert ($r.Action -eq 'foil' -and $cmd.EndsWith(' -Picture') -and -not (Strip $r.FallbackText).Contains([string][char]0x256d)) "a foil tells its tab to print the picture too (and so does the fallback)"
-Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL -ErrorAction SilentlyContinue
+Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL, Env:CARDSHELL_ROLLED -ErrorAction SilentlyContinue
 [IO.File]::WriteAllLines((Join-Path $fst 'config.txt'), [string[]]@('pack=framed', 'display=card'))
 $env:POKESHELL_DISPLAY = 'picture'
 try { $d = [Pokeshell.Core]::Display((Read-PokeshellConfig $fst)) } finally { Remove-Item Env:POKESHELL_DISPLAY }

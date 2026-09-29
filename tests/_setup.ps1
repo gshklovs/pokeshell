@@ -6,6 +6,9 @@ $RepoRoot = Split-Path $PSScriptRoot
 Import-PokeshellCore (Join-Path ([IO.Path]::GetTempPath()) 'pokeshell-test-core')
 
 $PlainGuid = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
+# child processes the tests start inherit this environment: drop a real tab's pull markers (run from a tab that
+# already rolled, the hook probes would otherwise skip)
+foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'CARDSHELL_ROLLED', 'OPSHELL_PULL', 'OPSHELL_ROLLED') { [Environment]::SetEnvironmentVariable($k, $null) }
 $script:Failures = 0
 
 function New-TestState([string]$Name) {
@@ -25,7 +28,7 @@ function Assert([bool]$Cond, [string]$What) {
 # run a block with the pokeshell env markers cleared (a "fresh process"), then restore them
 function Invoke-Fresh([scriptblock]$Block, [hashtable]$Env = @{}) {
   $saved = @{}
-  foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'POKESHELL_DISABLE', 'POKESHELL_DRYRUN') { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $null) }
+  foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'POKESHELL_DISABLE', 'POKESHELL_DRYRUN', 'CARDSHELL_ROLLED') { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $null) }
   foreach ($k in $Env.Keys) { [Environment]::SetEnvironmentVariable($k, $Env[$k]) }
   try { & $Block } finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
 }

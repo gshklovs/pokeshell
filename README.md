@@ -178,7 +178,8 @@ stops it (`tests/test-no-loop.ps1` checks every one of them, plus the worst case
 2. **No arguments**: only rolls when the shell was started with no command-line arguments (`-NoLogo` is allowed).
    The pulled tab is started with `-NoExit -EncodedCommand`; scripts, `-Command`, Claude tabs never roll.
 3. **Environment markers**: `POKESHELL_PULL` (set before spawning, and in the pulled tab) and `POKESHELL_ROLLED`
-   (set in every tab once it has rolled, so a `powershell` you start inside a tab never rolls).
+   (set in every tab once it has rolled, so a `powershell` you start inside a tab never rolls), and `CARDSHELL_ROLLED`,
+   shared with [opshell](#coexistence-with-opshell) (see below).
 4. **Machine-wide rate limit**: a lock file (`spawn-gate.txt`) allows at most one foil spawn every 3 seconds
    across all tabs; a sixth spawn within 60 seconds trips a 10-minute breaker during which every pull is a common.
    Tested with 12 processes racing for the lock at the same instant: exactly one wins.
@@ -188,6 +189,16 @@ stops it (`tests/test-no-loop.ps1` checks every one of them, plus the worst case
 7. **Kill switch**: `pokeshell off`, or `POKESHELL_DISABLE=1` in the environment.
 
 If opening the tab fails for any reason, the pull prints in place and the tab stays open.
+
+### Coexistence with opshell
+
+[opshell](https://github.com/gshklovs/opshell) is the One Piece sister project on the same engine (its own
+command, module, state folder, Windows Terminal profiles and compiled core, so both install side by side). If your
+`$PROFILE` has both hook lines, only one of them pulls per tab: whichever hook rolls first sets
+`CARDSHELL_ROLLED=1` in the tab's environment, and both hooks skip when it is set. So the hook listed first in
+`$PROFILE` pulls in every tab; to alternate, keep only one line, or switch with `pokeshell off` / `opshell off`.
+(opshell also skips when `POKESHELL_ROLLED` is set, so this holds with pokeshell 0.1.0 too, as long as the
+pokeshell line comes first.)
 
 ### Packs, art and shaders
 

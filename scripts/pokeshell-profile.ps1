@@ -8,8 +8,9 @@ function global:pokeshell { & "$PSScriptRoot\pokeshell.ps1" @args }
   $a = [Environment]::GetCommandLineArgs()
   $d = $env:POKESHELL_HOME; if (-not $d) { $d = "$env:LOCALAPPDATA\pokeshell" }
   try {
-    # cheap pre-filter; the core re-checks everything (profile id, argv, markers, kill switch)
-    if ($env:WT_PROFILE_ID -and -not $env:POKESHELL_PULL -and -not $env:POKESHELL_ROLLED -and $a.Count -le 2) {
+    # cheap pre-filter; the core re-checks everything (profile id, argv, markers, kill switch).
+    # CARDSHELL_ROLLED: opshell's hook (the One Piece sister project) already rolled this tab: one pull per tab
+    if ($env:WT_PROFILE_ID -and -not $env:POKESHELL_PULL -and -not $env:POKESHELL_ROLLED -and -not $env:CARDSHELL_ROLLED -and $a.Count -le 2) {
       $lib = "$PSScriptRoot\lib"; $root = [IO.Path]::GetDirectoryName($PSScriptRoot)
       $dll = "$d\pokeshell-core-" + [IO.File]::GetLastWriteTimeUtc("$lib\Pokeshell.cs").Ticks + "-$PSEdition.dll"   # = Get-PokeshellCorePath
       $r = $null

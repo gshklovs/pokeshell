@@ -11,7 +11,8 @@
 //   1 identity  WT_PROFILE_ID must be a plain profile (skinned tabs have their own GUIDs)
 //   2 argv      the shell was started with no arguments (only -NoLogo is tolerated); pulled tabs
 //               are started with -NoExit -EncodedCommand
-//   3 markers   POKESHELL_PULL / POKESHELL_ROLLED in the environment
+//   3 markers   POKESHELL_PULL / POKESHELL_ROLLED in the environment, and CARDSHELL_ROLLED, the marker shared with
+//               opshell: whichever hook rolls first sets it, so with both in $PROFILE only one rolls per tab
 //   4 gate      machine-wide lock file: one spawn per 3 s; a 6th spawn inside 60 s trips a 10-minute breaker
 //   5 install   only skins recorded by `pokeshell install` can drop; nothing installed means no spawns
 //   6 kill      `pokeshell off` (enabled=0) or POKESHELL_DISABLE=1
@@ -43,6 +44,9 @@ namespace Pokeshell
     {
         public const string DefaultPlainProfiles =
             "{61c54bbd-c2c6-5271-96e7-009a87ff44bf},{574e775e-4f2a-5b96-ac1e-a2962a402336}";
+        /// Shared with opshell (the One Piece sister project): set by whichever hook rolls a tab first, checked by both,
+        /// so a $PROFILE with both hooks gets one pull per tab. Keep the name in sync across the cardshell tools.
+        public const string SharedMarker = "CARDSHELL_ROLLED";
         public const int MinGapSec = 3, WindowSec = 60, Burst = 5, TripSec = 600;
         const long Tps = 10000000L;
 
@@ -76,6 +80,7 @@ namespace Pokeshell
         {
             if (Env("POKESHELL_PULL")) return "marker:POKESHELL_PULL";
             if (Env("POKESHELL_ROLLED")) return "marker:POKESHELL_ROLLED";
+            if (Env(SharedMarker)) return "marker:" + SharedMarker;   // opshell (or another cardshell hook) already rolled this tab
             if (Environment.GetEnvironmentVariable("POKESHELL_DISABLE") == "1" || cfg["enabled"] == "0") return "disabled";
             if (string.IsNullOrEmpty(profileId)) return "not-windows-terminal";
             bool plain = false;
@@ -583,6 +588,7 @@ namespace Pokeshell
             var packs = ReadCache(stateDir, cfg["pack"]);
             if (packs == null) { res.Action = "stale"; return res; }
             Environment.SetEnvironmentVariable("POKESHELL_ROLLED", "1");   // layer 3: nothing started from here rolls again
+            Environment.SetEnvironmentVariable(SharedMarker, "1");        // ... and no other cardshell hook (opshell) rolls this tab
             if (packs.Count == 0) { res.Reason = "no-packs"; return res; }
 
             var rng = new Random(seed);
@@ -632,7 +638,7 @@ namespace Pokeshell
             res.FallbackText = PullText(root, p.Id, ch[1], ch[2], t0[3], t0[2], 0, shiny, t0.Length > 4 ? t0[4] : "", res.Tag, picture, res.Poster, res.Bounty);
             res.FallbackLogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch[1] + "\t" +
                                   t0[1] + "\t" + t0[3] + "\t\t" + (shiny ? "1" : "0") + "\t";
-            string cmd = "$env:POKESHELL_PULL='1'; $env:POKESHELL_ROLLED='1'; . " + Quote(Path.Combine(libDir, "roll.ps1")) +
+            string cmd = "$env:POKESHELL_PULL='1'; $env:POKESHELL_ROLLED='1'; $env:" + SharedMarker + "='1'; . " + Quote(Path.Combine(libDir, "roll.ps1")) +
                          "; Show-PokeshellPull -Root " + Quote(root) + " -Pack " + Quote(p.Id) + " -Character " + Quote(ch[1]) +
                          " -Name " + Quote(ch[2]) + " -Art " + Quote(t[3]) + " -Label " + Quote(t[2]) + " -Tier " + tier + (shiny ? " -Shiny" : "") +
                          (res.Frame != "" ? " -Frame " + Quote(res.Frame) : "") + (res.Tag != "" ? " -Tag " + Quote(res.Tag) : "") +
