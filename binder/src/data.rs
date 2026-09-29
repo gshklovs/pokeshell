@@ -178,10 +178,6 @@ pub fn ulid_ms(id: &str) -> Option<i64> {
     Some(ms)
 }
 
-pub fn is_pull_id(s: &str) -> bool {
-    s.len() == 26 && s.bytes().all(|c| CROCKFORD.contains(&c.to_ascii_uppercase()))
-}
-
 /// This boot session: unix seconds of the last boot (0 when unknown; then boot sessions aren't compared).
 pub fn boot_id() -> i64 {
     #[cfg(windows)]
@@ -1410,8 +1406,8 @@ best_since = all
     #[test]
     fn ulid_roundtrip() {
         let id = ulid_at(1_790_000_000, "ABCDEFGHJKMNPQRS");
-        assert!(is_pull_id(&id));
+        assert!(crate::linkurl::is_pull_id(&id));
         assert_eq!(ulid_ms(&id), Some(1_790_000_000_000));
-        assert!(!is_pull_id("01M3NZHEB37XPA8TAG8Z9MZ8C3;nt"));
+        assert!(!crate::linkurl::is_pull_id("01M3NZHEB37XPA8TAG8Z9MZ8C3;nt"));
     }
 }

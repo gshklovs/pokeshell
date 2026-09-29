@@ -12,6 +12,10 @@ Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 $real = Get-PokeshellWtSettingsPath
 $realHash = if ($real) { (Get-FileHash $real).Hash }
 $skinCount = @(Get-PokeshellSkins $RepoRoot | Where-Object { Test-Path $_.shader }).Count
+# a binder app (and its link launcher) to install the hotkey and the card link for: stand-ins, never run
+$env:POKESHELL_BINDER = Join-Path $work 'bin\binder.exe'
+[void][IO.Directory]::CreateDirectory((Join-Path $work 'bin'))
+Set-Content $env:POKESHELL_BINDER 'stand-in'; Set-Content (Join-Path $work 'bin\binder-link.exe') 'stand-in'
 
 function Invoke-Cli([string]$State, [string[]]$CliArgs) {
   $env:POKESHELL_HOME = $State
@@ -79,12 +83,34 @@ foreach ($name in $cases.Keys) {
   Assert ($bomBefore -eq $bomAfter) "byte-order mark preserved ($bomBefore)"
   Assert (@(Get-ChildItem (Join-Path $state 'backups') -Filter *.json).Count -ge 1) "backup written before editing"
   Assert ($out -match [regex]::Escape('scripts\pokeshell-profile.ps1')) "prints the `$PROFILE line"
+  $tree = ConvertFrom-Jsonc $text
+  $act = @((Get-JsoncMember $tree 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ })
+  $cl = if ($act) { (Get-JsoncMember (Get-JsoncMember $act[0] 'command') 'commandline').value } else { '' }
+  Assert ($act.Count -eq 1 -and $cl -eq "`"$env:POKESHELL_BINDER`" --root `"$RepoRoot`" --state `"$state`" --pull latest") "the binder hotkey is installed by default ($cl)"
+  $sch = Get-JsoncMember $tree 'safeUriSchemes'
+  Assert ($sch -and @($sch.items | Where-Object { $_.value -eq 'pokeshell' }).Count -eq 1) "safeUriSchemes lists pokeshell (the card's Ctrl+click link opens without a dialog)"
+  Assert ((Test-Path (Join-Path $state 'hotkey.tsv')) -and (Test-Path (Join-Path $state 'urlhandler.txt')) -and (Test-Path (Join-Path $state 'safeuri.tsv'))) "recorded for uninstall: hotkey.tsv, urlhandler.txt, safeuri.tsv"
+  Assert ($out -match ([regex]::Escape('would set HKCU:\Software\Classes\pokeshell\shell\open\command [(default)] = "') + '[^"]*binder-link\.exe" --root'))"the pokeshell:// handler runs binder-link.exe (registry: dry run in tests)"
   $null = Invoke-Cli $state @('install', '-SettingsPath', $file)
   Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($after1)) "re-install is idempotent"
   $null = Invoke-Cli $state @('uninstall', '-SettingsPath', $file)
   Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($orig)) "uninstall restores the original byte for byte"
   Assert (-not (Test-Path (Join-Path $state 'installed.tsv'))) "uninstall forgets the installed skins"
+  Assert (-not (Test-Path (Join-Path $state 'hotkey.tsv')) -and -not (Test-Path (Join-Path $state 'urlhandler.txt')) -and -not (Test-Path (Join-Path $state 'safeuri.tsv'))) "...and the hotkey, handler and safeUriSchemes records"
 }
+
+Write-Host "$($i + 1). hotkey off / urlhandler off are remembered by the next install" -ForegroundColor Cyan
+$file = Join-Path $work 'settings-off.json'; $state = Join-Path $work 'state-off'
+[IO.File]::WriteAllText($file, '{ "profiles": { "list": [] } }', $utf8)
+$null = Invoke-Cli $state @('install', '-SettingsPath', $file)
+$null = Invoke-Cli $state @('hotkey', 'off')
+$null = Invoke-Cli $state @('urlhandler', 'off')
+$null = Invoke-Cli $state @('install', '-SettingsPath', $file)
+$tree = ConvertFrom-Jsonc (Read-WtSettingsFile $file).text
+Assert (-not (Get-JsoncMember $tree 'actions') -and -not (Get-JsoncMember $tree 'safeUriSchemes') -and -not (Test-Path (Join-Path $state 'hotkey.tsv'))) "re-install after hotkey off + urlhandler off adds neither"
+$null = Invoke-Cli $state @('uninstall', '-SettingsPath', $file)
+Assert ((Read-WtSettingsFile $file).text -eq '{ "profiles": { "list": [] } }') "uninstall: back to the original"
+$i++
 
 Write-Host "$($i + 1). a pokeshell profile first in the list, then other profiles" -ForegroundColor Cyan
 $t = '{"profiles":{"list":[{"guid":"{a}","name":"pokeshell: x/y"},{"guid":"{b}","name":"B"},{"guid":"{c}","name":"pokeshell: x/z"},{"guid":"{d}","name":"D"}]}}'
@@ -93,6 +119,7 @@ Assert ($clean -eq '{"profiles":{"list":[{"guid":"{b}","name":"B"},{"guid":"{d}"
 Assert ((Remove-PokeshellProfilesText '{"profiles":{"list":[{"name":"pokeshell: a"}]}}' @()) -eq '{"profiles":{"list":[]}}') "removing every profile keeps the brackets"
 
 if ($real) { Assert ((Get-FileHash $real).Hash -eq $realHash) "the real Windows Terminal settings.json was not touched" }
+Remove-Item Env:POKESHELL_BINDER
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host ''
 if ($script:Failures) { Write-Host "install: $script:Failures FAILED" -ForegroundColor Red; exit 1 }

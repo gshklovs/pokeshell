@@ -12,6 +12,9 @@ param([int]$Runs = 15, [string]$HookRoot, [string]$Pack)   # -HookRoot: measure 
 . (Join-Path $PSScriptRoot '_setup.ps1')
 if (-not $HookRoot) { $HookRoot = $RepoRoot }
 $st = New-TestState 'timing'
+# what a default install records: the card's Ctrl+click link and the hotkey (the pull's footer reads both)
+[IO.File]::WriteAllText("$st\urlhandler.txt", 'C:\stand-in\binder-link.exe')
+[IO.File]::WriteAllText("$st\hotkey.tsv", "C:\stand-in\settings.json`tctrl+shift+b`t0")
 $probe = Join-Path $st 'probe.ps1'
 @'
 param($Case, $Root, $State)

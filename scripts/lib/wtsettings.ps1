@@ -346,3 +346,28 @@ function Add-PokeshellHotkeyText([string]$Text, [string]$CommandLine, [string]$K
   }
   @{ text = $Text; created = $created }
 }
+# ---------------------------------------------------------------- "safeUriSchemes": ["pokeshell"]
+# Windows Terminal (1.24: TerminalPage::_IsUriConsideredSomewhatSafe) opens a Ctrl+clicked link of any other scheme
+# than http(s)/file only after an "This link may lead to an unsafe location" dialog, unless the scheme is listed in
+# the top-level "safeUriSchemes". The install adds "pokeshell" there, so the card's link opens straight away.
+
+function Test-PokeshellSchemeNode($Item) { $Item.type -eq 'string' -and $Item.value -ieq 'pokeshell' }
+
+# @{ text; created ("safeUriSchemes" was added); ours (we added the entry: false when it was already there) }
+function Add-PokeshellSafeSchemeText([string]$Text) {
+  $root = ConvertFrom-Jsonc $Text
+  $list = Get-JsoncMember $root 'safeUriSchemes'
+  if ($list -and $list.type -ne 'array') { throw "settings.json: 'safeUriSchemes' is not an array" }
+  if ($list -and @($list.items | Where-Object { Test-PokeshellSchemeNode $_ }).Count) { return @{ text = $Text; created = $false; ours = $false } }
+  @{ text = (Add-JsoncArrayItemsText $Text 'safeUriSchemes' @('pokeshell')); created = -not $list; ours = $true }
+}
+
+# settings text without our "pokeshell" entry; -DropEmpty: also the member, if the install created it
+function Remove-PokeshellSafeSchemeText([string]$Text, [switch]$DropEmpty) {
+  $t = Remove-JsoncArrayItemsText $Text 'safeUriSchemes' { param($i) Test-PokeshellSchemeNode $i }
+  if ($DropEmpty -and -not $t.Equals($Text)) {
+    $a = Get-JsoncMember (ConvertFrom-Jsonc $t) 'safeUriSchemes'
+    if ($a -and $a.type -eq 'array' -and $a.items.Count -eq 0) { $t = Remove-JsoncMemberText $t 'safeUriSchemes' }
+  }
+  $t
+}

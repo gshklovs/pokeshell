@@ -16,3 +16,12 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[[bin]]
+name = "binder"
+path = "src/main.rs"
+
+# the pokeshell:// handler: a windowless launcher that opens the binder in a Windows Terminal split pane
+[[bin]]
+name = "binder-link"
+path = "src/link.rs"

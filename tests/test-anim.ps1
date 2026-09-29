@@ -103,8 +103,8 @@ $lines = $t.Replace("`r`n", "`n").Split("`n")
 Assert ($l.Dist[7] -eq 3 -and $l.Dist[0] -eq 10) "framed: the last art row is 3 lines above the prompt line, the first 10 (got $($l.Dist[7]), $($l.Dist[0]))"
 Assert ($null -eq (Get-Layout $t (New-ArtFrame 4))) 'art that is not the printed card: no layout (static)'
 Assert ($null -eq (Get-Layout ($t.TrimEnd("`r", "`n")) $fxAns)) 'printed text not ending in a newline: no layout'
-if ([Pokeshell.Core].GetMethod('WithFooter')) {
-  $tft = [Pokeshell.Core]::WithFooter($t, '01J8ZQ4X0000000000000000AB')   # the binder footer: an OSC 8 link line under the card
+if (@([Pokeshell.Core].GetMethods() | Where-Object Name -eq 'WithFooter').Count) {
+  $tft = [Pokeshell.Core]::WithFooter($t, '01J8ZQ4X0000000000000000AB', $true, 'ctrl+shift+b')   # the binder footer: an OSC 8 link + key hint line under the card
   $lf = Get-Layout $tft $fxAns
   Assert ($lf -and $lf.Dist[7] -eq 4 -and $lf.MaxLineWidth -eq $l.MaxLineWidth) "with the binder footer: the rows are one line higher, and the link takes no width (widest line $($lf.MaxLineWidth))"
 }

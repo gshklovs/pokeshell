@@ -20,13 +20,41 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
 - **Use rule**: config `earn` = `first-command` (default) | `minutes:N` (earned at the first prompt after the tab has
   been open N minutes) | `off` (logged earned, no hook).
 - **Viewed**: the app appends a card's ids to `viewed.txt` when it shows it; its NEW sticker stays until you move on.
+- **Branch `binder-links` (2026-09-29): both ways in from a pulled card work after a plain install.** `pokeshell install`
+  (install.ps1, the module install, `pokeshell update`) sets up the hotkey and the link whenever it finds the binder app;
+  `pokeshell hotkey off` / `urlhandler off` remove one and leave `hotkey.off` / `urlhandler.off` so later installs
+  don't add it back; `pokeshell uninstall` removes both (byte for byte in settings.json).
+- **What Windows Terminal does with a link** (1.24, `src/cascadia/TerminalApp/TerminalPage.cpp` on `release-1.24`:
+  `_OpenHyperlinkHandler`, `_IsUriSupported`, `_IsUriConsideredSomewhatSafe`): only a **Ctrl+click** opens a link
+  (`ControlInteractivity::PointerPressed`). http(s) opens at once. `file://` is allowed for local paths (and `wsl$`),
+  with no existence check; a path ending in a `%PATHEXT%` extension (.exe, .cmd, .bat, ...) gets the "This link may
+  lead to an unsafe location" dialog first. Any other scheme (`pokeshell://`) is supported but gets that dialog too,
+  unless it is listed in the top-level `safeUriSchemes` setting. Then `ShellExecuteW(nullptr, L"open", uri, ...)`.
 - **Click**: the OSC 8 link is on the `binder ⏎` footer only (Windows Terminal underlines link text, which would stripe
-  the art). The `pokeshell://` handler (`pokeshell urlhandler on`) runs `binder.exe --url "%1"`, which accepts only
-  `pokeshell://binder?pull=<ulid>` or `?card=<pack/char/tier>`. Windows Terminal may refuse non-http(s) link schemes;
-  then the hint is the way in.
-- **Hotkey**: `pokeshell hotkey on` adds a `splitPane` action (`User.pokeshell.binder`) and its `ctrl+shift+b`
-  keybinding to settings.json (WT 1.21+ `actions` + `keybindings`; inline `keys` for older files), verified and backed
-  up like the skins; refuses keys that are already bound; `off` / `pokeshell uninstall` restore the file byte for byte.
+  the art): `pokeshell://binder?pull=<id>`. The install registers `HKCU\Software\Classes\pokeshell` →
+  `binder-link.exe --root <root> [--state <dir>] --url "%1"` and adds `"safeUriSchemes": ["pokeshell"]` to settings.json
+  (recorded in `urlhandler.txt` / `safeuri.tsv`). `binder-link.exe` (`binder/src/link.rs`) is a GUI-subsystem program,
+  so a click never flashes a console: it accepts only `?pull=<ulid>` / `?card=<pack/char/tier>` (`binder/src/linkurl.rs`,
+  shared with `binder --url`) and runs `wt -w 0 sp -V --title binder -- binder.exe --root <root> --pull <id>`: a split
+  pane in the window that was clicked (`-w 0` = the most recently used window). The link itself never reaches wt.exe:
+  wt splits its arguments on any unescaped `;`, so a handler of `wt.exe ... --url "%1"` would let a crafted link
+  (`?pull=x;nt;cmd`) open a tab running anything, with no dialog once the scheme is safe. Without wt.exe it opens the
+  binder in a console window of its own. Other terminals use the same handler.
+- **Why not a `file://` link** (the only kind Windows Terminal opens without a dialog by default): a `.exe` / `.cmd`
+  target gets the PATHEXT dialog, and a `.lnk` shortcut (per pull, or one static one) costs ~300 ms inside
+  `ShellExecuteW` before its target even starts (measured on this machine, any target; WT's UI thread waits for it),
+  plus a file write on every pull. A protocol dispatch measures ~10 ms to `ShellExecuteW`'s return and ~25 ms to the
+  handler's first instruction.
+- **Footer**: `binder ⏎  ctrl+click · ctrl+shift+b`, right-aligned under the card: the link, then (dimmer) what works
+  here. The core reads it from the state folder on every pull (`Core.FooterSetup`: `urlhandler.txt` exists → the link and
+  `ctrl+click`; `hotkey.tsv` → its keys; ~0.06 ms). With neither, a plain `binder ⏎`: what to type.
+- **Hotkey**: the install (or `pokeshell hotkey on`) adds a `splitPane` action (`User.pokeshell.binder`, `split:
+  vertical`, `commandline: binder.exe --root <root> --pull latest`) and its `ctrl+shift+b` keybinding to settings.json
+  (WT 1.21+ `actions` + `keybindings`; inline `keys` for older files; Ctrl+Shift+B is not bound in 1.24's defaults),
+  verified and backed up like the skins. Keys already bound in settings.json: the install skips the hotkey and says so
+  (`pokeshell hotkey on -Keys <keys>`). `--pull latest` lands on the newest pull (a fresh tab's card, caught or seen)
+  unless it has expired, then on the last card caught: a key can't know which tab it was pressed in (the new pane
+  doesn't inherit that tab's `POKESHELL_PULL`), and the newest pull is almost always the tab just opened.
 - **Text half**: `v` in the app, from `packs/<pack>/cards/<card id>.json` (CARD_FORMAT); the view toggle moved to `d`.
   Caught cards only ("Empty, seen, caught" below). `binder --card <id> --text --first-frame` renders it headless.
 
@@ -34,8 +62,8 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
 | How | What happens |
 |---|---|
 | `binder` / `pokeshell binder` | Opens the terminal app full-screen in the current tab (alternate screen). `q` restores the prompt exactly as it was. If the exe is missing, it falls back to today's text table. |
-| Hotkey (Windows Terminal keybinding, default `Ctrl+Shift+B`) | Opens the terminal app in a new pane next to your work (`wt -w 0 sp -V binder.exe`). The installer adds it to settings.json, the same way skins are installed. |
-| Click the pull | The card printed at the top of a new tab carries an OSC 8 hyperlink `pokeshell://binder?pull=<id>`, registered as a URL handler, which opens the binder on that card. If link handlers aren't available, the card footer shows a hint instead: `binder ⏎`. |
+| Hotkey (Windows Terminal keybinding, default `Ctrl+Shift+B`) | Opens the terminal app in a new pane next to your work (a `splitPane` action running `binder.exe --pull latest`): on your newest pull. The installer adds it to settings.json, the same way skins are installed. |
+| Ctrl+click the pull | The card printed at the top of a new tab carries an OSC 8 hyperlink `pokeshell://binder?pull=<id>` on its `binder ⏎` footer. The installer registers the handler (`binder-link.exe`) and lists the scheme in `safeUriSchemes`, so it opens the binder on that card in a split pane, with no dialog. Without the binder app, the footer is a plain `binder ⏎`: what to type. |
 | `binder --web` | Regenerates the static web binder from the latest pulls (about 1 s) and opens it in the default browser. |
 
 ## Landing
@@ -163,6 +191,7 @@ Every card slot is in one of three states, like a Pokédex:
 - **Candidate stack:** a small Rust (axum) or Cloudflare Workers + D1 service; the pull records are tiny.
 
 ## Open questions
-- The hotkey default, and whether the pane opens left or right.
+- ~~The hotkey default, and whether the pane opens left or right.~~ Decided (`binder-links`): `Ctrl+Shift+B`, installed
+  by default; the pane opens on the right (a vertical split), from the key and from the link alike.
 - Whether the NEW sticker should also appear in the tab card footer ("3 new in binder").
 - Battles: the rules scope (above), and whether they arrive in the same release as sync.

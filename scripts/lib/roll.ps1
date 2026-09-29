@@ -42,7 +42,7 @@ function Show-PokeshellPull([string]$Root, [string]$Pack, [string]$Character, [s
                             [string]$StateDir = '') {
   if (-not $StateDir) { $StateDir = Get-PokeshellStateDir }
   Import-PokeshellCore $StateDir
-  $text = [Pokeshell.Core]::WithFooter([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty), $PullId)
+  $text = [Pokeshell.Core]::WithFooter([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty), $PullId, $StateDir)
   $Host.UI.Write($text); $at = [Diagnostics.Stopwatch]::GetTimestamp()
   if ($PullId) { [Pokeshell.Earn]::Register($ExecutionContext, $PullId, $StateDir, $Earn, $PullTicks, $Name, $Label, [bool]$Shiny) }
   # the pulled tab (called from its startup command, not a script like `pokeshell show`): play the card's effect loop

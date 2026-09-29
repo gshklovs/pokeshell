@@ -185,8 +185,8 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 | `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (about a second; needs Python with Pillow) and opens it |
 | `pokeshell collection` | the text binder: per pack, every character x tier you've earned, shiny counts, completion, best pulls, how many are pending; pulls of retired art, or of cards whose art isn't built, are left out |
 | `pokeshell earn [first-command\|minutes:N\|off]` | what earns a pull: the first command you run in its tab (default), its tab staying open N minutes, or nothing (`off`: every pull counts at once) |
-| `pokeshell hotkey [on\|off] [-Keys ctrl+shift+b]` | a Windows Terminal key that opens the binder in a split pane next to your work (added to `settings.json` like the skins, backed up first; `off` or `pokeshell uninstall` removes it) |
-| `pokeshell urlhandler [on\|off] [-DryRun]` | registers `pokeshell://` links (under `HKCU\Software\Classes`) so the `binder ⏎` link under a pulled card opens the binder on that card; `-DryRun` only lists the registry changes |
+| `pokeshell hotkey [on\|off] [-Keys ctrl+shift+b]` | the Windows Terminal key (default `Ctrl+Shift+B`) that opens the binder in a split pane next to your work, on your newest pull. `pokeshell install` adds it to `settings.json` (backed up first, unless the keys are taken); `off` removes it and keeps later installs from adding it back; `pokeshell uninstall` removes it |
+| `pokeshell urlhandler [on\|off] [-DryRun]` | the card's Ctrl+click link: `pokeshell://` under `HKCU\Software\Classes` (it runs the windowless `binder-link.exe`) plus `"safeUriSchemes": ["pokeshell"]` in `settings.json`. `pokeshell install` sets it up; `off` removes both and keeps later installs from adding them; `-DryRun` only lists the registry changes |
 | `pokeshell show <pack>/<character> [variant] [-shiny] [-picture\|-card]` | print a card (`pokeshell show` lists everything built); `-picture` / `-card` override the display setting |
 | `pokeshell display [card\|picture]` | how pulls print: `card` (default) is the full card (a framed card for packs with tier frames, otherwise the art plus the `label : name` line); `picture` is just the art. Saved in `config.txt`; `$env:POKESHELL_DISPLAY = 'picture'` overrides it for one shell (and the foil tabs it opens) |
 | `pokeshell holo [<skin>\|plain] [-s] [-r]` | open a skinned tab here; `-s` splits a pane instead; `-r` moves the Claude Code session running in this tab into the new one (`claude --resume`), e.g. from inside Claude Code: `! pokeshell holo -r cosmos` |
@@ -215,7 +215,8 @@ cards, and one of the tier's skins (tiers without skins print in the plain tab).
   tab takes its place.
 
 Every pull is logged to `%LOCALAPPDATA%\pokeshell\pulls.log`, with a pull id, as **pending**: you earn the card by
-using its tab (below). A small `binder ⏎` link under the card opens the binder on it.
+using its tab (below). A small footer under the card, `binder ⏎  ctrl+click · ctrl+shift+b`, says how to open the
+binder on it: Ctrl+click the link, or press the key.
 
 It's fast: Windows PowerShell 5.1 pays about a millisecond the first time each line of script runs, so the
 decision logic is C# (`scripts/lib/Pokeshell.cs`, compiled once to `%LOCALAPPDATA%\pokeshell\pokeshell-core-*.dll`),
@@ -243,9 +244,21 @@ A card only goes into your binder once you use the tab it was pulled in:
    card). A card you haven't looked at yet has a **NEW** sticker (`viewed.txt` remembers what you've seen). The binders
    count `caught N · seen M`, and open on the last card you caught.
 
-Four ways in: `binder` / `pokeshell binder` (the app, full screen; `q` returns), the `pokeshell hotkey` key (a split
-pane), the `binder ⏎` link under a pulled card (`pokeshell urlhandler on`; Windows Terminal may only open http(s) links,
-in which case the hint tells you what to type), and `binder --web` (a static page). In the app: arrows / `hjkl` move,
+Four ways in, all set up by `pokeshell install` (nothing else to run):
+
+- **Ctrl+click** the `binder ⏎` footer under a freshly pulled card: the binder opens in a split pane of that window, on
+  that card (a card you haven't caught yet shows its silhouette). Windows Terminal opens links on Ctrl+click only; the
+  link is `pokeshell://binder?pull=<id>`, registered for your user (`HKCU\Software\Classes\pokeshell`) and listed in
+  `settings.json`'s `safeUriSchemes`, so it opens without Windows Terminal's "may lead to an unsafe location" dialog.
+  The handler is `binder-link.exe`, a windowless launcher (no console flash) that only accepts
+  `?pull=<ulid>` / `?card=<pack/character/tier>` and hands `wt -w 0 split-pane` the binder with that pull.
+- **Ctrl+Shift+B** anywhere in Windows Terminal: the same split pane, on your newest pull (unless it has expired: then
+  the last card you caught).
+- `binder` / `pokeshell binder`: the app full screen in this tab (`q` returns).
+- `binder --web`: a static page.
+
+`pokeshell hotkey off` / `pokeshell urlhandler off` turn either off for good; without the binder app built, the footer
+is a plain `binder ⏎` (type it: the text binder). In the app: arrows / `hjkl` move,
 `1`-`9` switch packs, `S` opens the set picker (each set's completion; type to filter, Enter opens that set's whole
 checklist, with empty pockets for the cards you haven't pulled), `#17` jumps to a printed number, `/` searches, `o` /
 `m` show only the cards you caught / haven't caught, `v` shows a caught card's text half (HP, attacks, weakness) under the art when
@@ -258,7 +271,9 @@ tier, subtypes (V, VMAX...), types (Grass, Water...), character, artist and pack
 card's page run that search, and each set has its own divider tab.
 
 The app is Rust (`binder/`, ratatui): `powershell -File binder\build.ps1` builds it into
-`binder\target\release\binder.exe` with the MSVC toolchain (`cargo +stable-x86_64-pc-windows-msvc`).
+`binder\target\release\binder.exe`, next to `binder-link.exe` (the link launcher), with the MSVC toolchain
+(`cargo +stable-x86_64-pc-windows-msvc`). Build it before `install.ps1`, or re-run the install after building: the
+install sets up the hotkey and the card link only when it finds the app.
 
 ### Where a foil opens
 
@@ -340,7 +355,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 | `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, flags (`pending`, notes), `id=<ulid>`, `boot=<n>` (for a real card, tier is its rarity tier and art its card id); plus `earned:<id>` / `expired:<id>` lines. Append-only: older lines without an id count as earned, and pulls of art that no longer exists stay in it (the binders hide them: `retired` in `docs/PACK_FORMAT.md`) |
 | `viewed.txt` | pull ids the binder has shown (no more NEW sticker) |
 | `web/` | the web binder (`binder --web`) |
-| `hotkey.tsv`, `urlhandler.txt` | what `pokeshell hotkey on` / `urlhandler on` installed, so uninstall removes exactly that |
+| `hotkey.tsv`, `urlhandler.txt`, `safeuri.tsv` | the binder hotkey, the `pokeshell://` handler and the `safeUriSchemes` entry install added, so uninstall removes exactly that (the card footer also reads the first two); `hotkey.off`, `urlhandler.off`: you turned one off, so install leaves it out |
 | `color-misses.log` | color names that weren't in the table |
 | `installed.tsv` | the skin profiles install added (what uninstall removes) |
 | `roll.tsv` | the roll table cache (rebuilt automatically when a pack, its art, or the install changes) |
@@ -362,7 +377,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests\run-all.ps1
 uninstall round trips on copies of `settings.json`, including comments, trailing commas, BOM and the legacy
 profiles format), `test-cli`, `test-cards`, `test-earned` (pull ids, the first-command hook in child processes,
 expiry, NEW, the binder app's `--pull` / `--card` / `--set` / `--search`, `binder --web`, the hotkey on settings copies,
-the URL handler as a dry run), `test-art` (the art releases: archives and manifests, download, re-run, a newer
+the link handler: registry as a dry run, `safeUriSchemes` on settings copies), `test-art` (the art releases: archives and manifests, download, re-run, a newer
 release, local builds kept, `-Art` modes, checksum mismatch, offline, hostile zips, and `pokeshell install` end to
 end, all from `file://` fixture releases into temp folders; `-Online` also downloads the real release into a temp
 folder), `test-module` (stages the Gallery module, imports it, installs, simulates an

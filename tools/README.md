@@ -114,6 +114,11 @@ $env:PSGALLERY_API_KEY = '<key>'; powershell -NoProfile -ExecutionPolicy Bypass 
 ```
 
 It stages only the files the module ships (see the header of the script); `tests\test-module.ps1` checks the staged module.
+The module doesn't ship the binder app yet (`binder.exe` and its link launcher `binder-link.exe` are built from
+`binder\`, never committed): a Gallery install gets the text binder, and `pokeshell install` skips the Ctrl+Shift+B
+hotkey and the card's Ctrl+click link (it says so). A package that carries `bin\binder.exe` and `bin\binder-link.exe`
+gets both: install copies them into `<state>\current` with the rest of the runtime, and points the hotkey and the
+`pokeshell://` handler there.
 
 ## binder_web.py: the web binder
 
