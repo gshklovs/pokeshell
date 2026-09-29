@@ -25,6 +25,18 @@ pokeshell show pokemon/pikachu gold -shiny
 
 New tabs pick up changed art on their own (the roll cache stamps the `art/` folders and rebuilds when they change).
 
+## make_media.py: regenerate the README images
+
+```powershell
+.venv\Scripts\python -m pip install pillow fonttools
+.venv\Scripts\python tools\make_media.py
+```
+
+Rebuilds `docs/media/hero.png`, `tiers.png` and `pull.gif` from the current `dist/pokemon` art: the card text
+comes from the real engine (`[Pokeshell.Core]::PullText`), drawn at terminal proportions by `tools/render_ansi.py`.
+Run it after rebuilding the art. `foil.png` / `foil-gold.png` are real Windows Terminal screenshots and are not
+regenerated.
+
 ## publish.ps1: publish the PowerShell Gallery module
 
 ```powershell

@@ -2,10 +2,14 @@
 
 Every new Windows Terminal PowerShell tab is a trading-card pack pull.
 
+![Framed pokeshell cards as printed in the terminal: Bulbasaur, Charmander, Squirtle and Pikachu across the common, holo, rare holo, ultra rare and secret rare tiers, including a shiny Pikachu and a shiny Bulbasaur](docs/media/hero.png)
+
 Most tabs are a plain **common** pull: the pulled character's pixel art prints at the top of the tab with a banner
 like `common : Squirtle`. Some tabs are **foil** pulls: the tab reopens (same folder) wearing an animated holofoil
 pixel-shader skin (cracked ice, cosmos, rainbow rare, gold, ...) and prints the rarer art with a banner like
 `secret rare : Pikachu` or `ultra rare : Charmander (shiny)`. Every pull goes into your binder (`pokeshell collection`).
+
+![Animated: eight new tabs in a row, each printing a freshly pulled card above the PowerShell prompt, from commons to a shiny Charmander, an ultra rare Squirtle and a secret rare Pikachu](docs/media/pull.gif)
 
 It's a fan project: all the art is original pixel art, and nothing here is affiliated with the owners of the
 characters (see [Disclaimer](#disclaimer)).
@@ -13,6 +17,10 @@ characters (see [Disclaimer](#disclaimer)).
 ## Packs and odds
 
 ### Pokemon (`pokemon`): 4 characters, 18 foil skins
+
+![Pikachu at every tier, side by side: common, holo, rare holo, ultra rare and secret rare, each tier with its own card frame, with the odds of each](docs/media/tiers.png)
+
+Each tier has its own card frame (yellow, silver, holo, rainbow); the secret rare art carries its own gold frame.
 
 | tier | odds | about 1 tab in | art | skins |
 |---|---:|---:|---|---|
@@ -23,6 +31,14 @@ characters (see [Disclaimer](#disclaimer)).
 | secret rare | 0.90% | 111 | gold | rainbow-rare, amazing-rare, gold |
 
 Any pull, of any tier, is **shiny** (alternate palette) 1 time in 64.
+
+A foil pull reopens the tab wearing one of the tier's holofoil skins, an animated pixel shader over the whole tab
+(real Windows Terminal screenshots, `cosmos` on an ultra rare and `gold` on a secret rare):
+
+<p>
+  <img src="docs/media/foil.png" width="49%" alt="A Windows Terminal tab with the cosmos holo skin: a rainbow foil border and a starfield with planets behind an ultra rare Charmander card">
+  <img src="docs/media/foil-gold.png" width="49%" alt="A Windows Terminal tab with the gold holo skin: an engraved gold frame and dark gold marbling behind a secret rare Pikachu card">
+</p>
 
 `pokeshell odds` always prints the live numbers from each `pack.json`, down to each skin and
 "1 in N" for one specific card. More packs can be added under `packs/`; with several installed,
