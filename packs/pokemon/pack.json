@@ -2439,7 +2439,7 @@
       "number": "114/128",
       "rarity": "Common",
       "set": "30th Celebration",
-      "source": "p30:sprite"
+      "source": "p30:sprite:flip"
     },
     "me55-115": {
       "character": "ditto",
@@ -3141,7 +3141,7 @@
       "number": "5/128",
       "rarity": "Common",
       "set": "30th Celebration",
-      "source": "p30:sprite"
+      "source": "p30:sprite:flip"
     },
     "me55-50": {
       "character": "pikachu",
@@ -3546,7 +3546,7 @@
       "number": "93/128",
       "rarity": "Common",
       "set": "30th Celebration",
-      "source": "p30:sprite"
+      "source": "p30:sprite:flip"
     },
     "me55-94": {
       "character": "scraggy",
@@ -3628,6 +3628,1563 @@
       "rarity": "Common",
       "set": "30th Celebration",
       "source": "p30:sprite"
+    },
+    "swsh12pt5-1": {
+      "character": "oddish",
+      "tier": "common",
+      "name": "Oddish",
+      "number": "1/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-10": {
+      "character": "kricketot",
+      "tier": "common",
+      "name": "Kricketot",
+      "number": "10/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-100": {
+      "character": "rayquaza",
+      "tier": "rare-holo-v",
+      "name": "Rayquaza V",
+      "number": "100/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-100.json#rare-holo-v"
+    },
+    "swsh12pt5-101": {
+      "character": "rayquaza",
+      "tier": "rare-holo-vmax",
+      "name": "Rayquaza VMAX",
+      "number": "101/159",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-101.json#rare-holo-vmax"
+    },
+    "swsh12pt5-102": {
+      "character": "rayquaza",
+      "tier": "rare-holo-vmax",
+      "name": "Rayquaza VMAX",
+      "number": "102/159",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-102.json#rare-holo-vmax"
+    },
+    "swsh12pt5-103": {
+      "character": "duraludon",
+      "tier": "rare-holo-v",
+      "name": "Duraludon V",
+      "number": "103/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-103.json#rare-holo-v"
+    },
+    "swsh12pt5-104": {
+      "character": "duraludon-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Duraludon VMAX",
+      "number": "104/159",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-104.json#rare-holo-vmax"
+    },
+    "swsh12pt5-106": {
+      "character": "tauros",
+      "tier": "rare",
+      "name": "Tauros",
+      "number": "106/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-106.json#rare"
+    },
+    "swsh12pt5-107": {
+      "character": "ditto",
+      "tier": "rare-holo",
+      "name": "Ditto",
+      "number": "107/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-107.json#rare-holo"
+    },
+    "swsh12pt5-108": {
+      "character": "eevee",
+      "tier": "rare-holo-v",
+      "name": "Eevee V",
+      "number": "108/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-108.json#rare-holo-v"
+    },
+    "swsh12pt5-109": {
+      "character": "snorlax",
+      "tier": "rare",
+      "name": "Snorlax",
+      "number": "109/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-109.json#rare"
+    },
+    "swsh12pt5-11": {
+      "character": "cherubi",
+      "tier": "common",
+      "name": "Cherubi",
+      "number": "11/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-110": {
+      "character": "starly",
+      "tier": "common",
+      "name": "Starly",
+      "number": "110/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-111": {
+      "character": "bidoof",
+      "tier": "common",
+      "name": "Bidoof",
+      "number": "111/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-112": {
+      "character": "chatot",
+      "tier": "common",
+      "name": "Chatot",
+      "number": "112/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-113": {
+      "character": "regigigas",
+      "tier": "rare-holo-v",
+      "name": "Regigigas V",
+      "number": "113/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-113.json#rare-holo-v"
+    },
+    "swsh12pt5-115": {
+      "character": "shaymin-sky",
+      "tier": "uncommon",
+      "name": "Shaymin",
+      "number": "115/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-115.json#uncommon"
+    },
+    "swsh12pt5-116": {
+      "character": "stoutland",
+      "tier": "rare-holo-v",
+      "name": "Stoutland V",
+      "number": "116/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-116.json#rare-holo-v"
+    },
+    "swsh12pt5-117": {
+      "character": "yungoos",
+      "tier": "common",
+      "name": "Yungoos",
+      "number": "117/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-118": {
+      "character": "gumshoos",
+      "tier": "rare",
+      "name": "Gumshoos",
+      "number": "118/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-118.json#rare"
+    },
+    "swsh12pt5-119": {
+      "character": "oranguru",
+      "tier": "rare",
+      "name": "Oranguru",
+      "number": "119/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-119.json#rare"
+    },
+    "swsh12pt5-12": {
+      "character": "carnivine",
+      "tier": "uncommon",
+      "name": "Carnivine",
+      "number": "12/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-12.json#uncommon"
+    },
+    "swsh12pt5-120": {
+      "character": "greedent",
+      "tier": "rare-holo-v",
+      "name": "Greedent V",
+      "number": "120/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-120.json#rare-holo-v"
+    },
+    "swsh12pt5-121": {
+      "character": "wooloo",
+      "tier": "common",
+      "name": "Wooloo",
+      "number": "121/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-122": {
+      "character": "dubwool",
+      "tier": "rare",
+      "name": "Dubwool",
+      "number": "122/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-122.json#rare"
+    },
+    "swsh12pt5-13": {
+      "character": "leafeon",
+      "tier": "rare-holo-v",
+      "name": "Leafeon V",
+      "number": "13/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-13.json#rare-holo-v"
+    },
+    "swsh12pt5-15": {
+      "character": "grubbin",
+      "tier": "common",
+      "name": "Grubbin",
+      "number": "15/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-16": {
+      "character": "zarude",
+      "tier": "rare-holo",
+      "name": "Zarude",
+      "number": "16/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-16.json#rare-holo"
+    },
+    "swsh12pt5-160": {
+      "character": "pikachu",
+      "tier": "rare-secret",
+      "name": "Pikachu",
+      "number": "160/159",
+      "rarity": "Rare Secret",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-160.json#rare-secret-alt"
+    },
+    "swsh12pt5-17": {
+      "character": "calyrex",
+      "tier": "rare-holo",
+      "name": "Calyrex",
+      "number": "17/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-17.json#rare-holo"
+    },
+    "swsh12pt5-18": {
+      "character": "charizard",
+      "tier": "rare-holo-v",
+      "name": "Charizard V",
+      "number": "18/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-18.json#rare-holo-v"
+    },
+    "swsh12pt5-2": {
+      "character": "gloom",
+      "tier": "uncommon",
+      "name": "Gloom",
+      "number": "2/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-2.json#uncommon"
+    },
+    "swsh12pt5-21": {
+      "character": "entei",
+      "tier": "rare-holo",
+      "name": "Entei",
+      "number": "21/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-21.json#rare-holo"
+    },
+    "swsh12pt5-22": {
+      "character": "simisear",
+      "tier": "rare-holo-v",
+      "name": "Simisear V",
+      "number": "22/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-22.json#rare-holo-v"
+    },
+    "swsh12pt5-24": {
+      "character": "larvesta",
+      "tier": "common",
+      "name": "Larvesta",
+      "number": "24/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-25": {
+      "character": "volcarona",
+      "tier": "rare",
+      "name": "Volcarona",
+      "number": "25/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-25.json#rare"
+    },
+    "swsh12pt5-26": {
+      "character": "volcanion",
+      "tier": "rare-holo",
+      "name": "Volcanion",
+      "number": "26/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-26.json#rare-holo"
+    },
+    "swsh12pt5-27": {
+      "character": "salandit",
+      "tier": "common",
+      "name": "Salandit",
+      "number": "27/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-28": {
+      "character": "salazzle",
+      "tier": "uncommon",
+      "name": "Salazzle",
+      "number": "28/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-28.json#uncommon"
+    },
+    "swsh12pt5-29": {
+      "character": "seel",
+      "tier": "common",
+      "name": "Seel",
+      "number": "29/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-3": {
+      "character": "bellossom",
+      "tier": "rare",
+      "name": "Bellossom",
+      "number": "3/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-3.json#rare"
+    },
+    "swsh12pt5-30": {
+      "character": "mr-mime-galar",
+      "tier": "common",
+      "name": "Galarian Mr. Mime",
+      "number": "30/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-31": {
+      "character": "wailmer",
+      "tier": "common",
+      "name": "Wailmer",
+      "number": "31/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-32": {
+      "character": "wailord",
+      "tier": "rare",
+      "name": "Wailord",
+      "number": "32/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-32.json#rare"
+    },
+    "swsh12pt5-33": {
+      "character": "corphish",
+      "tier": "common",
+      "name": "Corphish",
+      "number": "33/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-34": {
+      "character": "snorunt",
+      "tier": "common",
+      "name": "Snorunt",
+      "number": "34/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-35": {
+      "character": "luvdisc",
+      "tier": "common",
+      "name": "Luvdisc",
+      "number": "35/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-36": {
+      "character": "kyogre",
+      "tier": "rare-holo",
+      "name": "Kyogre",
+      "number": "36/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-36.json#rare-holo"
+    },
+    "swsh12pt5-37": {
+      "character": "kyogre",
+      "tier": "rare-holo-v",
+      "name": "Kyogre V",
+      "number": "37/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-37.json#rare-holo-v"
+    },
+    "swsh12pt5-38": {
+      "character": "glaceon",
+      "tier": "rare-holo-v",
+      "name": "Glaceon V",
+      "number": "38/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-38.json#rare-holo-v"
+    },
+    "swsh12pt5-39": {
+      "character": "shinx",
+      "tier": "common",
+      "name": "Shinx",
+      "number": "39/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-4": {
+      "character": "tangela",
+      "tier": "common",
+      "name": "Tangela",
+      "number": "4/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-40": {
+      "character": "shinx",
+      "tier": "common",
+      "name": "Shinx",
+      "number": "40/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-41": {
+      "character": "luxio",
+      "tier": "uncommon",
+      "name": "Luxio",
+      "number": "41/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-41.json#uncommon"
+    },
+    "swsh12pt5-42": {
+      "character": "luxio",
+      "tier": "uncommon",
+      "name": "Luxio",
+      "number": "42/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-42.json#uncommon"
+    },
+    "swsh12pt5-43": {
+      "character": "luxray",
+      "tier": "rare",
+      "name": "Luxray",
+      "number": "43/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-43.json#rare"
+    },
+    "swsh12pt5-44": {
+      "character": "luxray",
+      "tier": "rare",
+      "name": "Luxray",
+      "number": "44/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-44.json#rare"
+    },
+    "swsh12pt5-45": {
+      "character": "rotom",
+      "tier": "rare-holo-v",
+      "name": "Rotom V",
+      "number": "45/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-45.json#rare-holo-v"
+    },
+    "swsh12pt5-47": {
+      "character": "emolga",
+      "tier": "common",
+      "name": "Emolga",
+      "number": "47/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-48": {
+      "character": "eelektrik",
+      "tier": "uncommon",
+      "name": "Eelektrik",
+      "number": "48/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-48.json#uncommon"
+    },
+    "swsh12pt5-49": {
+      "character": "helioptile",
+      "tier": "common",
+      "name": "Helioptile",
+      "number": "49/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-5": {
+      "character": "tangrowth",
+      "tier": "rare",
+      "name": "Tangrowth",
+      "number": "5/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-5.json#rare"
+    },
+    "swsh12pt5-50": {
+      "character": "heliolisk",
+      "tier": "rare",
+      "name": "Heliolisk",
+      "number": "50/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-50.json#rare"
+    },
+    "swsh12pt5-52": {
+      "character": "zeraora",
+      "tier": "rare",
+      "name": "Zeraora",
+      "number": "52/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-52.json#rare"
+    },
+    "swsh12pt5-53": {
+      "character": "zeraora",
+      "tier": "rare-holo-v",
+      "name": "Zeraora V",
+      "number": "53/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-53.json#rare-holo-v"
+    },
+    "swsh12pt5-54": {
+      "character": "zeraora",
+      "tier": "rare-holo-vmax",
+      "name": "Zeraora VMAX",
+      "number": "54/159",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-54.json#rare-holo-vmax"
+    },
+    "swsh12pt5-56": {
+      "character": "pincurchin",
+      "tier": "uncommon",
+      "name": "Pincurchin",
+      "number": "56/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-56.json#uncommon"
+    },
+    "swsh12pt5-57": {
+      "character": "exeggcute",
+      "tier": "common",
+      "name": "Exeggcute",
+      "number": "57/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-58": {
+      "character": "exeggutor",
+      "tier": "rare",
+      "name": "Exeggutor",
+      "number": "58/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-58.json#rare"
+    },
+    "swsh12pt5-59": {
+      "character": "mewtwo",
+      "tier": "rare-holo",
+      "name": "Mewtwo",
+      "number": "59/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-59.json#rare-holo"
+    },
+    "swsh12pt5-6": {
+      "character": "scyther",
+      "tier": "common",
+      "name": "Scyther",
+      "number": "6/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-60": {
+      "character": "mew",
+      "tier": "rare-holo-v",
+      "name": "Mew V",
+      "number": "60/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-60.json#rare-holo-v"
+    },
+    "swsh12pt5-61": {
+      "character": "girafarig",
+      "tier": "uncommon",
+      "name": "Girafarig",
+      "number": "61/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-61.json#uncommon"
+    },
+    "swsh12pt5-62": {
+      "character": "lunatone",
+      "tier": "uncommon",
+      "name": "Lunatone",
+      "number": "62/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-62.json#uncommon"
+    },
+    "swsh12pt5-63": {
+      "character": "dusclops",
+      "tier": "uncommon",
+      "name": "Dusclops",
+      "number": "63/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-63.json#uncommon"
+    },
+    "swsh12pt5-64": {
+      "character": "tapu-lele",
+      "tier": "rare-holo",
+      "name": "Tapu Lele",
+      "number": "64/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-64.json#rare-holo"
+    },
+    "swsh12pt5-65": {
+      "character": "hatterene",
+      "tier": "rare-holo-v",
+      "name": "Hatterene V",
+      "number": "65/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-65.json#rare-holo-v"
+    },
+    "swsh12pt5-66": {
+      "character": "hatterene-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Hatterene VMAX",
+      "number": "66/159",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-66.json#rare-holo-vmax"
+    },
+    "swsh12pt5-67": {
+      "character": "enamorus",
+      "tier": "rare",
+      "name": "Enamorus",
+      "number": "67/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-67.json#rare"
+    },
+    "swsh12pt5-68": {
+      "character": "graveler",
+      "tier": "uncommon",
+      "name": "Graveler",
+      "number": "68/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-68.json#uncommon"
+    },
+    "swsh12pt5-69": {
+      "character": "solrock",
+      "tier": "uncommon",
+      "name": "Solrock",
+      "number": "69/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-69.json#uncommon"
+    },
+    "swsh12pt5-7": {
+      "character": "sunkern",
+      "tier": "common",
+      "name": "Sunkern",
+      "number": "7/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-70": {
+      "character": "baltoy",
+      "tier": "common",
+      "name": "Baltoy",
+      "number": "70/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-71": {
+      "character": "riolu",
+      "tier": "common",
+      "name": "Riolu",
+      "number": "71/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-72": {
+      "character": "pancham",
+      "tier": "common",
+      "name": "Pancham",
+      "number": "72/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-73": {
+      "character": "rockruff",
+      "tier": "common",
+      "name": "Rockruff",
+      "number": "73/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-74": {
+      "character": "lycanroc-midnight",
+      "tier": "rare",
+      "name": "Lycanroc",
+      "number": "74/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-74.json#rare"
+    },
+    "swsh12pt5-75": {
+      "character": "koffing",
+      "tier": "common",
+      "name": "Koffing",
+      "number": "75/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-76": {
+      "character": "absol",
+      "tier": "rare-holo",
+      "name": "Absol",
+      "number": "76/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-76.json#rare-holo"
+    },
+    "swsh12pt5-77": {
+      "character": "purrloin",
+      "tier": "common",
+      "name": "Purrloin",
+      "number": "77/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-78": {
+      "character": "liepard",
+      "tier": "rare",
+      "name": "Liepard",
+      "number": "78/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-78.json#rare"
+    },
+    "swsh12pt5-79": {
+      "character": "krokorok",
+      "tier": "uncommon",
+      "name": "Krokorok",
+      "number": "79/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-79.json#uncommon"
+    },
+    "swsh12pt5-8": {
+      "character": "yanma",
+      "tier": "common",
+      "name": "Yanma",
+      "number": "8/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-80": {
+      "character": "pangoro",
+      "tier": "rare",
+      "name": "Pangoro",
+      "number": "80/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-80.json#rare"
+    },
+    "swsh12pt5-81": {
+      "character": "skrelp",
+      "tier": "common",
+      "name": "Skrelp",
+      "number": "81/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-82": {
+      "character": "dragalge",
+      "tier": "rare",
+      "name": "Dragalge",
+      "number": "82/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-82.json#rare"
+    },
+    "swsh12pt5-83": {
+      "character": "hoopa-unbound",
+      "tier": "rare-holo",
+      "name": "Hoopa",
+      "number": "83/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-83.json#rare-holo"
+    },
+    "swsh12pt5-84": {
+      "character": "meowth-galar",
+      "tier": "common",
+      "name": "Galarian Meowth",
+      "number": "84/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-85": {
+      "character": "perrserker",
+      "tier": "rare",
+      "name": "Galarian Perrserker",
+      "number": "85/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-85.json#rare"
+    },
+    "swsh12pt5-86": {
+      "character": "scizor",
+      "tier": "rare",
+      "name": "Scizor",
+      "number": "86/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-86.json#rare"
+    },
+    "swsh12pt5-87": {
+      "character": "aron",
+      "tier": "common",
+      "name": "Aron",
+      "number": "87/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-88": {
+      "character": "lairon",
+      "tier": "uncommon",
+      "name": "Lairon",
+      "number": "88/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-88.json#uncommon"
+    },
+    "swsh12pt5-89": {
+      "character": "aggron",
+      "tier": "rare-holo",
+      "name": "Aggron",
+      "number": "89/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-89.json#rare-holo"
+    },
+    "swsh12pt5-9": {
+      "character": "yanmega",
+      "tier": "rare",
+      "name": "Yanmega",
+      "number": "9/159",
+      "rarity": "Rare",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-9.json#rare"
+    },
+    "swsh12pt5-90": {
+      "character": "metang",
+      "tier": "uncommon",
+      "name": "Metang",
+      "number": "90/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-90.json#uncommon"
+    },
+    "swsh12pt5-91": {
+      "character": "pawniard",
+      "tier": "common",
+      "name": "Pawniard",
+      "number": "91/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite"
+    },
+    "swsh12pt5-92": {
+      "character": "pawniard",
+      "tier": "common",
+      "name": "Pawniard",
+      "number": "92/159",
+      "rarity": "Common",
+      "set": "Crown Zenith",
+      "source": "cz:sprite:flip"
+    },
+    "swsh12pt5-93": {
+      "character": "bisharp",
+      "tier": "uncommon",
+      "name": "Bisharp",
+      "number": "93/159",
+      "rarity": "Uncommon",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-93.json#uncommon"
+    },
+    "swsh12pt5-94": {
+      "character": "zacian-crowned",
+      "tier": "rare-holo",
+      "name": "Zacian",
+      "number": "94/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-94.json#rare-holo"
+    },
+    "swsh12pt5-95": {
+      "character": "zacian-crowned",
+      "tier": "rare-holo-v",
+      "name": "Zacian V",
+      "number": "95/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-95.json#rare-holo-v"
+    },
+    "swsh12pt5-97": {
+      "character": "zamazenta-crowned",
+      "tier": "rare-holo",
+      "name": "Zamazenta",
+      "number": "97/159",
+      "rarity": "Rare Holo",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-97.json#rare-holo"
+    },
+    "swsh12pt5-98": {
+      "character": "zamazenta-crowned",
+      "tier": "rare-holo-v",
+      "name": "Zamazenta V",
+      "number": "98/159",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith",
+      "source": "cz:swsh12pt5-98.json#rare-holo-v"
+    },
+    "swsh12pt5gg-GG36": {
+      "character": "entei",
+      "tier": "rare-holo-v",
+      "name": "Entei V",
+      "number": "GG36/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG36.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG38": {
+      "character": "suicune",
+      "tier": "rare-holo-v",
+      "name": "Suicune V",
+      "number": "GG38/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG38.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG39": {
+      "character": "lumineon",
+      "tier": "rare-holo-v",
+      "name": "Lumineon V",
+      "number": "GG39/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG39.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG41": {
+      "character": "raikou",
+      "tier": "rare-holo-v",
+      "name": "Raikou V",
+      "number": "GG41/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG41.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG42": {
+      "character": "zeraora",
+      "tier": "rare-holo-vmax",
+      "name": "Zeraora VMAX",
+      "number": "GG42/GG70",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG42.json#rare-holo-vmax-alt"
+    },
+    "swsh12pt5gg-GG45": {
+      "character": "deoxys",
+      "tier": "rare-holo-vmax",
+      "name": "Deoxys VMAX",
+      "number": "GG45/GG70",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG45.json#rare-holo-vmax-alt"
+    },
+    "swsh12pt5gg-GG47": {
+      "character": "hatterene-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Hatterene VMAX",
+      "number": "GG47/GG70",
+      "rarity": "Rare Holo VMAX",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG47.json#rare-holo-vmax-alt"
+    },
+    "swsh12pt5gg-GG48": {
+      "character": "zacian",
+      "tier": "rare-holo-v",
+      "name": "Zacian V",
+      "number": "GG48/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG48.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG49": {
+      "character": "drapion",
+      "tier": "rare-holo-v",
+      "name": "Drapion V",
+      "number": "GG49/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG49.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG51": {
+      "character": "samurott-hisui",
+      "tier": "rare-holo-v",
+      "name": "Hisuian Samurott V",
+      "number": "GG51/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG51.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG53": {
+      "character": "hoopa-unbound",
+      "tier": "rare-holo-v",
+      "name": "Hoopa V",
+      "number": "GG53/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG53.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG54": {
+      "character": "zamazenta",
+      "tier": "rare-holo-v",
+      "name": "Zamazenta V",
+      "number": "GG54/GG70",
+      "rarity": "Rare Holo V",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG54.json#rare-holo-v-alt"
+    },
+    "swsh12pt5gg-GG67": {
+      "character": "palkia-origin",
+      "tier": "rare-secret",
+      "name": "Origin Forme Palkia VSTAR",
+      "number": "GG67/GG70",
+      "rarity": "Rare Secret",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG67.json#rare-secret"
+    },
+    "swsh12pt5gg-GG68": {
+      "character": "dialga-origin",
+      "tier": "rare-secret",
+      "name": "Origin Forme Dialga VSTAR",
+      "number": "GG68/GG70",
+      "rarity": "Rare Secret",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG68.json#rare-secret"
+    },
+    "swsh12pt5gg-GG69": {
+      "character": "giratina-origin",
+      "tier": "rare-secret",
+      "name": "Giratina VSTAR",
+      "number": "GG69/GG70",
+      "rarity": "Rare Secret",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG69.json#rare-secret"
+    },
+    "swsh12pt5gg-GG70": {
+      "character": "arceus",
+      "tier": "rare-secret",
+      "name": "Arceus VSTAR",
+      "number": "GG70/GG70",
+      "rarity": "Rare Secret",
+      "set": "Crown Zenith Galarian Gallery",
+      "source": "cz:swsh12pt5gg-GG70.json#rare-secret"
+    },
+    "sm115-1": {
+      "character": "caterpie",
+      "tier": "common",
+      "name": "Caterpie",
+      "number": "1/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite:flip"
+    },
+    "sm115-10": {
+      "character": "magmar",
+      "tier": "uncommon",
+      "name": "Magmar",
+      "number": "10/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-10.json#uncommon"
+    },
+    "sm115-11": {
+      "character": "psyduck",
+      "tier": "common",
+      "name": "Psyduck",
+      "number": "11/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-12": {
+      "character": "slowpoke",
+      "tier": "common",
+      "name": "Slowpoke",
+      "number": "12/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite:flip"
+    },
+    "sm115-13": {
+      "character": "staryu",
+      "tier": "common",
+      "name": "Staryu",
+      "number": "13/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-15": {
+      "character": "magikarp",
+      "tier": "common",
+      "name": "Magikarp",
+      "number": "15/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-17": {
+      "character": "lapras",
+      "tier": "rare",
+      "name": "Lapras",
+      "number": "17/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-17.json#rare"
+    },
+    "sm115-18": {
+      "character": "vaporeon",
+      "tier": "rare-holo",
+      "name": "Vaporeon",
+      "number": "18/68",
+      "rarity": "Rare Holo",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-18.json#rare-holo"
+    },
+    "sm115-19": {
+      "character": "pikachu",
+      "tier": "common",
+      "name": "Pikachu",
+      "number": "19/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-2": {
+      "character": "metapod",
+      "tier": "uncommon",
+      "name": "Metapod",
+      "number": "2/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-2.json#uncommon"
+    },
+    "sm115-21": {
+      "character": "voltorb",
+      "tier": "common",
+      "name": "Voltorb",
+      "number": "21/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-22": {
+      "character": "electrode",
+      "tier": "rare",
+      "name": "Electrode",
+      "number": "22/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-22.json#rare"
+    },
+    "sm115-23": {
+      "character": "jolteon",
+      "tier": "rare",
+      "name": "Jolteon",
+      "number": "23/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-23.json#rare"
+    },
+    "sm115-24": {
+      "character": "zapdos",
+      "tier": "rare-holo",
+      "name": "Zapdos",
+      "number": "24/68",
+      "rarity": "Rare Holo",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-24.json#rare-holo"
+    },
+    "sm115-25": {
+      "character": "ekans",
+      "tier": "common",
+      "name": "Ekans",
+      "number": "25/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-26": {
+      "character": "ekans",
+      "tier": "common",
+      "name": "Ekans",
+      "number": "26/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-27": {
+      "character": "arbok",
+      "tier": "rare",
+      "name": "Arbok",
+      "number": "27/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-27.json#rare"
+    },
+    "sm115-28": {
+      "character": "koffing",
+      "tier": "common",
+      "name": "Koffing",
+      "number": "28/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-29": {
+      "character": "weezing",
+      "tier": "rare",
+      "name": "Weezing",
+      "number": "29/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-29.json#rare"
+    },
+    "sm115-3": {
+      "character": "butterfree",
+      "tier": "rare",
+      "name": "Butterfree",
+      "number": "3/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-3.json#rare"
+    },
+    "sm115-30": {
+      "character": "jynx",
+      "tier": "uncommon",
+      "name": "Jynx",
+      "number": "30/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-30.json#uncommon"
+    },
+    "sm115-32": {
+      "character": "mew",
+      "tier": "rare",
+      "name": "Mew",
+      "number": "32/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-32.json#rare"
+    },
+    "sm115-33": {
+      "character": "geodude",
+      "tier": "common",
+      "name": "Geodude",
+      "number": "33/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-34": {
+      "character": "graveler",
+      "tier": "uncommon",
+      "name": "Graveler",
+      "number": "34/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-34.json#uncommon"
+    },
+    "sm115-35": {
+      "character": "golem",
+      "tier": "rare",
+      "name": "Golem",
+      "number": "35/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-35.json#rare"
+    },
+    "sm115-37": {
+      "character": "cubone",
+      "tier": "common",
+      "name": "Cubone",
+      "number": "37/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-38": {
+      "character": "clefairy",
+      "tier": "common",
+      "name": "Clefairy",
+      "number": "38/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-39": {
+      "character": "clefairy",
+      "tier": "common",
+      "name": "Clefairy",
+      "number": "39/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-4": {
+      "character": "paras",
+      "tier": "common",
+      "name": "Paras",
+      "number": "4/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-40": {
+      "character": "clefable",
+      "tier": "rare",
+      "name": "Clefable",
+      "number": "40/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-40.json#rare"
+    },
+    "sm115-41": {
+      "character": "jigglypuff",
+      "tier": "common",
+      "name": "Jigglypuff",
+      "number": "41/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-43": {
+      "character": "mr-mime",
+      "tier": "rare",
+      "name": "Mr. Mime",
+      "number": "43/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-43.json#rare"
+    },
+    "sm115-45": {
+      "character": "farfetchd",
+      "tier": "uncommon",
+      "name": "Farfetch'd",
+      "number": "45/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-45.json#uncommon"
+    },
+    "sm115-46": {
+      "character": "chansey",
+      "tier": "uncommon",
+      "name": "Chansey",
+      "number": "46/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-46.json#uncommon"
+    },
+    "sm115-47": {
+      "character": "kangaskhan",
+      "tier": "rare",
+      "name": "Kangaskhan",
+      "number": "47/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-47.json#rare"
+    },
+    "sm115-48": {
+      "character": "eevee",
+      "tier": "rare-holo",
+      "name": "Eevee",
+      "number": "48/68",
+      "rarity": "Rare Holo",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-48.json#rare-holo"
+    },
+    "sm115-49": {
+      "character": "eevee",
+      "tier": "common",
+      "name": "Eevee",
+      "number": "49/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-5": {
+      "character": "scyther",
+      "tier": "uncommon",
+      "name": "Scyther",
+      "number": "5/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-5.json#uncommon"
+    },
+    "sm115-50": {
+      "character": "snorlax",
+      "tier": "rare",
+      "name": "Snorlax",
+      "number": "50/68",
+      "rarity": "Rare",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-50.json#rare"
+    },
+    "sm115-7": {
+      "character": "charmander",
+      "tier": "common",
+      "name": "Charmander",
+      "number": "7/68",
+      "rarity": "Common",
+      "set": "Hidden Fates",
+      "source": "hf:sprite"
+    },
+    "sm115-8": {
+      "character": "charmeleon",
+      "tier": "uncommon",
+      "name": "Charmeleon",
+      "number": "8/68",
+      "rarity": "Uncommon",
+      "set": "Hidden Fates",
+      "source": "hf:sm115-8.json#uncommon"
+    },
+    "sma-SV91": {
+      "character": "tapu-bulu",
+      "tier": "rare-secret",
+      "name": "Tapu Bulu-GX",
+      "number": "SV91/SV94",
+      "rarity": "Rare Secret",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV91.json#rare-secret"
+    },
+    "sma-SV92": {
+      "character": "tapu-fini",
+      "tier": "rare-secret",
+      "name": "Tapu Fini-GX",
+      "number": "SV92/SV94",
+      "rarity": "Rare Secret",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV92.json#rare-secret"
+    },
+    "sma-SV93": {
+      "character": "tapu-koko",
+      "tier": "rare-secret",
+      "name": "Tapu Koko-GX",
+      "number": "SV93/SV94",
+      "rarity": "Rare Secret",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV93.json#rare-secret"
+    },
+    "sma-SV94": {
+      "character": "tapu-lele",
+      "tier": "rare-secret",
+      "name": "Tapu Lele-GX",
+      "number": "SV94/SV94",
+      "rarity": "Rare Secret",
+      "set": "Hidden Fates Shiny Vault",
+      "source": "hf:sma-SV94.json#rare-secret"
     }
   },
   "retired": {
