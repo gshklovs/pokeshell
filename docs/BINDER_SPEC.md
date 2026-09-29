@@ -28,6 +28,7 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
   keybinding to settings.json (WT 1.21+ `actions` + `keybindings`; inline `keys` for older files), verified and backed
   up like the skins; refuses keys that are already bound; `off` / `pokeshell uninstall` restore the file byte for byte.
 - **Text half**: `v` in the app, from `packs/<pack>/cards/<card id>.json` (CARD_FORMAT); the view toggle moved to `d`.
+  Caught cards only ("Empty, seen, caught" below). `binder --card <id> --text --first-frame` renders it headless.
 
 ## Entry points (all four ship)
 | How | What happens |
@@ -62,7 +63,7 @@ Every card slot is in one of three states, like a Pokédex:
 
 | State | When | Shows |
 |---|---|---|
-| **Empty** | never pulled | the empty pocket: its number, name and rarity hint |
+| **Empty** | never pulled | the empty pocket: its number, name and rarity hint. No art; the text half stays hidden. |
 | **Seen** | pulled, never earned: every pull of it is pending or expired | a **silhouette**: the sprite's shape in one flat dark shadow colour on plain card stock, with its name, number and rarity hint. No colours, scene, foil, shimmer, animation, shiny or NEW sticker, no ribbon or tape. The text half stays hidden. |
 | **Caught** | earned at least once | the real card, exactly as before, with every effect |
 
@@ -93,8 +94,14 @@ Every card slot is in one of three states, like a Pokédex:
   6. Else no shape: the seen card shows a "?" on its stock.
   The web exports a silhouette image only when no exported art already gives it (`img/<pack>/<character>/_seen.png`,
   `<card id>-seen.png`) and draws any of them blacked out (`filter: brightness(0)`).
-- **The text half** (`v` in the app, the card page on the web) shows for caught cards and, as before, for cards never
-  pulled (a set's checklist can be read); a seen card keeps it hidden until it is caught.
+- **The text half** (the moveset: HP, abilities, attacks, weakness, retreat; `v` in the app, the card on the web) shows
+  for **caught cards only** (branch `binder-hide-text`; before, cards never pulled showed it too). `v` on a seen card
+  says "seen: catch it to read its text (v)", on an empty one "not caught yet: catch it to read its text (v)". On the
+  web an uncaught card's text isn't even in `data.json` (`binder_web.py` leaves it out), and the page draws it for
+  caught cards only as well.
+- **The web detail of an empty card** is its empty pocket, as in the app: the name, number, rarity hint and set, its
+  tags and the pull odds (the app's panel shows those too), but no art and no text half. A `?card=` link to a card
+  never pulled opens the same.
 - **Empty pockets lose their faint silhouette** (the pokedex and One Piece packs had one): a shape now means seen.
 
 ## Tags and search (both binders)
@@ -106,8 +113,9 @@ Every card slot is in one of three states, like a Pokédex:
     Under 3 letters a word must start a word of the tag (`ex`, `v`). Every term must match (AND); `-term` (or
     `-key:value`) leaves out what matches. Case and accents don't matter (`flabebe` finds Flabébé).
   - **Tags**: set id and name, printed rarity and our tier id, subtypes, Pokémon types (from the card's
-    `cards/<id>.json`, else pack.json's card fields), character, name, number, card id, artist, pack; the page also
-    has `attack:` / `ability:` (key-only, so bare words find the same cards in both binders). State words (bare,
+    `cards/<id>.json`, else pack.json's card fields), character, name, number, card id, artist, pack, for every slot;
+    the page also has `attack:` / `ability:` (key-only, so bare words find the same cards in both binders), which
+    match **caught cards only**: the moves are the text half, so a search can't reveal them. State words (bare,
     or `is:seen`) test the card: `caught`, `seen` (pulled, not caught), `missing` (not caught: empty or seen), `new`,
     `shiny`, `foil`. `owned` still works as `caught`, and `pending` as `seen` (both undocumented in the binders).
   - **`key:value`** matches that key's tags like a bare word (`rarity:rainbow`, `type:drk`, `artist:ito`); quotes only
@@ -134,7 +142,7 @@ Every card slot is in one of three states, like a Pokédex:
 
 ## Web binder
 - **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running. Each real
-  card shows its text half from `packs/<pack>/cards/<id>.json` (HP, abilities, attacks with energy costs, weakness /
+  card shows its text half, once caught, from `packs/<pack>/cards/<id>.json` (HP, abilities, attacks with energy costs, weakness /
   resistance / retreat, rules; docs/CARD_FORMAT.md); the tab skin stays in the card's details. Odds are the game's
   (only tiers with a built card roll). Seen cards show as silhouettes and are never counted. Decoded art is cached
   (`img\.cache.json`), so a rebuild takes well under a second once the art is cached.

@@ -12,6 +12,7 @@
 //!   binder --snapshot DIR      render headless frames (TestBackend) to DIR/*.ans
 //!   binder --bench             time cold load + first full frame + redraw costs (in-memory backend)
 //!   binder --first-frame       load, paint + encode one frame, exit (for wall-clock startup timing)
+//!   binder --text              with --first-frame / --bench: the text half (v) on
 //!   binder --selftest          fuzz keys/mouse/resizes through the event handler, rendering each
 //!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending (seen, not caught)
 
@@ -118,6 +119,7 @@ struct Args {
     snapshot: Option<String>,
     bench: bool,
     first_only: bool,
+    text: bool,
     selftest: bool,
     demo_pending: usize,
 }
@@ -134,6 +136,7 @@ fn parse_args() -> Args {
         snapshot: None,
         bench: false,
         first_only: false,
+        text: false,
         selftest: false,
         demo_pending: 0,
     };
@@ -173,6 +176,7 @@ fn parse_args() -> Args {
                 a.bench = true;
                 a.first_only = true
             }
+            "--text" => a.text = true,
             "--demo-pending" => a.demo_pending = val("--demo-pending", &mut it).parse().unwrap_or(0),
             "-h" | "--help" => {
                 println!("{}", include_str!("main.rs").lines().take_while(|l| l.starts_with("//!")).map(|l| l.trim_start_matches("//!")).collect::<Vec<_>>().join("\n"));
@@ -221,7 +225,7 @@ fn main() -> io::Result<()> {
         return snapshot::selftest(opts, theme);
     }
     if args.bench {
-        return snapshot::bench(opts, theme, t0, args.first_only);
+        return snapshot::bench(opts, theme, t0, args.first_only, args.text);
     }
 
     let mut app = App::new(opts, theme);

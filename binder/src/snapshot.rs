@@ -285,11 +285,12 @@ fn key(c: char) -> crossterm::event::Event {
 }
 
 /// Cold start: parse the log + packs, lay out, paint a full frame and encode it (what the real
-/// terminal gets), then an animation frame. Prints timings in ms.
-pub fn bench(opts: Opts, theme: usize, t0: Instant, first_only: bool) -> io::Result<()> {
+/// terminal gets), then an animation frame. Prints timings in ms. `text`: the text half (v) is on.
+pub fn bench(opts: Opts, theme: usize, t0: Instant, first_only: bool, text: bool) -> io::Result<()> {
     let t_args = t0.elapsed();
     let mut app = App::new(opts, theme);
     crate::require_packs(&app);
+    app.show_text = text;
     let t_load = t0.elapsed();
     let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
     let base = term.draw(|f| ui::render(&mut app, f.buffer_mut())).unwrap().buffer.clone();
