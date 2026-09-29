@@ -19,6 +19,7 @@
   "me55-85": "lycanroc-midnight", "me55-138": "lycanroc-midnight", "me55-124": "minior-red",
   "me55-106": "zacian-crowned", "me55-107": "zamazenta-crowned", "me55-72": "unown"
  },
+ "flip_commons": ["me55-5", "me55-93", "me55-114"],
  "notes": {
   "me55-B": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite",
   "me55-G": "monochrome YOSHIROTTEN Mew the API labels Common: commons rule, plain sprite",

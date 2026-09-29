@@ -1,0 +1,37 @@
+{
+ "name": "Crown Zenith",
+ "set_id": "swsh12pt5",
+ "subsets": [{"set_id": "swsh12pt5gg", "name": "Crown Zenith Galarian Gallery", "group_prefix": "gg_"}],
+ "prefix": "swsh12pt5",
+ "printed_total": "159",
+ "lookbook": {"section_prefix": "czset_", "anchor": "cz", "place": "after"},
+ "groups": {
+  "Common": "commons", "Uncommon": "uncommon", "Rare": "rare", "Rare Holo": "holo", "Rare Holo V": "v",
+  "Rare Holo VMAX": "v", "Rare Holo VSTAR": "vstar", "Radiant Rare": "radiant", "Rare Secret": "secret",
+  "Trainer Gallery Rare Holo": "gg_tg", "Rare Ultra": "ultra"
+ },
+ "gg_groups": {
+  "Trainer Gallery Rare Holo": "gg_tg", "Rare Holo V": "gg_v", "Rare Holo VMAX": "gg_v",
+  "Rare Holo VSTAR": "gg_vstar", "Rare Secret": "secret"
+ },
+ "split": {"gg_tg": ["gg_tg_a", "gg_tg_b"]},
+ "labels": {
+  "commons": "Common", "uncommon": "Uncommon", "rare": "Rare", "holo": "Rare Holo",
+  "v": "Rare Holo V + Rare Holo VMAX", "vstar": "Rare Holo VSTAR", "radiant": "Radiant Rare",
+  "secret": "Rare Secret (gold)", "gg_tg_a": "Galarian Gallery: Trainer Gallery Rare Holo (1/2)",
+  "gg_tg_b": "Galarian Gallery: Trainer Gallery Rare Holo (2/2)",
+  "gg_v": "Galarian Gallery: Rare Holo V + VMAX (alt-art painting)",
+  "gg_vstar": "Galarian Gallery: Rare Holo VSTAR (alt-art painting)",
+  "signoff": "New rarities: sign-off"
+ },
+ "ladder": ["swsh12pt5-1", "swsh12pt5-2", "swsh12pt5-3", "swsh12pt5-36", "swsh12pt5-13", "swsh12pt5-54",
+            "swsh12pt5-14", "swsh12pt5-20", "swsh12pt5-160", "swsh12pt5gg-GG05", "swsh12pt5gg-GG36",
+            "swsh12pt5gg-GG35", "swsh12pt5gg-GG70"],
+ "forms": {
+  "swsh12pt5-20": "charizard", "swsh12pt5-51": "charjabug", "swsh12pt5-105": "eternatus", "swsh12pt5-85": "perrserker",
+  "swsh12pt5gg-GG67": "palkia-origin", "swsh12pt5gg-GG68": "dialga-origin"
+ },
+ "flip_commons": ["swsh12pt5-1", "swsh12pt5-6", "swsh12pt5-7", "swsh12pt5-8", "swsh12pt5-15", "swsh12pt5-29",
+                  "swsh12pt5-92"],
+ "notes": {"swsh12pt5-81": "Skrelp: near-frontal, snout down; kept unflipped (lean: flip) -- flagged for the user"}
+}
