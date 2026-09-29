@@ -1,0 +1,281 @@
+﻿<#
+The earned rule and the binder entry points (docs/BINDER_SPEC.md), against throwaway state dirs and settings copies:
+pull ids + pending in pulls.log, the tab's first command earning it (the prompt / OnIdle hook, in child processes),
+expiry (24 h, another boot session), viewed.txt / NEW, the earn setting, the binder footer link, `binder` (app,
+text fallback, --web), the Windows Terminal hotkey on settings.json COPIES, and the pokeshell:// handler as a dry run.
+Never opens a tab, a window or a browser; never touches the real settings.json, registry, $PROFILE or state.
+  powershell -NoProfile -File tests\test-earned.ps1
+#>
+. (Join-Path $PSScriptRoot '_setup.ps1')
+. (Join-Path $RepoRoot 'scripts\lib\wtsettings.ps1')
+$tps = 10000000L
+$e = [char]27
+function Strip([string]$s) { $s -replace "$e\[[0-9;]*m", '' -replace "$e\][^$e]*$e\\", '' }
+$cli = Join-Path $RepoRoot 'scripts\pokeshell.ps1'
+# Invoke-Cli <state> <cli args...> [@{ ENV = value }]
+function Invoke-Cli {
+  $State = $args[0]; $rest = @($args | Select-Object -Skip 1); $Env = @{}
+  if ($rest.Count -and $rest[-1] -is [hashtable]) { $Env = $rest[-1]; $rest = @($rest | Select-Object -SkipLast 1) }
+  $saved = @{}; $Env['POKESHELL_HOME'] = $State
+  foreach ($k in $Env.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $Env[$k]) }
+  try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $cli @rest 2>&1 | Out-String -Width 300 }
+  finally { foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) } }
+}
+function Roll-Common([string]$State, [long]$Now = [DateTime]::UtcNow.Ticks, [double]$Foil = 0) {
+  Invoke-Fresh { [Pokeshell.Core]::Roll($RepoRoot, $State, $PlainGuid, @('powershell.exe'), $Now, 7, $Foil, 'x', $env:TEMP, (Join-Path $RepoRoot 'scripts\lib')) }
+}
+$real = Get-PokeshellWtSettingsPath
+$realHash = if ($real) { (Get-FileHash $real).Hash }
+$regKey = 'HKCU:\Software\Classes\pokeshell'
+$regBefore = Test-Path $regKey
+
+Write-Host "1. every roll gets a pull id, is logged pending, and the tab carries it" -ForegroundColor Cyan
+$st = New-TestState 'earn-roll'
+Update-PokeshellRollCache -Root $RepoRoot -StateDir $st
+$saved = $env:POKESHELL_PULL
+$r = Invoke-Fresh { $x = [Pokeshell.Core]::Roll($RepoRoot, $st, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, 7, 0, 'x', $env:TEMP, $env:TEMP); [pscustomobject]@{ r = $x; env = $env:POKESHELL_PULL } }
+$line = @(Get-Content (Join-Path $st 'pulls.log'))[-1].Split("`t")
+Assert ($r.r.Action -eq 'common' -and $r.r.Id -match '^[0-9A-HJKMNP-TV-Z]{26}$') "a common pull gets a ULID ($($r.r.Id))"
+Assert ($r.env -eq $r.r.Id) "POKESHELL_PULL = the pull id in the tab that rolled"
+Assert ($line[7] -eq 'pending' -and $line[8] -eq "id=$($r.r.Id)" -and $line[9] -match '^boot=\d+$') "logged: flags 'pending', id=, boot= ($($line[7..9] -join ' '))"
+Assert ([Math]::Abs([Pokeshell.Core]::PullIdTicks($r.r.Id) - $r.r.PullTicks) -lt 10000) "the id encodes the roll time"
+$t1 = [DateTime]::UtcNow.Ticks
+$ids = @(1..50 | ForEach-Object { [Pokeshell.Core]::NewPullId($t1 + $_ * 10000) })
+Assert (@($ids | Sort-Object -Unique).Count -eq 50 -and (($ids | Sort-Object) -join ',') -eq ($ids -join ',')) "ids are unique and sort by time"
+$text = Strip $r.r.Text
+Assert ($text.Contains("binder $([char]0x23ce)") -and $r.r.Text.Contains("$e]8;;pokeshell://binder?pull=$($r.r.Id)$e\")) "the card's footer: 'binder ⏎', an OSC 8 link to pokeshell://binder?pull=<id>"
+Assert ($r.r.Text.LastIndexOf([char]0x2570) -lt $r.r.Text.IndexOf("$e]8;;")) "the art itself is not inside the link (it opens after the card's bottom edge)"
+$f = Roll-Common $st ([DateTime]::UtcNow.Ticks + 3600 * $tps) 1
+$cmd = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($f.WtArgs[-1]))
+Assert ($f.Action -eq 'foil' -and $cmd.StartsWith("`$env:POKESHELL_PULL='$($f.Id)';") -and $cmd.Contains("-PullId '$($f.Id)'") -and $cmd.Contains("-StateDir '$st'")) "a foil's skinned tab carries the id (POKESHELL_PULL + Show-PokeshellPull -PullId)"
+Assert ($f.Line('dryrun') -match "`tdryrun,pending`tid=$($f.Id)`tboot=\d+$" -and $f.FallbackLine('foil-not-placed:x') -match "`tfoil-not-placed:x,pending`tid=") "foil log lines: notes first, then pending, then the id"
+Assert ($f.FallbackText.Contains("pull=$($f.Id)")) "a foil shown here as a common links the same pull"
+# the skinned tab's command, run in a child process (dry run: it only prints and registers the hook)
+$out = Invoke-Fresh { $env:POKESHELL_HOME = $st; try { & powershell.exe -NoProfile -EncodedCommand $f.WtArgs[-1] 2>&1 | Out-String } finally { Remove-Item Env:POKESHELL_HOME } }
+Assert ((Strip $out).Contains("binder $([char]0x23ce)") -and -not (Test-Path (Join-Path $st 'errors.log'))) "the skinned tab prints the card with the footer (no errors)"
+$env:POKESHELL_PULL = $saved
+
+Write-Host "2. the tab's first real command earns it (the prompt hook, in child processes)" -ForegroundColor Cyan
+$hookProbe = Join-Path $st 'hook.ps1'
+function Invoke-Hook([string]$Body, [string]$Mode = 'first-command', [long]$Ticks = [DateTime]::UtcNow.Ticks, [string]$Id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks), [string]$Before = '') {
+  @"
+`$ErrorActionPreference = 'Stop'
+. '$RepoRoot\scripts\lib\roll.ps1'; Import-PokeshellCore '$st'
+function global:prompt { 'ORIG> ' }
+$Before
+[Pokeshell.Earn]::Register(`$ExecutionContext, '$Id', '$st', '$Mode', $Ticks, 'Pikachu', 'holo', `$true)
+function Hooked { [Pokeshell.Earn]::Active -and `$null -ne `$ExecutionContext.InvokeCommand.PreCommandLookupAction }
+function Cmd { Add-History -InputObject ([pscustomobject]@{ CommandLine = 'git status'; ExecutionStatus = [Management.Automation.Runspaces.PipelineState]::Completed; StartExecutionTime = [datetime]::Now; EndExecutionTime = [datetime]::Now }) }
+$Body
+"@ | Set-Content $hookProbe -Encoding UTF8
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $hookProbe 2>&1 | Out-String
+}
+function Earned([string]$Id) { @(Get-Content (Join-Path $st 'pulls.log') | Where-Object { $_ -match "`tearned:$Id$" }).Count }
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Invoke-Hook -Id $id @'
+"hooked=$(Hooked)"
+"p1=$(prompt)"                     # the first prompt: no command yet (an empty Enter looks the same)
+"p2=$(prompt)"
+Cmd                                # the first real command
+"p3=$(prompt)"
+"p4=$(prompt)"
+"hooked=$(Hooked)"
+'@
+$plain = Strip $out
+Assert ($plain -match 'hooked=True') "registering hooks the prompt (a PreCommandLookupAction)"
+Assert ($plain -match 'p1=ORIG> ' -and $plain -match 'p2=ORIG> ' -and $plain -match 'p4=ORIG> ') "the prompt itself still prints as before"
+Assert ((($plain -split "`n") | Where-Object { $_ -match 'added to your binder' }).Count -eq 1) "one line, once: '$((($plain -split "`n") | Where-Object { $_ -match 'added to your binder' } | Select-Object -First 1).Trim())'"
+Assert ($plain -match "$([char]0x2726) Pikachu holo \(shiny\) added to your binder" -and $out.Contains("$e[2m")) "the line is dim and names the card"
+Assert ($plain.IndexOf('added to your binder') -gt $plain.IndexOf('p2=') -and $plain.IndexOf('added to your binder') -lt $plain.IndexOf('p3=')) "printed at the prompt right after the first command, not before"
+Assert ((Earned $id) -eq 1) "exactly one earned:<id> line"
+Assert ($plain -match 'hooked=False') "then the hook is gone"
+# a $PROFILE line after ours defines its own prompt: still hooked, and that prompt is the one shown
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Strip (Invoke-Hook -Id $id @'
+function global:prompt { 'MINE> ' }          # the user's own prompt, defined later in $PROFILE
+"p1=$(prompt)"
+Cmd
+"p2=$(prompt)"
+"p3=$(prompt)"
+'@)
+Assert ($out -match 'p1=MINE> ' -and $out -match 'added to your binder' -and $out -match 'p3=MINE> ' -and (Earned $id) -eq 1) "a prompt defined later in `$PROFILE: shown as is, and the pull is still earned"
+# nothing but empty Enters: stays pending
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Strip (Invoke-Hook -Id $id @'
+1..5 | ForEach-Object { $null = prompt }
+"hooked=$(Hooked)"
+'@)
+Assert ($out -notmatch 'added to your binder' -and $out -match 'hooked=True' -and (Earned $id) -eq 0) "empty Enters don't earn it"
+# another tool's PreCommandLookupAction keeps working, and is put back afterwards
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Strip (Invoke-Hook -Id $id -Before '$global:seen = 0; $ExecutionContext.InvokeCommand.PreCommandLookupAction = { param($n, $a) $global:seen++ }' @'
+$null = prompt; $null = Get-Date
+Cmd; "p=$(prompt)"
+"seen=$([int]($global:seen -ge 3)) back=$($null -ne $ExecutionContext.InvokeCommand.PreCommandLookupAction -and -not [Pokeshell.Earn]::Active)"
+'@)
+Assert ($out -match 'seen=1 back=True' -and (Earned $id) -eq 1) "chains an existing PreCommandLookupAction and restores it"
+# minutes:N: the tab open N minutes
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Strip (Invoke-Hook -Id $id -Mode 'minutes:2' -Ticks ([DateTime]::UtcNow.AddMinutes(-3).Ticks) '"p=$(prompt)"')
+Assert ($out -match 'added to your binder' -and (Earned $id) -eq 1) "earn=minutes:2: a tab open 3 minutes earns at its next prompt, no command needed"
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.Ticks)
+$out = Strip (Invoke-Hook -Id $id -Mode 'minutes:10' 'Cmd; "p=$(prompt)"')
+Assert ($out -notmatch 'added to your binder' -and (Earned $id) -eq 0) "earn=minutes:10: a command alone doesn't (yet)"
+# a tab left open over 24 h: expired, not earned
+$id = [Pokeshell.Core]::NewPullId([DateTime]::UtcNow.AddHours(-25).Ticks)
+$out = Strip (Invoke-Hook -Id $id -Ticks ([DateTime]::UtcNow.AddHours(-25).Ticks) 'Cmd; "p=$(prompt)"')
+Assert ($out -notmatch 'added to your binder' -and (Earned $id) -eq 0 -and @(Get-Content (Join-Path $st 'pulls.log') | Where-Object { $_ -match "`texpired:$id$" }).Count -eq 1) "used after 24 h: logged expired:<id>, no line"
+# earn=off: nothing to hook
+$out = Strip (Invoke-Hook -Mode 'off' '"hooked=$(Hooked)"')
+Assert ($out -match 'hooked=False') "earn=off: no hook at all"
+Assert (-not (Test-Path (Join-Path $st 'errors.log')) -and $out -notmatch 'Exception') "no hook errors"
+
+Write-Host "3. the real `$PROFILE hook registers it for the pull it prints" -ForegroundColor Cyan
+$hs = New-TestState 'earn-hook'
+Update-PokeshellRollCache -Root $RepoRoot -StateDir $hs
+$h = [IO.File]::ReadAllText((Join-Path $RepoRoot 'scripts\pokeshell-profile.ps1'))
+if (-not $h.Contains('$lib, -1)')) { throw 'hook layout changed' }
+[void](New-PokeshellCore $hs)   # the fast path needs the compiled core
+# forced to a common on both paths, and a dry run: whatever happens, no tab is opened
+$hook = "`$__hookDir = '$RepoRoot\scripts'`r`n" + $h.Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')").Replace('$lib, -1)', '$lib, 0)').Replace('-Argv $a)', '-Argv $a -FoilChance 0)')
+$probe = Join-Path $hs 'probe.ps1'
+[IO.File]::WriteAllText($probe, "`$env:WT_PROFILE_ID = '$PlainGuid'; `$env:POKESHELL_HOME = '$hs'; `$env:POKESHELL_DRYRUN = '1'`r`n$hook`r`n" +
+  "'PULL=' + `$env:POKESHELL_PULL; 'EARN=' + [Pokeshell.Earn]::Active; 'HOOK=' + (`$null -ne `$ExecutionContext.InvokeCommand.PreCommandLookupAction); 'BINDER=' + [bool](Get-Command binder -ErrorAction SilentlyContinue)")
+$out = Invoke-Fresh { & powershell.exe -NoProfile -File $probe 2>&1 | Out-String }
+$logged = (@(Get-Content (Join-Path $hs 'pulls.log'))[-1].Split("`t") | Where-Object { $_ -like 'id=*' }) -replace '^id=', ''
+Assert ($logged -and $out -match "PULL=$logged" -and $out -match 'EARN=True' -and $out -match 'HOOK=True') "a fresh tab's pull $logged : POKESHELL_PULL set, the earn hook registered"
+Assert ($out -match 'BINDER=True') "the hook defines the binder command"
+Assert (-not (Test-Path (Join-Path $hs 'errors.log'))) "no hook errors"
+
+Write-Host "4. reading the log: earned / pending / expired, legacy lines, viewed.txt" -ForegroundColor Cyan
+$rs = New-TestState 'earn-read'
+$now = [DateTime]::UtcNow; $boot = [Pokeshell.Core]::BootId()
+function L($ago, $ch, $tier, $flags, $idTicks, $b = $boot) {
+  $id = [Pokeshell.Core]::NewPullId($idTicks)
+  @{ id = $id; line = "$($now.AddMinutes(-$ago).ToLocalTime().ToString('s'))`tpokemon`t$ch`t$tier`tcommon`t`t0`t$flags`tid=$id`tboot=$b" }
+}
+$a = L 50 'pikachu' 'common' 'pending' $now.AddMinutes(-50).Ticks
+$b = L 40 'squirtle' 'holo' 'pending' $now.AddMinutes(-40).Ticks
+$c = L 1600 'charmander' 'holo' 'pending' $now.AddHours(-26).Ticks
+$d = L 30 'bulbasaur' 'common' 'denied:rate,pending' $now.AddMinutes(-30).Ticks ($boot - 7200)
+$v = L 20 'bulbasaur' 'holo' 'pending' $now.AddMinutes(-20).Ticks
+$lines = @(
+  "$($now.AddDays(-3).ToLocalTime().ToString('s'))`tpokemon`tsquirtle`tcommon`tcommon`t`t0`t",   # before the earned rule
+  $a.line, "x`tearned:$($a.id)", $b.line, $c.line, $d.line, $v.line, "x`tearned:$($v.id)",
+  "$($now.ToLocalTime().ToString('s'))`tpokemon`tpikachu`tholo`tholo`tsheen`t0`tdryrun,pending`tid=X`tboot=$boot")
+[IO.File]::WriteAllLines((Join-Path $rs 'pulls.log'), [string[]]$lines)
+[IO.File]::WriteAllLines((Join-Path $rs 'viewed.txt'), [string[]]@($v.id))
+$recs = @([Pokeshell.Core]::ReadPulls($rs, $now.Ticks, $boot))
+$got = ($recs | ForEach-Object { "$($_.Character)/$($_.Status)$(if ($_.New) { '+new' })" }) -join ' '
+Assert ($got -eq 'squirtle/earned pikachu/earned+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/earned') "statuses: $got"
+Assert (($recs | Where-Object Status -eq 'expired' | ForEach-Object Derived) -notcontains $false) "expired by age / boot: derived, no event yet"
+$out = Strip (Invoke-Cli $rs 'collection')
+Assert ($out -match 'BINDER\s+3 pulls' -and $out -match '1 pending' -and $out -match '1 new') "pokeshell collection counts earned pulls only, shows pending and new: '$((($out -split "`n") | Where-Object { $_ -match 'BINDER' }).Trim())'"
+$exp = @(Get-Content (Join-Path $rs 'pulls.log') | Where-Object { $_ -match "`texpired:" })
+Assert ($exp.Count -eq 2 -and ($exp -join ' ') -match $c.id -and ($exp -join ' ') -match $d.id) "reading writes the expired:<id> lines (append-only)"
+$null = Invoke-Cli $rs 'collection'
+Assert (@(Get-Content (Join-Path $rs 'pulls.log') | Where-Object { $_ -match "`texpired:" }).Count -eq 2) "... once"
+
+Write-Host "5. the earn setting" -ForegroundColor Cyan
+$cs = New-TestState 'earn-cfg'
+$out = Strip (Invoke-Cli $cs 'earn')
+Assert ($out -match 'earn: first-command') "default: first-command"
+$null = Invoke-Cli $cs 'earn' 'minutes:2'
+Assert ((Get-Content (Join-Path $cs 'config.txt')) -contains 'earn=minutes:2') "earn minutes:2 saved"
+$out = Strip (Invoke-Cli $cs 'earn' 'sometimes')
+Assert ($out -match 'first-command, minutes:N or off' -and (Get-Content (Join-Path $cs 'config.txt')) -contains 'earn=minutes:2') "a bad value is refused, setting kept"
+$null = Invoke-Cli $cs 'earn' 'off'
+$r = Roll-Common $cs
+$line = @(Get-Content (Join-Path $cs 'pulls.log'))[-1].Split("`t")
+Assert ($r.Earn -eq 'off' -and $line[7] -eq '' -and $line[8] -eq "id=$($r.Id)") "earn off: the pull still gets an id but is logged earned (no pending flag)"
+Assert ([Pokeshell.Core]::EarnMode('MINUTES:1.5') -eq 'minutes:1.5' -and [Pokeshell.Core]::EarnMode('junk') -eq 'first-command') "EarnMode normalizes"
+
+Write-Host "6. binder: the app, the text fallback, --pull / --card" -ForegroundColor Cyan
+$out = Strip (Invoke-Cli $rs 'binder' @{ POKESHELL_BINDER = (Join-Path $rs 'no-such-binder.exe') })
+Assert ($out -match "binder app isn't built" -and $out -match 'BINDER\s+3 pulls') "no exe: today's text table"
+$exe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
+if (Test-Path $exe) {
+  $viewedBefore = (Get-FileHash (Join-Path $rs 'viewed.txt')).Hash
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --first-frame | Out-String)
+  Assert ($frame -match 'last Bulbasaur holo' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur holo); header counts pending and new"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --pull $a.id --first-frame | Out-String)
+  Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'collected') "--pull <id> opens that pull, with its NEW sticker"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --card 'pokemon/charmander/rare holo' --first-frame | Out-String)
+  Assert ($frame -match 'Charmander' -and $frame -match 'not pulled yet') "--card pack/character/tier (tier by label) opens that card"
+  $frame = Strip (& $exe --root $RepoRoot --state $rs --url "pokeshell://binder?pull=$($a.id)" --first-frame | Out-String)
+  Assert ($frame -match 'Pikachu' -and $frame -match 'NEW') "--url pokeshell://binder?pull=<id> (what the link handler runs)"
+  Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
+  $out = & $exe --root $RepoRoot --state $rs --selftest | Out-String
+  Assert ($out -match 'selftest ok') "binder --selftest (keys incl. v / d, mouse, resizes): $($out.Trim())"
+} else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
+
+Write-Host "7. binder --web (static page into <state>\web; not opened)" -ForegroundColor Cyan
+$py = @($env:POKESHELL_PYTHON, (Join-Path $RepoRoot '.venv\Scripts\python.exe'), (Join-Path (Split-Path $RepoRoot) 'pokeshell\.venv\Scripts\python.exe')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if ($py) {
+  $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_PYTHON = $py; POKESHELL_NO_OPEN = '1' })
+  $data = Get-Content (Join-Path $rs 'web\data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  $st2 = ($data.pulls | ForEach-Object { "$($_.char)/$($_.status)$(if ($_.new) { '+new' })" }) -join ' '
+  Assert ($st2 -eq 'squirtle/collected pikachu/collected+new squirtle/pending bulbasaur/collected') "data.json marks earned vs pending (expired left out): $st2"
+  Assert ($data.earned.enforced -and (Test-Path (Join-Path $rs 'web\binder.html')) -and $out -match 'web binder at') "binder.html written, not opened ($(($out -split "`n" | Where-Object { $_ -match 'earned' } | Select-Object -First 1).Trim()))"
+  Assert ((Get-Content (Join-Path $rs 'web\binder.html') -Raw -Encoding UTF8).Contains('badge-new')) "the page has the NEW sticker"
+} else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
+
+Write-Host "8. the Ctrl+Shift+B hotkey, on settings.json copies" -ForegroundColor Cyan
+$fakeExe = Join-Path $rs 'binder.exe'; Set-Content $fakeExe 'not a real exe'
+$utf8 = [Text.UTF8Encoding]::new($false)
+$cases = [ordered]@{
+  'WT 1.21+ (actions + keybindings)' = "{`r`n    `"actions`": [`r`n        { `"command`": { `"action`": `"copy`" }, `"id`": `"User.copy`" }`r`n    ],`r`n    `"keybindings`": [`r`n        { `"id`": `"User.copy`", `"keys`": `"ctrl+c`" }`r`n    ],`r`n    `"profiles`": { `"list`": [] }`r`n}`r`n"
+  'older (keys inside actions)'      = "{`n  `"profiles`": { `"list`": [] },`n  `"actions`": [ { `"command`": `"paste`", `"keys`": `"ctrl+v`" }, ]`n}`n"
+  'no actions at all'                = "// comment`n{`n    `"profiles`": { `"list`": [] }`n}`n"
+}
+# read only: the test edits a copy, minus its pokeshell profiles (uninstall would remove those too)
+if ($real) { $cases['your settings.json (a copy)'] = Remove-PokeshellProfilesText (Read-WtSettingsFile $real).text @() }
+$i = 0
+foreach ($name in $cases.Keys) {
+  $i++; $hsState = Join-Path $rs "hk$i"; [void][IO.Directory]::CreateDirectory($hsState)
+  $file = Join-Path $hsState 'settings.json'; [IO.File]::WriteAllText($file, $cases[$name], $utf8)
+  $orig = [IO.File]::ReadAllBytes($file)
+  $out = Strip (Invoke-Cli $hsState 'hotkey' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe })
+  $tree = ConvertFrom-Jsonc (Read-WtSettingsFile $file).text
+  $act = @((Get-JsoncMember $tree 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ })
+  $cmdNode = Get-JsoncMember $act[0] 'command'
+  $kb = Get-JsoncMember $tree 'keybindings'
+  $keys = if ($kb) { (Get-JsoncMember @($kb.items | Where-Object { Test-PokeshellHotkeyNode $_ })[0] 'keys').value } else { (Get-JsoncMember $act[0] 'keys').value }
+  Assert ($act.Count -eq 1 -and (Get-JsoncMember $cmdNode 'action').value -eq 'splitPane' -and (Get-JsoncMember $cmdNode 'split').value -eq 'vertical' -and
+          (Get-JsoncMember $cmdNode 'commandline').value.StartsWith("`"$fakeExe`"") -and $keys -eq 'ctrl+shift+b') "${name}: splitPane vertical -> binder.exe on ctrl+shift+b"
+  Assert (@(Get-ChildItem (Join-Path $hsState 'backups') -Filter *.json).Count -ge 1) "${name}: backup written first"
+  $once = [IO.File]::ReadAllBytes($file)
+  $null = Invoke-Cli $hsState 'hotkey' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe }
+  Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($once)) "${name}: re-running is idempotent"
+  $null = Invoke-Cli $hsState 'uninstall' '-SettingsPath' $file
+  Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($orig)) "${name}: pokeshell uninstall restores the file byte for byte"
+}
+$file = Join-Path $rs 'hk1\settings.json'
+[IO.File]::WriteAllText($file, '{ "actions": [ { "command": "find", "id": "User.find" } ], "keybindings": [ { "id": "User.find", "keys": "Shift+Ctrl+B" } ] }', $utf8)
+$before = [IO.File]::ReadAllBytes($file)
+$out = Strip (Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe })
+Assert ($out -match 'already bound' -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($before)) "keys already taken (Shift+Ctrl+B = ctrl+shift+b): refused, file untouched"
+$null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'on' '-SettingsPath' $file '-Keys' 'ctrl+alt+b' @{ POKESHELL_BINDER = $fakeExe }
+Assert ((Read-WtSettingsFile $file).text -match '"keys": "ctrl\+alt\+b"') "-Keys picks other keys"
+$null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'off'
+Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($before)) "hotkey off: exactly as before"
+$out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'hotkey' 'on' '-SettingsPath' (Join-Path $rs 'hk2\settings.json') @{ POKESHELL_BINDER = (Join-Path $rs 'missing.exe') })
+Assert ($out -match "binder app isn't built") "no binder app: no hotkey"
+
+Write-Host "9. the pokeshell:// handler (dry run only)" -ForegroundColor Cyan
+$us = Join-Path $rs 'url'; [void][IO.Directory]::CreateDirectory($us)
+$out = Strip (Invoke-Cli $us 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = $fakeExe })
+Assert ($out -match [regex]::Escape("would set $regKey [(default)] = URL:pokeshell binder") -and $out -match [regex]::Escape("would set $regKey [URL Protocol] = ")) "registers HKCU\Software\Classes\pokeshell as a URL protocol"
+Assert ($out -match [regex]::Escape("would set $regKey\shell\open\command [(default)] = `"$fakeExe`" --root `"$RepoRoot`" --state `"$us`" --url `"%1`"")) "the open command runs the binder with --url `"%1`""
+Assert (-not (Test-Path (Join-Path $us 'urlhandler.txt'))) "dry run: nothing recorded"
+$out = Strip (Invoke-Cli $us 'urlhandler' 'off' '-DryRun')
+Assert ($out -match [regex]::Escape("would remove $regKey")) "off removes the key"
+$ops = @(Set-PokeshellUrlHandler -Exe 'C:\b\binder.exe' -Root 'C:\r' -StateDir 'C:\s' -DryRun -Key 'HKCU:\Software\Classes\pokeshell-test')
+Assert ($ops.Count -eq 4 -and ($ops -join "`n") -match 'DefaultIcon') "Set-PokeshellUrlHandler -DryRun lists 4 operations"
+Assert ((Test-Path $regKey) -eq $regBefore -and -not (Test-Path 'HKCU:\Software\Classes\pokeshell-test')) "the registry was not touched"
+
+if ($real) { Assert ((Get-FileHash $real).Hash -eq $realHash) "the real Windows Terminal settings.json was not touched" }
+Get-ChildItem ([IO.Path]::GetTempPath()) -Directory -Filter "pokeshell-test-*-$PID" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host ''
+if ($script:Failures) { Write-Host "earned: $script:Failures FAILED" -ForegroundColor Red; exit 1 }
+Write-Host "earned: all passed" -ForegroundColor Green

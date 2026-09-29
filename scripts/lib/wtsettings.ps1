@@ -58,11 +58,12 @@ function Read-JsoncValue($P) {
       Skip-JsoncWs $P
       if ($s[$P.i] -eq '}') { $P.i++; break }
       if ($s[$P.i] -ne '"') { throw "settings.json: expected a key at offset $($P.i)" }
+      $keyStart = $P.i
       $key = Read-JsoncString $P
       Skip-JsoncWs $P
       if ($s[$P.i] -ne ':') { throw "settings.json: expected ':' at offset $($P.i)" }
       $P.i++
-      $members.Add(@{ key = $key; value = (Read-JsoncValue $P) })
+      $members.Add(@{ key = $key; value = (Read-JsoncValue $P); keyStart = $keyStart })
       Skip-JsoncWs $P
       if ($s[$P.i] -eq ',') { $P.i++ } elseif ($s[$P.i] -ne '}') { throw "settings.json: expected ',' or '}' at offset $($P.i)" }
     }
@@ -200,4 +201,148 @@ function Write-WtSettingsFile([string]$Path, [string]$Text, [bool]$Bom) {
   $tmp = "$Path.pokeshell.tmp"
   [IO.File]::WriteAllText($tmp, $Text, [Text.UTF8Encoding]::new($Bom))
   [IO.File]::Replace($tmp, $Path, [NullString]::Value)
+}
+
+# ---------------------------------------------------------------- the binder hotkey (actions + keybindings)
+# Same approach as the profiles: edit only the text of the entries we own, identified by the action id, so
+# Remove(Add(x)) == x. WT 1.21+ keeps actions and their keys apart ("actions": [{command, id}], "keybindings":
+# [{id, keys}]); a file without "keybindings" gets the older inline form ({command, id, keys} in "actions").
+
+$PokeshellBinderActionId = 'User.pokeshell.binder'
+
+# a JSON value (ordered dictionaries, strings, bools) as text, nested objects indented one $Unit per level
+function ConvertTo-JsoncValueText($Value, [string]$Indent, [string]$Unit, [string]$Nl) {
+  if ($Value -is [bool]) { if ($Value) { return 'true' } else { return 'false' } }
+  if ($Value -is [Collections.IDictionary]) {
+    # get_Keys(): a "keys" entry (a keybinding's) would shadow the .Keys property
+    $fields = foreach ($k in @($Value.get_Keys())) { "$Indent$Unit$(ConvertTo-JsonString $k): $(ConvertTo-JsoncValueText $Value[$k] "$Indent$Unit" $Unit $Nl)" }
+    return "{$Nl$($fields -join ",$Nl")$Nl$Indent}"
+  }
+  ConvertTo-JsonString ([string]$Value)
+}
+
+# text with the items of the top-level array $Name that $Match accepts removed (every other byte kept)
+function Remove-JsoncArrayItemsText([string]$Text, [string]$Name, [scriptblock]$Match) {
+  $list = Get-JsoncMember (ConvertFrom-Jsonc $Text) $Name
+  if (-not $list -or $list.type -ne 'array') { return $Text }
+  $items = $list.items
+  $drop = @(foreach ($it in $items) { [bool](& $Match $it) })
+  if ($drop -notcontains $true) { return $Text }
+  $spans = [Collections.Generic.List[int[]]]::new()
+  $first = -1; for ($k = 0; $k -lt $items.Count; $k++) { if (-not $drop[$k]) { $first = $k; break } }
+  if ($first -lt 0) { $spans.Add(@($items[0].start, $items[$items.Count - 1].end)) }
+  else {
+    if ($first -gt 0) { $spans.Add(@($items[0].start, $items[$first].start)) }
+    for ($k = $first + 1; $k -lt $items.Count; $k++) { if ($drop[$k]) { $spans.Add(@($items[$k - 1].end, $items[$k].end)) } }
+  }
+  $sb = [Text.StringBuilder]::new($Text)
+  for ($k = $spans.Count - 1; $k -ge 0; $k--) { [void]$sb.Remove($spans[$k][0], $spans[$k][1] - $spans[$k][0]) }
+  $sb.ToString()
+}
+
+# text with $Items appended to the top-level array $Name (created after the last top-level member if missing)
+function Add-JsoncArrayItemsText([string]$Text, [string]$Name, [object[]]$Items) {
+  $root = ConvertFrom-Jsonc $Text
+  if ($root.type -ne 'object') { throw "settings.json: the top level is not an object" }
+  $nl = if ($Text.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $lineStart = { param($pos) $j = $Text.LastIndexOf("`n", [Math]::Max($pos - 1, 0)); $j + 1 }
+  $unit = '    '
+  $list = Get-JsoncMember $root $Name
+  if (-not $list) {
+    $ms = $root.members; $rootIndent = $unit
+    if ($ms.Count -gt 0) {
+      $ks = $ms[0].keyStart; $ls = & $lineStart $ks; $pre = $Text.Substring($ls, $ks - $ls)
+      if ($pre.Length -gt 0 -and -not $pre.Trim()) { $rootIndent = $pre; $unit = $pre }
+    }
+    $blocks = foreach ($it in $Items) { "$rootIndent$unit" + (ConvertTo-JsoncValueText $it "$rootIndent$unit" $unit $nl) }
+    $member = "$(ConvertTo-JsonString $Name): [$nl$($blocks -join ",$nl")$nl$rootIndent]"
+    if ($ms.Count -gt 0) { $at = $ms[$ms.Count - 1].value.end; return $Text.Substring(0, $at) + ",$nl$rootIndent" + $member + $Text.Substring($at) }
+    $at = $root.start + 1
+    return $Text.Substring(0, $at) + "$nl$rootIndent$member$nl" + $Text.Substring($at)
+  }
+  if ($list.type -ne 'array') { throw "settings.json: '$Name' is not an array" }
+  if ($list.items.Count -gt 0) {
+    $last = $list.items[$list.items.Count - 1]
+    $indent = $Text.Substring((& $lineStart $last.start), $last.start - (& $lineStart $last.start))
+    if ($indent.Trim()) { $indent = '' }
+    $m = [regex]::Match($Text.Substring($last.start, $last.end - $last.start), '\n([ \t]+)"')
+    if ($m.Success -and $m.Groups[1].Value.Length -gt $indent.Length) { $unit = $m.Groups[1].Value.Substring($indent.Length) }
+  } else {
+    $ls = & $lineStart $list.start
+    $indent = [regex]::Match($Text.Substring($ls, $list.start - $ls), '^[ \t]*').Value + $unit
+  }
+  $joined = @(foreach ($it in $Items) { $indent + (ConvertTo-JsoncValueText $it $indent $unit $nl) }) -join ",$nl"
+  if ($list.items.Count -gt 0) {
+    $at = $list.items[$list.items.Count - 1].end
+    return $Text.Substring(0, $at) + ",$nl" + $joined + $Text.Substring($at)
+  }
+  $closeIndent = $indent.Substring(0, $indent.Length - $unit.Length)
+  $Text.Substring(0, $list.start + 1) + $nl + $joined + $nl + $closeIndent + $Text.Substring($list.end - 1)
+}
+
+# text without the top-level member $Name (the inverse of Add-JsoncArrayItemsText creating it)
+function Remove-JsoncMemberText([string]$Text, [string]$Name) {
+  $ms = (ConvertFrom-Jsonc $Text).members
+  for ($k = 0; $k -lt $ms.Count; $k++) {
+    if ($ms[$k].key -ne $Name) { continue }
+    if ($k -gt 0) { $a = $ms[$k - 1].value.end; $b = $ms[$k].value.end }
+    elseif ($ms.Count -gt 1) { $a = $ms[0].keyStart; $b = $ms[1].keyStart }
+    else { $a = $ms[0].keyStart; $b = $ms[0].value.end }
+    return $Text.Remove($a, $b - $a)
+  }
+  $Text
+}
+
+function Test-PokeshellHotkeyNode($Item) {
+  if ($Item.type -ne 'object') { return $false }
+  $id = Get-JsoncMember $Item 'id'
+  [bool]($id -and $id.type -eq 'string' -and $id.value -eq $PokeshellBinderActionId)
+}
+
+# settings text without the binder hotkey; -DropEmptyActions: also the "actions" array if the install created it
+function Remove-PokeshellHotkeyText([string]$Text, [switch]$DropEmptyActions) {
+  $t = Remove-JsoncArrayItemsText $Text 'keybindings' { param($i) Test-PokeshellHotkeyNode $i }
+  $t = Remove-JsoncArrayItemsText $t 'actions' { param($i) Test-PokeshellHotkeyNode $i }
+  if ($DropEmptyActions -and -not $t.Equals($Text)) {
+    $a = Get-JsoncMember (ConvertFrom-Jsonc $t) 'actions'
+    if ($a -and $a.type -eq 'array' -and $a.items.Count -eq 0) { $t = Remove-JsoncMemberText $t 'actions' }
+  }
+  $t
+}
+
+function ConvertTo-PokeshellKeys([string]$Keys) { ((($Keys -replace '\s', '').ToLower() -split '\+') | Sort-Object) -join '+' }
+
+<#
+Settings text with the binder hotkey: an action that splits the pane vertically (wt -w 0 sp -V <binder.exe>) bound to
+$Keys. Throws if another action already uses those keys. Returns @{ text; created } (created: "actions" was added).
+#>
+function Add-PokeshellHotkeyText([string]$Text, [string]$CommandLine, [string]$Keys = 'ctrl+shift+b') {
+  $Text = Remove-PokeshellHotkeyText $Text
+  $root = ConvertFrom-Jsonc $Text
+  $want = ConvertTo-PokeshellKeys $Keys
+  foreach ($arr in 'keybindings', 'actions') {
+    $list = Get-JsoncMember $root $arr
+    if (-not $list -or $list.type -ne 'array') { continue }
+    foreach ($it in $list.items) {
+      $k = Get-JsoncMember $it 'keys'
+      $ks = if ($k -and $k.type -eq 'string') { @($k.value) } elseif ($k -and $k.type -eq 'array') { @($k.items | Where-Object type -eq 'string' | ForEach-Object value) } else { @() }
+      foreach ($x in $ks) {
+        if ((ConvertTo-PokeshellKeys $x) -eq $want) {
+          $id = Get-JsoncMember $it 'id'
+          throw "$Keys is already bound in settings.json$(if ($id) { " (to $($id.value))" }); pick other keys with -Keys"
+        }
+      }
+    }
+  }
+  $action = [ordered]@{ command = [ordered]@{ action = 'splitPane'; split = 'vertical'; commandline = $CommandLine; tabTitle = 'binder' }; id = $PokeshellBinderActionId }
+  $created = -not (Get-JsoncMember $root 'actions')
+  $kb = Get-JsoncMember $root 'keybindings'
+  if ($kb -and $kb.type -eq 'array') {
+    $Text = Add-JsoncArrayItemsText $Text 'actions' @($action)
+    $Text = Add-JsoncArrayItemsText $Text 'keybindings' @([ordered]@{ keys = $Keys; id = $PokeshellBinderActionId })
+  } else {
+    $action['keys'] = $Keys
+    $Text = Add-JsoncArrayItemsText $Text 'actions' @($action)
+  }
+  @{ text = $Text; created = $created }
 }

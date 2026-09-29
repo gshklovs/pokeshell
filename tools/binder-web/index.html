@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pokeshell Binder</title>
+<meta name="description" content="Every card pulled by pokeshell tabs, sleeved in a three-ring binder.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Caveat:wght@500;700&family=Fredoka:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================================ tokens */
+:root {
+  color-scheme: light;
+  --desk: #eadcc3;
+  --desk-2: #e2d0b0;
+  --desk-dot: rgba(120, 84, 40, .10);
+  --ink: #2b2231;
+  --ink-soft: #6c5d58;
+  --paper: #fbf8f1;
+  --paper-2: #f1ebdd;
+  --paper-edge: #d9cfbb;
+  --pocket-bg: rgba(255, 255, 255, .38);
+  --pocket-line: rgba(95, 78, 60, .22);
+  --pocket-gloss: rgba(255, 255, 255, .55);
+  --sil: rgba(70, 55, 45, .16);
+  --ghost-line: rgba(90, 72, 60, .28);
+  --ghost-ink: rgba(90, 72, 60, .55);
+  --cover: #d23a3f;
+  --cover-2: #9c2027;
+  --cover-stitch: rgba(255, 230, 200, .55);
+  --ring-1: #f4f5f7; --ring-2: #9aa1ab; --ring-3: #5b626c;
+  --chip: rgba(255, 255, 255, .6);
+  --chip-line: rgba(80, 60, 40, .16);
+  --shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 18px 40px -18px rgba(60, 36, 12, .55), 0 4px 10px -4px rgba(60, 36, 12, .35);
+  --accent: #e3350d;
+  --focus: #2f7cf6;
+  --modal-bg: rgba(40, 26, 18, .45);
+  --panel: #fffdf8;
+  --panel-line: rgba(80, 60, 40, .14);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --desk: #17151f; --desk-2: #1d1a28; --desk-dot: rgba(160, 150, 220, .07);
+    --ink: #efe9f7; --ink-soft: #a79fb8;
+    --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
+    --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
+    --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .18); --ghost-ink: rgba(215, 205, 255, .42);
+    --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
+    --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
+    --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
+    --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 22px 50px -18px rgba(0, 0, 0, .8), 0 4px 12px -4px rgba(0, 0, 0, .6);
+    --modal-bg: rgba(6, 5, 12, .66); --panel: #221f2b; --panel-line: rgba(255, 255, 255, .08);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --desk: #17151f; --desk-2: #1d1a28; --desk-dot: rgba(160, 150, 220, .07);
+  --ink: #efe9f7; --ink-soft: #a79fb8;
+  --paper: #2a2833; --paper-2: #24222c; --paper-edge: #15141b;
+  --pocket-bg: rgba(255, 255, 255, .045); --pocket-line: rgba(220, 210, 255, .13); --pocket-gloss: rgba(255, 255, 255, .16);
+  --sil: rgba(215, 205, 255, .10); --ghost-line: rgba(215, 205, 255, .18); --ghost-ink: rgba(215, 205, 255, .42);
+  --cover: #b3313a; --cover-2: #6d151d; --cover-stitch: rgba(255, 210, 190, .35);
+  --ring-1: #d7dbe2; --ring-2: #7d8591; --ring-3: #3f454e;
+  --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .1);
+  --shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 22px 50px -18px rgba(0, 0, 0, .8), 0 4px 12px -4px rgba(0, 0, 0, .6);
+  --modal-bg: rgba(6, 5, 12, .66); --panel: #221f2b; --panel-line: rgba(255, 255, 255, .08);
+}
+
+@property --px { syntax: '<number>'; inherits: true; initial-value: .5; }
+@property --py { syntax: '<number>'; inherits: true; initial-value: .5; }
+
+/* ================================================================ page chrome */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100svh; color: var(--ink);
+  font: 500 15px/1.4 Fredoka, system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 1px 1px, var(--desk-dot) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(120% 60% at 50% 0%, var(--desk) 0%, var(--desk-2) 100%);
+  background-color: var(--desk);
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.wrap { width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+header.top {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 0 6px;
+}
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
+.brand__ball { width: 34px; height: 34px; flex: none; }
+.brand h1 { margin: 0; font: 700 22px/1 Silkscreen, monospace; letter-spacing: .5px; }
+.brand p { margin: 2px 0 0; font-size: 13px; color: var(--ink-soft); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 10px; border-radius: 999px;
+  background: var(--chip); border: 1px solid var(--chip-line); font-size: 13px; white-space: nowrap;
+}
+.chip b { font-size: 15px; font-weight: 700; }
+.iconbtn {
+  border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; height: 32px; min-width: 32px;
+  padding: 0 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;
+}
+.iconbtn:hover { background: color-mix(in oklab, var(--chip) 60%, var(--accent) 12%); }
+
+/* ---------------------------------------------------------------- recent strip */
+.recent { margin: 6px 0 10px; }
+.recent__head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 2px; }
+.recent__head h2 { margin: 0; font: 700 16px/1.2 Fredoka; }
+.recent__head span { font: 600 17px/1 Caveat, cursive; color: var(--ink-soft); }
+.recent__rail {
+  display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; padding: 16px 6px 10px; scroll-snap-type: x proximity;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 28px), transparent);
+          mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 28px), transparent);
+  scrollbar-width: thin;
+}
+.recent__item { flex: none; width: 70px; scroll-snap-align: start; text-align: center; }
+.recent__item .card { transform: rotate(var(--r, 0deg)); transition: transform .25s cubic-bezier(.3,1.6,.5,1); }
+.recent__item:hover .card { transform: rotate(0deg) translateY(-6px) scale(1.06); }
+.recent__when { display: block; margin-top: 6px; font: 600 15px/1 Caveat, cursive; color: var(--ink-soft); white-space: nowrap; }
+.recent__item.is-new .recent__when { color: var(--accent); }
+
+/* ================================================================ binder stage */
+.stage { position: relative; display: flex; flex-direction: column; align-items: center; padding: 34px 0 18px; overflow: clip; }
+.binder {
+  --pw: min(calc((100vw - 90px) / 2), 540px, calc((100svh - 120px) * .76));
+  position: relative; width: calc(var(--pw) * 2 + 24px); transition: transform .9s cubic-bezier(.6,.05,.25,1);
+}
+.binder.is-single { --pw: min(calc(100vw - 32px - 10px), 520px); width: calc(var(--pw) + 10px); }
+.binder.is-closed:not(.is-single) { transform: translateX(calc(-1 * (var(--pw) / 2 + 6px))); }
+
+/* the back board: the binder's open covers behind the pages */
+.board {
+  position: absolute; inset: -12px -12px -14px -12px; border-radius: 16px;
+  background:
+    repeating-linear-gradient(35deg, rgba(255,255,255,.035) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, var(--cover), var(--cover-2));
+  box-shadow: var(--shadow), inset 0 0 0 2px rgba(0,0,0,.12);
+  transition: opacity .3s;
+}
+.board::before { /* stitching */
+  content: ""; position: absolute; inset: 7px; border-radius: 11px; border: 1.5px dashed var(--cover-stitch); pointer-events: none;
+}
+.binder:not(.is-single) .board::after { /* spine */
+  content: ""; position: absolute; top: 0; bottom: 0; left: calc(50% - 16px); width: 32px;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(255,255,255,.1) 45%, rgba(0,0,0,.28));
+}
+.binder.is-closed .board { opacity: 0; }
+
+.spread { position: relative; display: flex; gap: 24px; perspective: 2400px; z-index: 1; }
+.binder.is-single .spread { gap: 0; padding-left: 10px; }
+.slot-page { position: relative; width: var(--pw); aspect-ratio: .76; }
+.binder.is-closed .slot-page.left { visibility: hidden; }
+.binder.is-single .slot-page.left { display: none; }
+
+/* ---------------------------------------------------------------- dividers (tabs) */
+.dividers {
+  position: absolute; top: -34px; right: 8px; display: flex; gap: 4px; z-index: 0; align-items: flex-end;
+}
+.binder.is-single .dividers { left: 20px; right: 0; }
+.binder.is-closed .dividers { opacity: 0; pointer-events: none; }
+.tab {
+  --tc: #ffcb05; --tk: #3b2b00;
+  position: relative; border: 0; cursor: pointer; padding: 7px 12px 14px; margin-bottom: -8px;
+  border-radius: 10px 10px 0 0; background: linear-gradient(180deg, color-mix(in oklab, var(--tc) 85%, #fff), var(--tc));
+  color: var(--tk); font: 700 13.5px/1 Fredoka; white-space: nowrap; transition: transform .2s, margin .2s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 -2px 6px -2px rgba(0,0,0,.25);
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+}
+.tab small { font: 700 11px/1 Silkscreen, monospace; opacity: .75; }
+.tab:hover { transform: translateY(-3px); }
+.tab[aria-selected="true"] { margin-bottom: -2px; padding-bottom: 18px; z-index: 2; }
+.tab--pokemon { --tc: #ffcb05; --tk: #3a2a00; }
+.tab--onepiece { --tc: #e3a55a; --tk: #3b1f0a; }
+.tab--pokedex { --tc: #4f9be8; --tk: #06223f; }
+
+/* ---------------------------------------------------------------- pages */
+.page {
+  position: absolute; inset: 0; border-radius: 6px; overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05)),
+    var(--paper);
+  box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 0 0 1px var(--paper-edge);
+  padding: 4.2% 4% 6.5%;
+  display: flex; flex-direction: column;
+}
+.page.left { padding-right: 9.5%; border-radius: 6px 3px 3px 6px; }
+.page.right { padding-left: 9.5%; border-radius: 3px 6px 6px 3px; }
+.binder.is-single .page { padding-left: 11%; padding-right: 3.5%; }
+.page__holes { position: absolute; top: 0; bottom: 0; width: 7%; pointer-events: none; }
+.page.left .page__holes { right: 1.5%; }
+.page.right .page__holes, .binder.is-single .page__holes { left: 1.5%; right: auto; }
+.page__holes i {
+  position: absolute; left: 50%; width: 46%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+  background: var(--desk-2); box-shadow: inset 0 2px 3px rgba(0,0,0,.35);
+}
+.page__holes i:nth-child(1) { top: 14%; } .page__holes i:nth-child(2) { top: 50%; } .page__holes i:nth-child(3) { top: 86%; }
+.page__folio {
+  position: absolute; bottom: 1.6%; font: 600 16px/1 Caveat, cursive; color: var(--ghost-ink);
+}
+.page.left .page__folio { left: 5%; } .page.right .page__folio, .binder.is-single .page__folio { right: 5%; left: auto; }
+.page__label { position: absolute; bottom: 1.6%; left: 50%; transform: translateX(-50%); font: 700 10px/1 Silkscreen, monospace; letter-spacing: 1px; color: var(--ghost-ink); white-space: nowrap; }
+
+.pockets { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2.4%; min-height: 0; }
+.page--dex .pockets { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 1.8%; }
+
+.pocket {
+  position: relative; min-width: 0; min-height: 0; border-radius: 4px; display: grid; place-items: center; padding: 5%;
+  background: linear-gradient(180deg, var(--pocket-bg), color-mix(in oklab, var(--pocket-bg) 40%, transparent));
+  box-shadow: inset 0 0 0 1px var(--pocket-line), inset 0 -8px 12px -10px rgba(0,0,0,.18);
+}
+.pocket::before { /* sleeve opening + thumb notch */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 9%; z-index: 3; pointer-events: none;
+  border-top: 1px solid color-mix(in oklab, var(--pocket-gloss) 80%, transparent);
+  background: radial-gradient(50% 100% at 50% 0, transparent 0 88%, var(--pocket-line) 90% 96%, transparent 98%) 50% 0 / 30% 100% no-repeat;
+}
+.pocket::after { /* the clear sleeve's gloss, over the card */
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(118deg, transparent 32%, var(--pocket-gloss) 42%, transparent 50%, transparent 74%, color-mix(in oklab, var(--pocket-gloss) 50%, transparent) 78%, transparent 82%);
+  opacity: .55; mix-blend-mode: screen;
+}
+.pocket > .card { width: 100%; max-height: 100%; }
+.pocket > .card { width: min(100%, calc((var(--pw) * .82 / 3 - 12px))); }
+
+/* ---------------------------------------------------------------- empty slot */
+.ghost {
+  container-type: inline-size;
+  position: relative; width: 100%; aspect-ratio: 63 / 88; border-radius: 6% / 4.3%; border: 1.5px dashed var(--ghost-line);
+  display: grid; place-items: center; overflow: hidden; max-height: 100%;
+}
+.ghost__sil {
+  position: absolute; left: 12%; right: 12%; top: 14%; height: 52%;
+  background: var(--sil); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.ghost__sil.atlas { -webkit-mask-size: var(--ms); mask-size: var(--ms); -webkit-mask-position: var(--mp); mask-position: var(--mp); left: 3%; right: 3%; top: 8%; height: 68%; background: color-mix(in oklab, var(--sil) 100%, var(--ghost-ink) 25%); }
+.ghost__q {
+  position: absolute; top: 24%; left: 0; right: 0; text-align: center; font: 700 30cqi/1 Fredoka; color: var(--ghost-ink); opacity: .75;
+}
+.ghost__label {
+  position: absolute; left: 0; right: 0; bottom: 7%; text-align: center; color: var(--ghost-ink);
+  font: 700 13cqi/1.05 Caveat, cursive; padding: 0 6%;
+}
+.ghost__label small { display: block; font: 700 7.5cqi/1.2 Silkscreen, monospace; opacity: .8; }
+
+/* ================================================================ cards */
+.card {
+  --tilt: 0; --lift: 0;
+  container-type: inline-size;
+  position: relative; display: block; width: 100%; aspect-ratio: 63 / 88; border: 0; padding: 0; margin: 0;
+  background: none; cursor: pointer; border-radius: 5.5% / 4%; perspective: 700px; -webkit-tap-highlight-color: transparent;
+}
+.card__inner {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden; transform-style: preserve-3d;
+  transform: translateY(calc(var(--lift) * -4%)) rotateX(calc((var(--py) - .5) * var(--tilt) * -1deg)) rotateY(calc((var(--px) - .5) * var(--tilt) * 1deg));
+  transition: transform .35s cubic-bezier(.2,.8,.3,1), box-shadow .35s;
+  box-shadow: 0 1px 1.5px rgba(0,0,0,.35), 0 3cqi 6cqi -3cqi rgba(0,0,0,.35);
+}
+.card.live .card__inner { transition: transform .08s linear, box-shadow .3s; }
+.pocket .card:hover, .pocket .card:focus-visible { --tilt: 14; --lift: 1; z-index: 5; }
+.pocket .card:hover .card__inner { box-shadow: 0 2px 3px rgba(0,0,0,.3), 0 6cqi 12cqi -4cqi rgba(0,0,0,.45); }
+.card img { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; display: block; }
+.card__face { position: absolute; inset: 0; border-radius: inherit; }
+
+/* ---- pokemon TCG layout */
+.card--tcg .card__face {
+  padding: 4.2cqi;
+  background: linear-gradient(135deg, var(--f0), var(--f1) 25%, var(--f2) 50%, var(--f3, var(--f1)) 75%, var(--f4, var(--f0)));
+}
+.card--tcg .card__panel {
+  position: relative; height: 100%; border-radius: 2.4cqi; overflow: hidden; display: flex; flex-direction: column; gap: 2.2cqi;
+  padding: 2.6cqi 3.6cqi 2.6cqi;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.55), transparent 60%),
+    linear-gradient(175deg, color-mix(in oklab, var(--tint) 28%, #fbf3dc), color-mix(in oklab, var(--tint) 52%, #e9dcbc));
+  color: #221a14;
+}
+.card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 2cqi; min-width: 0; }
+.card__name { font: 700 9.6cqi/1.05 Fredoka; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card__tag { font: 700 5.6cqi/1 Silkscreen, monospace; opacity: .8; white-space: nowrap; }
+.card__art {
+  position: relative; aspect-ratio: 4 / 3.1; border-radius: 1cqi; overflow: hidden; display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 50% 60%, color-mix(in oklab, var(--tint) 30%, #fff) 0%, color-mix(in oklab, var(--tint) 65%, #fff) 55%, color-mix(in oklab, var(--tint) 80%, #444) 120%);
+  box-shadow: 0 0 0 1.4cqi #d9d3c3, 0 0 0 1.9cqi #8c8474, inset 0 0 3cqi rgba(0,0,0,.25);
+  margin: 1.8cqi 1.4cqi 1cqi;
+}
+.card__art img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 1.2cqi 0 rgba(0,0,0,.18)); }
+.card__box {
+  flex: 1; min-height: 0; border-radius: 1.6cqi; padding: 2.6cqi 3.4cqi; display: flex; flex-direction: column; justify-content: center; gap: 1.6cqi;
+  background: rgba(255,255,255,.42); box-shadow: inset 0 0 0 .6cqi rgba(0,0,0,.08);
+  font: 600 6.2cqi/1.15 Fredoka;
+}
+.card__move { display: flex; justify-content: space-between; gap: 2cqi; align-items: baseline; }
+.card__move b { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card__move span { font: 700 5cqi/1 Silkscreen, monospace; opacity: .75; white-space: nowrap; }
+.card__rule { height: .5cqi; background: rgba(0,0,0,.14); border-radius: 1cqi; }
+.card__foot { display: flex; justify-content: space-between; align-items: center; font: 700 4.6cqi/1 Silkscreen, monospace; opacity: .78; }
+.card__foot .rar { font: 700 6cqi/1 Fredoka; letter-spacing: -.3cqi; }
+
+/* full-art (ultra rare / secret rare): the art washes the whole card */
+.card--full .card__panel { color: #fff; background: #222; }
+.card__wash { position: absolute; inset: -20%; background-size: cover; background-position: center; filter: blur(7cqi) saturate(1.5) brightness(.85); transform: scale(1.1); }
+.card--full .card__panel > :not(.card__wash) { position: relative; }
+.card--full .card__name { text-shadow: 0 .6cqi 0 rgba(0,0,0,.45); }
+.card--full .card__art { background: transparent; box-shadow: none; margin: 0 -3.6cqi; aspect-ratio: 3 / 2.05; border-radius: 0; }
+.card--full .card__art img { width: 100%; height: 100%; filter: drop-shadow(0 1cqi 1.6cqi rgba(0,0,0,.35)); }
+.card--full .card__box { background: rgba(10,10,20,.38); box-shadow: inset 0 0 0 .6cqi rgba(255,255,255,.18); backdrop-filter: blur(2px); }
+.card--full .card__rule { background: rgba(255,255,255,.25); }
+.card--secret .card__panel { color: #3b2508; }
+.card--secret .card__wash { filter: blur(7cqi) sepia(1) saturate(2.4) hue-rotate(-8deg) brightness(1.05); }
+.card--secret .card__box { background: rgba(255,240,190,.45); box-shadow: inset 0 0 0 .6cqi rgba(120,80,10,.25); }
+.card--secret .card__name { text-shadow: 0 .5cqi 0 rgba(255,255,255,.5); }
+.card--secret .card__rule { background: rgba(80,50,0,.25); }
+
+/* ---- one piece wanted poster */
+.card--wanted .card__face {
+  clip-path: var(--torn);
+  padding: 5cqi 6.5cqi 4.5cqi;
+  color: var(--ink2);
+  background:
+    radial-gradient(40% 30% at 8% 6%, var(--stain), transparent 70%),
+    radial-gradient(35% 25% at 95% 92%, var(--stain), transparent 70%),
+    radial-gradient(25% 20% at 88% 18%, color-mix(in oklab, var(--stain) 60%, transparent), transparent 70%),
+    radial-gradient(30% 22% at 12% 80%, color-mix(in oklab, var(--stain) 55%, transparent), transparent 70%),
+    repeating-linear-gradient(3deg, rgba(0,0,0,.018) 0 1px, transparent 1px 3px),
+    var(--paper2);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.card--wanted .w-title { font: 400 17.5cqi/.9 'Alfa Slab One', Georgia, serif; letter-spacing: .6cqi; margin-top: .5cqi; }
+.card--wanted .w-art {
+  width: 100%; aspect-ratio: 5 / 4; margin: 2.2cqi 0 1.6cqi; border: 1.1cqi solid var(--ink2); display: grid; place-items: center; overflow: hidden;
+  background: color-mix(in oklab, var(--paper2) 80%, #fff);
+  box-shadow: inset 0 0 0 .6cqi color-mix(in oklab, var(--paper2) 70%, #fff);
+}
+.card--wanted .w-art img { width: 92%; height: 92%; object-fit: contain; }
+.card--wanted .w-art img.fill { width: 100%; height: 100%; object-fit: cover; }
+.card--wanted .w-doa { font: 400 6.4cqi/1 'Alfa Slab One', Georgia, serif; letter-spacing: .8cqi; display: flex; align-items: center; gap: 2cqi; width: 100%; }
+.card--wanted .w-doa::before, .card--wanted .w-doa::after { content: ""; flex: 1; height: .6cqi; background: currentColor; opacity: .6; }
+.card--wanted .w-name { font: 400 8.6cqi/1.02 'Alfa Slab One', Georgia, serif; margin-top: 1.4cqi; letter-spacing: .2cqi; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card--wanted .w-name.long { font-size: 6.6cqi; }
+.card--wanted .w-name.xlong { font-size: 5.3cqi; letter-spacing: 0; }
+.card--wanted .w-bounty { font: 400 9.4cqi/1 'Alfa Slab One', Georgia, serif; margin-top: 1.2cqi; color: var(--accent2); display: flex; align-items: center; gap: 1.4cqi; white-space: nowrap; }
+.card--wanted .w-bounty.long { font-size: 7.4cqi; }
+.card--wanted .w-berry { font: 700 1.05em/1 Georgia, serif; }
+.card--wanted .w-foot { margin-top: auto; width: 100%; display: flex; justify-content: space-between; align-items: center; font: 700 4.6cqi/1 Silkscreen, monospace; }
+.card--wanted .w-foot .rar { color: var(--accent2); font-size: 5.6cqi; }
+.card--gold .card__face {
+  background:
+    radial-gradient(40% 30% at 8% 6%, rgba(120,70,0,.35), transparent 70%),
+    radial-gradient(35% 25% at 95% 92%, rgba(120,70,0,.35), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.0) 0 3cqi, rgba(255,255,255,.18) 3.4cqi, rgba(255,255,255,0) 4cqi 7cqi),
+    linear-gradient(135deg, #c8952e, #f6dc7a 22%, #fff3c4 38%, #e2b24a 55%, #f8e08a 75%, #c8952e);
+}
+.card--manga .card__face {
+  background:
+    radial-gradient(circle, rgba(0,0,0,.13) 32%, transparent 36%) 0 0 / 3.2cqi 3.2cqi,
+    linear-gradient(transparent 60%, rgba(0,0,0,.05)),
+    #ecebe4;
+}
+.card--manga .w-art { background: #fff; }
+
+/* ---- pokedex compact */
+.card--dex .card__face { padding: 3.6cqi; background: linear-gradient(135deg, var(--f0), var(--f1) 25%, var(--f2) 50%, var(--f3, var(--f1)) 75%, var(--f4, var(--f0))); }
+.card--dex .card__panel {
+  height: 100%; border-radius: 2.6cqi; overflow: hidden; display: flex; flex-direction: column; position: relative;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tint) 18%, #fdfbf4), color-mix(in oklab, var(--tint) 42%, #efe7d2));
+  color: #1d1a22;
+}
+.card--dex .dex-art { flex: 1; display: grid; place-items: center; min-height: 0; padding: 6cqi; }
+.card--dex .dex-art img { max-width: 100%; max-height: 100%; width: var(--iw, 90%); object-fit: contain; filter: drop-shadow(0 1.5cqi 0 rgba(0,0,0,.14)); }
+.card--dex .dex-bar { background: rgba(255,255,255,.55); padding: 3.2cqi 4cqi 3.6cqi; display: flex; flex-direction: column; gap: 1.6cqi; }
+.card--dex .dex-no { font: 700 8.6cqi/1 Silkscreen, monospace; opacity: .7; }
+.card--dex .dex-name { font: 700 11cqi/1 Fredoka; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ================================================================ foil */
+.card__shine, .card__glare, .card__sparkle { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.card__glare {
+  background: radial-gradient(farthest-corner circle at calc(var(--px) * 100%) calc(var(--py) * 100%), rgba(255,255,255,.8) 0%, rgba(255,255,255,.25) 18%, rgba(0,0,0,.28) 95%);
+  mix-blend-mode: overlay; opacity: 0; transition: opacity .3s;
+}
+.card:hover .card__glare, .card.live .card__glare, .card.foil .card__glare { opacity: .55; }
+.card.foil:not(.live) .card__glare { opacity: .35; }
+.card.foil { animation: idle var(--idle, 7s) ease-in-out infinite alternate; animation-delay: var(--delay, 0s); }
+.card.live { animation: none; }
+@keyframes idle {
+  0%   { --px: .15; --py: .2; }
+  35%  { --px: .7;  --py: .35; }
+  70%  { --px: .4;  --py: .85; }
+  100% { --px: .9;  --py: .7; }
+}
+@media (prefers-reduced-motion: reduce) { .card.foil { animation: none; } }
+
+.card__shine {
+  --rb: hsl(2 100% 73%) 0%, hsl(45 100% 68%) 5%, hsl(110 85% 68%) 10%, hsl(185 100% 68%) 15%, hsl(235 100% 76%) 20%, hsl(290 100% 75%) 25%, hsl(340 100% 73%) 30%;
+  --pos: calc(var(--px) * 100%) calc(var(--py) * 100%);
+  mix-blend-mode: color-dodge; opacity: .5;
+  filter: brightness(.7) contrast(1.5) saturate(1.2);
+  background: repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 400% 400%;
+}
+.card:hover .card__shine, .card.live .card__shine { opacity: .7; }
+.card--full .card__shine { opacity: .55; }
+
+/* tier defaults (a card whose skin is unknown) */
+.tier-holo .card__shine { opacity: .45; }
+
+/* ---- pokemon skins */
+.skin-starlight .card__shine {
+  background:
+    radial-gradient(circle at 30% 40%, #fff 0 .5cqi, transparent 1cqi) 0 0 / 7cqi 8cqi,
+    radial-gradient(circle at 60% 70%, #fff 0 .35cqi, transparent .8cqi) 2cqi 3cqi / 5cqi 6cqi,
+    repeating-linear-gradient(125deg, var(--rb)) var(--pos) / 360% 360%;
+  filter: brightness(.75) contrast(1.6) saturate(1.3);
+}
+.skin-reverse .card__shine, .skin-galaxy-reverse .card__shine {
+  -webkit-mask: linear-gradient(#000 0 0), linear-gradient(#000 0 0) 50% 33% / 84% 40% no-repeat;
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) exclude, linear-gradient(#000 0 0) 50% 33% / 84% 40% no-repeat;
+  opacity: .75;
+}
+.skin-reverse .card__shine {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.14) 0 .4cqi, transparent .4cqi 1.2cqi),
+    repeating-linear-gradient(100deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-sheen .card__shine {
+  background:
+    linear-gradient(115deg, transparent 35%, rgba(255,255,255,.9) 48%, transparent 58%) calc(var(--px) * 100%) 0 / 300% 100%,
+    repeating-linear-gradient(115deg, hsl(0 90% 70%) 0%, hsl(60 90% 70%) 12%, hsl(180 90% 70%) 24%, hsl(260 90% 75%) 36%, hsl(330 90% 72%) 48%) var(--pos) / 250% 250%;
+  opacity: .45;
+}
+.skin-tinsel .card__shine {
+  background:
+    repeating-linear-gradient(72deg, rgba(255,255,255,.55) 0 .25cqi, transparent .25cqi 1.3cqi),
+    repeating-linear-gradient(-18deg, rgba(0,0,0,.25) 0 1.8cqi, transparent 1.8cqi 3.6cqi),
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  filter: brightness(.8) contrast(1.8) saturate(1.3);
+}
+.skin-water-web .card__shine {
+  background:
+    repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.55) 0 .4cqi, transparent .5cqi 3cqi),
+    repeating-radial-gradient(circle at 75% 70%, rgba(80,160,255,.5) 0 .4cqi, transparent .5cqi 3.4cqi),
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-crosshatch .card__shine {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.4) 0 .35cqi, transparent .35cqi 2.4cqi),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.4) 0 .35cqi, transparent .35cqi 2.4cqi),
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-cracked-ice .card__shine {
+  background: var(--svg-ice) center / 60cqi 60cqi, repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  background-blend-mode: hard-light; opacity: .6;
+}
+.skin-cosmos .card__shine, .skin-galaxy-reverse .card__shine {
+  background:
+    radial-gradient(circle at 20% 30%, #fff 0 .4cqi, transparent .9cqi) 0 0 / 9cqi 10cqi,
+    radial-gradient(30% 25% at 30% 30%, hsl(320 100% 70%), transparent 70%),
+    radial-gradient(35% 28% at 70% 45%, hsl(190 100% 65%), transparent 70%),
+    radial-gradient(30% 25% at 40% 75%, hsl(265 100% 72%), transparent 70%),
+    radial-gradient(25% 20% at 85% 85%, hsl(45 100% 65%), transparent 70%),
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  background-position: 0 0, calc(var(--px) * 40%) calc(var(--py) * 40%), calc(100% - var(--px) * 40%) 0, 0 calc(100% - var(--py) * 40%), var(--pos), var(--pos);
+  opacity: .6;
+}
+.skin-pokeball .card__shine {
+  background: var(--svg-pokeball) 0 0 / 14cqi 14cqi, repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0), linear-gradient(#000 0 0) 50% 33% / 84% 40% no-repeat;
+  -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) exclude, linear-gradient(#000 0 0) 50% 33% / 84% 40% no-repeat;
+  opacity: .7;
+}
+.skin-masterball .card__shine {
+  --rb: hsl(280 100% 70%) 0%, hsl(320 100% 72%) 8%, hsl(250 100% 75%) 16%, hsl(200 100% 70%) 24%, hsl(280 100% 70%) 32%;
+  background: var(--svg-masterball) 0 0 / 14cqi 14cqi, repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  opacity: .7;
+}
+.skin-radiant .card__shine {
+  background:
+    repeating-linear-gradient(60deg, rgba(255,255,255,.5) 0 .3cqi, transparent .3cqi 3cqi),
+    repeating-linear-gradient(-60deg, rgba(255,255,255,.5) 0 .3cqi, transparent .3cqi 3cqi),
+    radial-gradient(circle, #fff 0 .5cqi, transparent 1.1cqi) 0 0 / 12cqi 12cqi,
+    linear-gradient(115deg, #cfd8e6, #fff, #aab8cc, #fff, #cfd8e6) var(--pos) / 300% 300%;
+  filter: brightness(.75) contrast(1.4);
+}
+.skin-sunpillar .card__shine {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.3) 0 .3cqi, transparent .3cqi 2cqi),
+    repeating-linear-gradient(90deg, hsl(0 100% 72%) 0%, hsl(55 100% 70%) 4%, hsl(130 100% 70%) 8%, hsl(190 100% 70%) 12%, hsl(250 100% 76%) 16%, hsl(320 100% 74%) 20%) calc(var(--px) * 100%) 0 / 400% 100%;
+  opacity: .65;
+}
+.skin-illustration-rare .card__shine {
+  background:
+    repeating-radial-gradient(circle at calc(20% + var(--px) * 30%) 110%, rgba(255,255,255,.45) 0 .3cqi, transparent .35cqi 1.5cqi),
+    repeating-conic-gradient(from 0deg at 80% 20%, rgba(255,255,255,.2) 0 2deg, transparent 2deg 6deg),
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-shiny-vault .card__shine {
+  background:
+    radial-gradient(circle, #fff 0 .3cqi, transparent .6cqi) 0 0 / 3cqi 3.4cqi,
+    radial-gradient(circle, #fff 0 .25cqi, transparent .5cqi) 1.5cqi 1.2cqi / 4cqi 3cqi,
+    linear-gradient(115deg, #c9d2e0, #fff 30%, #d7c9f0 50%, #fff 70%, #c9e6e0) var(--pos) / 300% 300%;
+  filter: brightness(.7) contrast(1.6);
+}
+.skin-rainbow-rare .card__shine {
+  --rb: hsl(350 100% 82%) 0%, hsl(40 100% 80%) 6%, hsl(120 80% 80%) 12%, hsl(190 100% 80%) 18%, hsl(260 100% 84%) 24%, hsl(350 100% 82%) 30%;
+  background:
+    radial-gradient(circle, #fff 0 .3cqi, transparent .7cqi) 0 0 / 3.6cqi 4cqi,
+    repeating-linear-gradient(135deg, var(--rb)) var(--pos) / 300% 300%;
+  mix-blend-mode: hard-light; opacity: .55; filter: none;
+}
+.skin-amazing-rare .card__shine {
+  background:
+    radial-gradient(circle at 12% 88%, rgba(255,255,255,.9) 0 3cqi, transparent 12cqi),
+    repeating-conic-gradient(from calc(var(--px) * 90deg) at 0% 100%, hsl(0 100% 65%) 0deg 6deg, hsl(50 100% 60%) 6deg 12deg, hsl(140 100% 55%) 12deg 18deg, hsl(200 100% 60%) 18deg 24deg, hsl(280 100% 68%) 24deg 30deg);
+  mix-blend-mode: color-dodge; opacity: .5;
+  -webkit-mask: radial-gradient(130% 130% at 0% 100%, #000 30%, transparent 75%); mask: radial-gradient(130% 130% at 0% 100%, #000 30%, transparent 75%);
+}
+.skin-gold .card__shine {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.22) 0 .25cqi, transparent .25cqi 1.4cqi),
+    linear-gradient(115deg, #7a4c0a, #ffe9a0 20%, #b47b1a 40%, #fff3c4 55%, #9a6412 75%, #ffe08a) var(--pos) / 300% 300%;
+  mix-blend-mode: overlay; opacity: .9; filter: none;
+}
+
+/* ---- one piece skins */
+.skin-grand-line-silver .card__shine {
+  background:
+    radial-gradient(circle, rgba(255,255,255,.6) 0 .3cqi, transparent .7cqi) 0 0 / 2.6cqi 2.6cqi,
+    repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-leader-parallel .card__shine {
+  background:
+    repeating-linear-gradient(-30deg, rgba(255,255,255,.5) 0 .5cqi, transparent .5cqi 4cqi),
+    repeating-linear-gradient(60deg, var(--rb)) var(--pos) / 300% 300%;
+}
+.skin-romance-dawn .card__shine {
+  background:
+    repeating-conic-gradient(from 0deg at 50% 105%, rgba(255,210,120,.9) 0 5deg, transparent 5deg 12deg),
+    radial-gradient(60% 45% at 50% 100%, #ff8a3c, transparent 70%),
+    linear-gradient(0deg, #ff6b5a, #ffc46b, #ffe9b0) var(--pos) / 200% 200%;
+  opacity: .5;
+}
+.skin-egghead-neon .card__shine {
+  background:
+    repeating-linear-gradient(0deg, rgba(0,255,240,.6) 0 .3cqi, transparent .3cqi 6cqi),
+    repeating-linear-gradient(90deg, rgba(255,60,200,.6) 0 .3cqi, transparent .3cqi 6cqi),
+    linear-gradient(115deg, #ff3cc8, #3cf0ff, #b06bff, #ff3cc8) var(--pos) / 300% 300%;
+  opacity: .5;
+}
+.skin-devil-fruit .card__shine {
+  background:
+    repeating-radial-gradient(circle at 25% 25%, rgba(190,80,255,.6) 0 .6cqi, transparent .7cqi 3.4cqi),
+    repeating-radial-gradient(circle at 80% 75%, rgba(120,70,255,.55) 0 .6cqi, transparent .7cqi 3.6cqi),
+    repeating-linear-gradient(115deg, hsl(280 100% 70%) 0%, hsl(320 100% 72%) 10%, hsl(200 100% 70%) 20%, hsl(280 100% 70%) 30%) var(--pos) / 300% 300%;
+}
+.skin-jolly-roger .card__shine {
+  background: var(--svg-skull) 0 0 / 16cqi 16cqi, repeating-linear-gradient(115deg, var(--rb)) var(--pos) / 300% 300%;
+  opacity: .6;
+}
+.skin-straw-hat-gold .card__shine, .skin-sp-gold .card__shine, .skin-treasure-rare .card__shine, .skin-don-foil .card__shine {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.2) 0 .3cqi, transparent .3cqi 1.8cqi),
+    repeating-linear-gradient(-45deg, rgba(120,70,0,.2) 0 .3cqi, transparent .3cqi 1.8cqi),
+    linear-gradient(115deg, #8a5a0a, #ffe9a0 20%, #c08a22 40%, #fff3c4 55%, #a8721a 75%, #ffe08a) var(--pos) / 300% 300%;
+  mix-blend-mode: overlay; opacity: .85; filter: none;
+}
+.skin-sp-gold .card__shine { background: radial-gradient(circle, #fff 0 .35cqi, transparent .8cqi) 0 0 / 3cqi 3.2cqi, linear-gradient(115deg, #8a5a0a, #ffe9a0 20%, #c08a22 40%, #fff3c4 55%, #a8721a 75%, #ffe08a) var(--pos) / 300% 300%; }
+.skin-treasure-rare .card__shine { background: radial-gradient(circle, #ff4a6a 0 .5cqi, transparent 1cqi) 0 0 / 11cqi 9cqi, radial-gradient(circle, #fff 0 .35cqi, transparent .8cqi) 2cqi 2cqi / 4cqi 4cqi, linear-gradient(115deg, #8a5a0a, #ffe9a0 20%, #c08a22 40%, #fff3c4 55%, #a8721a 75%, #ffe08a) var(--pos) / 300% 300%; }
+.skin-don-foil .card__shine { background: var(--svg-don) 0 0 / 22cqi 11cqi, linear-gradient(115deg, #8a5a0a, #ffe9a0 20%, #c08a22 40%, #fff3c4 55%, #a8721a 75%, #ffe08a) var(--pos) / 300% 300%; }
+.skin-wano-sakura .card__shine {
+  background: var(--svg-sakura) 0 0 / 15cqi 15cqi, linear-gradient(115deg, #ff9ac8, #fff0f6, #ff6fae, #ffe0ef, #ff9ac8) var(--pos) / 300% 300%;
+  opacity: .6;
+}
+.skin-conqueror-haki .card__shine {
+  background: var(--svg-bolt) 0 0 / 30cqi 30cqi, radial-gradient(circle at var(--pos), #ff2a2a, #3a0010 70%);
+  mix-blend-mode: hard-light; opacity: .45; filter: none;
+}
+.skin-manga-halftone .card__shine {
+  background: radial-gradient(circle, #000 0 30%, transparent 34%) 0 0 / 2.4cqi 2.4cqi, linear-gradient(115deg, #fff, #ccc, #fff) var(--pos) / 300% 300%;
+  mix-blend-mode: overlay; opacity: .5; filter: none;
+}
+.skin-gear5-clouds .card__shine {
+  background:
+    radial-gradient(18% 12% at 20% 25%, #fff, transparent 70%), radial-gradient(22% 14% at 70% 18%, #fff, transparent 70%),
+    radial-gradient(20% 12% at 40% 80%, #fff, transparent 70%), radial-gradient(18% 10% at 85% 70%, #fff, transparent 70%),
+    radial-gradient(40% 30% at calc(var(--px) * 100%) calc(var(--py) * 100%), #fff6c0, transparent 70%),
+    linear-gradient(115deg, #ffe7f7, #e8f4ff, #fff9e0) var(--pos) / 300% 300%;
+  opacity: .5;
+}
+.skin-sunny-wake .card__shine {
+  background: var(--svg-wave) 0 0 / 14cqi 7cqi, linear-gradient(115deg, #3aa0ff, #a8f0ff, #1d6fe0, #c8fbff) var(--pos) / 300% 300%;
+  opacity: .55;
+}
+
+/* ---- badges + stickers */
+.badge-shiny {
+  position: absolute; top: -4%; right: -6%; width: 30%; aspect-ratio: 1; z-index: 6; pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+@keyframes twinkle { 0%, 100% { transform: rotate(-8deg) scale(1); } 50% { transform: rotate(10deg) scale(1.16); } }
+.badge-count {
+  position: absolute; bottom: -3%; right: -5%; z-index: 6; pointer-events: none;
+  min-width: 27%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #ffe57a, #ffb400 70%); color: #4a2a00;
+  font: 700 clamp(9px, 11cqi, 18px)/1 Fredoka; transform: rotate(-10deg);
+  box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.55);
+}
+.badge-new {
+  position: absolute; top: -2.5%; right: -6%; z-index: 7; pointer-events: none; padding: 1.5% 6%;
+  background: linear-gradient(135deg, #ff5fa2, #ff8a5c); color: #fff; border-radius: 3px;
+  font: 700 clamp(8px, 9cqi, 14px)/1.2 Silkscreen, monospace; letter-spacing: .06em; transform: rotate(8deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.card.pending .card__inner { filter: grayscale(.85) contrast(.9) brightness(1.05); opacity: .78; }
+.card.pending::after {
+  content: "pending"; position: absolute; top: 39%; left: -8%; right: -8%; z-index: 6; text-align: center;
+  font: 700 clamp(9px, 11cqi, 17px)/1.5 Caveat, cursive; color: #5b3f00;
+  background: repeating-linear-gradient(90deg, rgba(255, 214, 102, .92) 0 6px, rgba(255, 226, 140, .92) 6px 12px);
+  transform: rotate(-9deg); box-shadow: 0 1px 2px rgba(0,0,0,.2); pointer-events: none;
+}
+
+/* ================================================================ title page (the divider sheet) */
+.page--title { padding-top: 5%; }
+.tp { flex: 1; display: flex; flex-direction: column; gap: 3.2%; container-type: inline-size; min-height: 0; }
+.tp__kicker { font: 700 3.1cqi/1 Silkscreen, monospace; letter-spacing: .3cqi; color: var(--ink-soft); }
+.tp__title { font: 700 11cqi/.95 Fredoka; margin: 0; letter-spacing: -.3cqi; }
+.tp__hero { display: flex; align-items: center; gap: 5cqi; }
+.ring {
+  --p: 0; flex: none; width: 30cqi; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; position: relative;
+  background: conic-gradient(var(--rc, var(--accent)) calc(var(--p) * 1%), color-mix(in oklab, var(--ink) 10%, transparent) 0);
+}
+.ring::before { content: ""; position: absolute; inset: 11%; border-radius: 50%; background: var(--paper); }
+.ring span { position: relative; font: 700 8.4cqi/1 Fredoka; }
+.ring span small { font-size: .45em; }
+.tp__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8cqi 4cqi; flex: 1; }
+.fact b { display: block; font: 700 6.6cqi/1 Fredoka; }
+.fact span { font: 500 3.4cqi/1.2 Fredoka; color: var(--ink-soft); }
+.odds { width: 100%; border-collapse: collapse; font: 500 3.5cqi/1.2 Fredoka; }
+.odds th { text-align: left; font: 700 2.8cqi/1 Silkscreen, monospace; color: var(--ink-soft); padding: 0 0 1.4cqi; font-weight: 400; }
+.odds td { padding: 1.3cqi 0; border-top: 1px dashed var(--ghost-line); vertical-align: middle; }
+.odds td.num { padding-left: 2.4cqi; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.odds .rar { display: inline-block; min-width: 7cqi; font-weight: 700; }
+.bar { height: 2cqi; border-radius: 2cqi; background: color-mix(in oklab, var(--ink) 10%, transparent); overflow: hidden; min-width: 12cqi; }
+.bar i { display: block; height: 100%; border-radius: inherit; background: var(--rc, var(--accent)); }
+.legend { display: flex; flex-wrap: wrap; gap: 1.6cqi 4cqi; font: 500 3.2cqi/1.2 Fredoka; color: var(--ink-soft); margin-top: auto; }
+.legend span { display: inline-flex; align-items: center; gap: 1.4cqi; }
+.legend i { display: inline-block; width: 3.4cqi; height: 4.6cqi; border-radius: .8cqi; }
+.note { font: 600 4.6cqi/1.1 Caveat, cursive; color: var(--ink-soft); }
+.tp__best { display: flex; gap: 3cqi; align-items: flex-end; }
+.tp__best .card { width: 17cqi; flex: none; }
+.tp__best-label { font: 700 2.8cqi/1 Silkscreen, monospace; color: var(--ink-soft); margin-bottom: 1.4cqi; }
+
+.page--title.pk-pokemon { background: linear-gradient(90deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05)), linear-gradient(160deg, color-mix(in oklab, #ffcb05 22%, var(--paper)), var(--paper) 60%); --rc: #e3350d; }
+.page--title.pk-onepiece { --rc: #b3261e; }
+.page--title.pk-pokedex { background: linear-gradient(90deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05)), linear-gradient(160deg, color-mix(in oklab, #4f9be8 22%, var(--paper)), var(--paper) 60%); --rc: #2a6fd0; }
+
+/* one piece pages: wanted-poster parchment */
+.page.pk-onepiece {
+  --ghost-ink: rgba(90, 55, 25, .6); --ghost-line: rgba(110, 70, 30, .32); --sil: rgba(90, 55, 25, .2); --pocket-line: rgba(110, 70, 30, .3); --ink: #3b2616; --ink-soft: #7a5a3c; --paper: #efe0bb;
+  color: #3b2616;
+  background:
+    radial-gradient(60% 40% at 0% 0%, rgba(150, 100, 40, .28), transparent 70%),
+    radial-gradient(50% 35% at 100% 100%, rgba(150, 100, 40, .3), transparent 70%),
+    radial-gradient(30% 20% at 80% 20%, rgba(150, 100, 40, .12), transparent 70%),
+    repeating-linear-gradient(2deg, rgba(90,60,20,.03) 0 1px, transparent 1px 4px),
+    #efe0bb;
+}
+:root[data-theme="dark"] .page.pk-onepiece { filter: brightness(.82) saturate(.95); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .page.pk-onepiece { filter: brightness(.82) saturate(.95); } }
+.page.pk-onepiece .tp__title { font: 400 10.5cqi/.95 'Alfa Slab One', Georgia, serif; letter-spacing: 0; }
+
+/* pokedex pages: compact, on the red device */
+.page.pk-pokedex:not(.page--title) {
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--ink) 10%, transparent) 1px, transparent 1.4px) 0 0 / 12px 12px,
+    var(--paper);
+}
+.page--dex .ghost__q { font-size: 34cqi; top: 22%; }
+.page--dex .ghost__label { font-size: 15cqi; }
+
+/* ================================================================ cover */
+.cover {
+  position: absolute; top: 0; bottom: 0; width: calc(var(--pw) + 12px); right: -12px; z-index: 5;
+  transform-origin: left center; transform-style: preserve-3d; transition: transform 1.05s cubic-bezier(.55,.05,.3,1);
+  cursor: pointer;
+}
+.binder.is-single .cover { right: -12px; width: calc(var(--pw) + 22px); }
+.binder:not(.is-closed) .cover { transform: rotateY(-180deg); pointer-events: none; }
+.binder.cover-gone .cover { visibility: hidden; }
+.cover__front, .cover__back { position: absolute; inset: -12px 0 -14px 0; border-radius: 4px 16px 16px 4px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.cover__front {
+  background:
+    radial-gradient(90% 60% at 30% 20%, rgba(255,255,255,.18), transparent 60%),
+    repeating-linear-gradient(35deg, rgba(255,255,255,.04) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, var(--cover), var(--cover-2));
+  box-shadow: var(--shadow), inset 12px 0 18px -10px rgba(0,0,0,.45), inset 0 0 0 2px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4%; color: #fff4ea; overflow: hidden;
+  container-type: inline-size;
+}
+.cover__front::before { content: ""; position: absolute; inset: 9px 9px 9px 16px; border-radius: 3px 11px 11px 3px; border: 1.5px dashed var(--cover-stitch); }
+.cover__back {
+  transform: rotateY(180deg); border-radius: 16px 4px 4px 16px;
+  background: linear-gradient(200deg, var(--cover), var(--cover-2));
+}
+.cover__back .page { inset: 12px 12px 14px 0; }
+.cover__emblem { width: 44cqi; aspect-ratio: 1; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
+.cover__title { padding: 0 16cqi 0 8cqi; text-align: center; font: 700 8.2cqi/1 Fredoka; letter-spacing: .6cqi; text-shadow: 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.25); text-transform: uppercase; }
+.cover__label {
+  background: #fbf7ee; color: #3a3140; padding: 2.4cqi 6cqi 2cqi; border-radius: 1.4cqi; transform: rotate(-2deg);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.3);
+  font: 700 8cqi/1 Caveat, cursive; text-align: center;
+}
+.cover__label small { display: block; font: 700 2.8cqi/1.4 Silkscreen, monospace; color: #8a7f86; }
+.cover__sticker {
+  position: absolute; top: 7%; right: 9%; padding: 2cqi 3cqi; border-radius: 2cqi; transform: rotate(8deg);
+  font: 700 4cqi/1 Silkscreen, monospace; color: #1b1330;
+  background: linear-gradient(115deg, #ffd1f0, #c8f7ff, #fff3b0, #d7c8ff, #ffd1f0) 0 0 / 300% 300%;
+  animation: stickerShine 5s linear infinite; box-shadow: 0 2px 3px rgba(0,0,0,.3);
+}
+@keyframes stickerShine { to { background-position: 300% 0; } }
+.cover__strap { position: absolute; top: -12px; bottom: -14px; right: 9%; width: 7%; background: linear-gradient(90deg, #2d2630, #4a4150 50%, #2d2630); box-shadow: 0 0 6px rgba(0,0,0,.4); }
+.cover__hint { font: 600 5.4cqi/1 Caveat, cursive; color: rgba(255,240,230,.85); animation: bob 1.8s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+
+/* ---------------------------------------------------------------- rings */
+.rings { position: absolute; top: 0; bottom: 0; left: 50%; width: 60px; transform: translateX(-50%); z-index: 8; pointer-events: none; }
+.binder.is-single .rings { left: 10px; width: 40px; }
+.binder.is-closed .rings { opacity: 0; }
+.rings i {
+  position: absolute; left: 50%; width: 56px; height: 22px; transform: translate(-50%, -50%);
+  border-radius: 12px; border: 5px solid transparent;
+  background: linear-gradient(180deg, var(--ring-1), var(--ring-2) 55%, var(--ring-3)) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+.binder.is-single .rings i { width: 34px; height: 16px; border-width: 4px; }
+.rings i:nth-child(1) { top: 14%; } .rings i:nth-child(2) { top: 50%; } .rings i:nth-child(3) { top: 86%; }
+
+/* ---------------------------------------------------------------- flipping leaf */
+.leaf { position: absolute; top: 0; height: 100%; width: var(--pw); z-index: 6; transform-style: preserve-3d; pointer-events: none; }
+.leaf > .page { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.leaf > .page.back { transform: rotateY(180deg); }
+.leaf__shade { position: absolute; inset: 0; pointer-events: none; border-radius: 6px; background: linear-gradient(90deg, rgba(0,0,0,.0), rgba(0,0,0,.25)); opacity: 0; }
+
+/* ---------------------------------------------------------------- pager */
+.pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; max-width: 100%; }
+.pager__btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--chip-line); background: var(--chip); cursor: pointer;
+  display: grid; place-items: center; font-size: 18px; transition: transform .15s;
+}
+.pager__btn:hover:not(:disabled) { transform: scale(1.08); }
+.pager__btn:disabled { opacity: .35; cursor: default; }
+.pager__label { min-width: 170px; text-align: center; font: 600 20px/1.1 Caveat, cursive; color: var(--ink-soft); }
+.pager__label b { font: 700 14px/1 Fredoka; color: var(--ink); display: block; }
+.scrub[hidden] { display: none; }
+.scrub { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; font-size: 13px; color: var(--ink-soft); }
+.scrub input[type=range] { width: min(360px, 60vw); accent-color: #2a6fd0; }
+.scrub label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.kbd { font: 600 12px/1 Fredoka, system-ui, sans-serif; border: 1px solid var(--chip-line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; }
+.hint .phone-only { display: none; }
+.hint { text-align: center; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 26px; }
+
+/* ================================================================ detail modal */
+dialog.detail {
+  border: 0; padding: 0; background: transparent; color: var(--ink); max-width: min(920px, calc(100vw - 24px)); width: 100%;
+  max-height: calc(100svh - 24px); overflow: visible;
+}
+dialog.detail::backdrop { background: var(--modal-bg); backdrop-filter: blur(5px); }
+dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
+@keyframes pop { from { transform: scale(.92) translateY(10px); opacity: 0; } }
+.detail__box {
+  position: relative; display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 28px; align-items: start;
+  background: var(--panel); border-radius: 22px; padding: 26px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.6); border: 1px solid var(--panel-line);
+  max-height: calc(100svh - 24px); overflow: auto;
+}
+.detail__stage { position: sticky; top: 0; display: grid; place-items: center; padding: 10px 6px 16px; }
+.detail__stage .card { width: min(100%, 330px); --tilt: 0; }
+.detail__stage .card.live { --tilt: 22; }
+.detail__stage .card .card__inner { box-shadow: 0 2px 3px rgba(0,0,0,.25), 0 30px 50px -18px rgba(0,0,0,.55); }
+.detail__swap { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
+.detail__swap button { border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.detail__swap button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.detail__box:focus { outline: none; }
+.detail__close { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--chip-line); background: var(--chip); cursor: pointer; font-size: 18px; z-index: 3; }
+.detail__info { min-width: 0; }
+.d-kicker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 700 11px/1 Silkscreen, monospace; color: var(--ink-soft); letter-spacing: .5px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font: 700 12px/1 Fredoka; letter-spacing: 0; }
+.pill--ok { background: color-mix(in oklab, #1fa35a 18%, transparent); color: color-mix(in oklab, #1fa35a 80%, var(--ink)); }
+.pill--pending { background: color-mix(in oklab, #e0a100 22%, transparent); color: color-mix(in oklab, #b07b00 85%, var(--ink)); }
+.pill--none { background: color-mix(in oklab, var(--ink) 8%, transparent); color: var(--ink-soft); }
+.d-name { font: 700 34px/1.05 Fredoka; margin: 10px 0 2px; letter-spacing: -.5px; }
+.d-sub { color: var(--ink-soft); font-size: 15px; }
+.d-sub .rar { color: var(--ink); font-weight: 700; }
+.d-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.d-stat { background: color-mix(in oklab, var(--ink) 4%, transparent); border: 1px solid var(--panel-line); border-radius: 14px; padding: 10px 12px; }
+.d-stat b { display: block; font: 700 24px/1.1 Fredoka; }
+.d-stat span { font-size: 12px; color: var(--ink-soft); }
+.d-sec { margin: 18px 0 0; }
+.d-sec h3 { font: 700 11px/1 Silkscreen, monospace; letter-spacing: .6px; color: var(--ink-soft); margin: 0 0 8px; font-weight: 400; }
+.d-skin { display: flex; gap: 12px; align-items: flex-start; }
+.d-swatch { width: 46px; height: 46px; border-radius: 12px; flex: none; position: relative; overflow: hidden; background: #9aa; }
+.d-swatch .card__shine { opacity: .95 !important; mix-blend-mode: normal; filter: none; }
+.d-skin p { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+.d-skin b { font-size: 15px; }
+.d-odds { width: 100%; border-collapse: collapse; font-size: 14px; }
+.d-odds td { padding: 6px 0; border-top: 1px dashed var(--panel-line); }
+.d-odds td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.d-odds tr.me td { color: var(--accent); }
+.d-pulls { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 190px; overflow: auto; }
+.d-pulls li { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 5px 10px; border-radius: 9px; background: color-mix(in oklab, var(--ink) 4%, transparent); }
+.d-pulls li.hl { outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent); }
+.d-pulls time { font-variant-numeric: tabular-nums; }
+.d-pulls span { color: var(--ink-soft); text-align: right; }
+.d-foot { font-size: 12.5px; color: var(--ink-soft); margin-top: 14px; }
+
+/* ================================================================ responsive */
+@media (max-width: 760px) {
+  header.top { padding-top: 10px; gap: 8px; position: relative; }
+  #themeBtn { position: absolute; top: 12px; right: 0; }
+  .brand { padding-right: 76px; }
+  .hint .desk-only { display: none; }
+  .hint .phone-only { display: inline; }
+  .brand h1 { font-size: 18px; }
+  .chips { width: 100%; }
+  .chip { font-size: 12px; padding: 4px 8px; }
+  .chip b { font-size: 13px; }
+  .recent__item { width: 58px; }
+  .stage { padding-top: 40px; }
+  .tab { padding: 7px 9px 14px; font-size: 12.5px; }
+  .tab small { display: none; }
+  .tab[aria-selected="true"] small { display: inline; }
+  .detail__box { grid-template-columns: 1fr; padding: 18px 16px; gap: 6px; border-radius: 18px; }
+  .detail__stage { position: static; }
+  .detail__stage .card { width: min(72vw, 280px); }
+  .d-name { font-size: 28px; }
+  .d-grid { gap: 6px; }
+  .d-stat b { font-size: 20px; }
+  .pager__label { min-width: 130px; }
+  .rings i { filter: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="brand__ball" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <path fill="#1d1a22" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"/>
+        <path fill="#e3350d" d="M5 2h6v1h2v2h1v2H2V5h1V3h2z"/>
+        <path fill="#fff" d="M2 9h12v2h-1v2h-2v1H5v-1H3v-2H2z"/>
+        <path fill="#ff8a70" d="M4 3h2v1H5v1H4z"/>
+        <path fill="#1d1a22" d="M6 6h4v4H6z"/><path fill="#fff" d="M7 7h2v2H7z"/>
+      </svg>
+      <div>
+        <h1>pokeshell</h1>
+        <p id="subtitle">Trainer binder</p>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <button class="iconbtn" id="themeBtn" type="button" title="Theme: follow system / light / dark" aria-label="Toggle theme">◐ <span id="themeLbl">auto</span></button>
+  </header>
+
+  <section class="recent" aria-labelledby="recentTitle">
+    <div class="recent__head"><h2 id="recentTitle">Fresh pulls</h2><span>newest first, click one to look closer</span></div>
+    <div class="recent__rail" id="recent"></div>
+  </section>
+</div>
+
+<main class="stage">
+  <div class="binder is-closed" id="binder">
+    <div class="board"></div>
+    <nav class="dividers" id="dividers" role="tablist" aria-label="Packs"></nav>
+    <div class="spread" id="spread">
+      <div class="slot-page left" id="leftSlot"></div>
+      <div class="slot-page right" id="rightSlot"></div>
+    </div>
+    <div class="rings" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="cover" id="cover" role="button" tabindex="0" aria-label="Open the binder">
+      <div class="cover__front">
+        <div class="cover__strap"></div>
+        <div class="cover__sticker">pokeshell</div>
+        <svg class="cover__emblem" viewBox="0 0 100 100" aria-hidden="true">
+          <defs><radialGradient id="emb" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity=".15"/></radialGradient></defs>
+          <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,240,230,.85)" stroke-width="5"/>
+          <path d="M4 50h30M66 50h30" stroke="rgba(255,240,230,.85)" stroke-width="5"/>
+          <circle cx="50" cy="50" r="15" fill="none" stroke="rgba(255,240,230,.85)" stroke-width="5"/>
+          <circle cx="50" cy="50" r="7" fill="rgba(255,240,230,.85)"/>
+          <circle cx="50" cy="50" r="46" fill="url(#emb)"/>
+        </svg>
+        <div class="cover__title">Trainer Binder</div>
+        <div class="cover__label" id="coverLabel">My pulls<small>pokeshell · tab pulls</small></div>
+        <div class="cover__hint">tap to open →</div>
+      </div>
+      <div class="cover__back" id="coverBack"></div>
+    </div>
+  </div>
+  <div class="pager" id="pager">
+    <button class="pager__btn" id="prevBtn" type="button" aria-label="Previous page">◀</button>
+    <div class="pager__label" id="pageLbl" aria-live="polite"></div>
+    <button class="pager__btn" id="nextBtn" type="button" aria-label="Next page">▶</button>
+    <div class="scrub" id="scrub" hidden>
+      <input type="range" id="scrubRange" min="0" max="0" value="0" aria-label="Jump to page">
+      <label><input type="checkbox" id="caughtOnly"> caught only</label>
+    </div>
+  </div>
+  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">1</span>–<span class="kbd">3</span> packs · click a card for details</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+</main>
+
+<dialog class="detail" id="detail" aria-labelledby="dName"></dialog>
+
+<script>
+/* The exporter (export.py) swaps the null below for the data when it bakes binder.html. */
+const INLINE_DATA = /*__INLINE_DATA__*/null;
+
+(async function main() {
+  const DATA = INLINE_DATA || await fetch('data.json', { cache: 'no-store' }).then(r => r.json());
+  const $ = (s, el = document) => el.querySelector(s);
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'style' && typeof v === 'object') for (const [sk, sv] of Object.entries(v)) el.style.setProperty(sk, sv);
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else if (k === 'html') el.innerHTML = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+    return el;
+  };
+  const params = new URLSearchParams(location.search);
+
+  /* -------------------------------------------------------------- svg textures for the foils */
+  const svgUrl = s => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--svg-pokeball', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='none' stroke='white' stroke-width='2' opacity='.8'><circle cx='10' cy='10' r='7'/><path d='M3 10h4M13 10h4'/><circle cx='10' cy='10' r='2.5'/><circle cx='30' cy='30' r='7'/><path d='M23 30h4M33 30h4'/><circle cx='30' cy='30' r='2.5'/></g></svg>`));
+  rootStyle.setProperty('--svg-masterball', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='none' stroke='white' stroke-width='2' opacity='.85'><circle cx='10' cy='10' r='7'/><path d='M3 10h14'/><path d='M6 6l2 2 2-3 2 3 2-2' stroke-width='1.2'/><circle cx='30' cy='30' r='7'/><path d='M23 30h14'/><path d='M26 26l2 2 2-3 2 3 2-2' stroke-width='1.2'/></g></svg>`));
+  rootStyle.setProperty('--svg-skull', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='white' opacity='.8'><path d='M10 3a6 6 0 0 0-6 6c0 2 1 3 2 4v2h8v-2c1-1 2-2 2-4a6 6 0 0 0-6-6z'/><path d='M3 15l14 5M17 15L3 20' stroke='white' stroke-width='1.6'/><path d='M30 23a6 6 0 0 0-6 6c0 2 1 3 2 4v2h8v-2c1-1 2-2 2-4a6 6 0 0 0-6-6z'/><path d='M23 35l14 4M37 35l-14 4' stroke='white' stroke-width='1.6'/></g><g fill='black'><circle cx='8' cy='9' r='1.3'/><circle cx='12' cy='9' r='1.3'/><circle cx='28' cy='29' r='1.3'/><circle cx='32' cy='29' r='1.3'/></g></svg>`));
+  rootStyle.setProperty('--svg-sakura', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='white' opacity='.85'>${[0,72,144,216,288].map(a=>`<ellipse cx='10' cy='5.5' rx='2.4' ry='4' transform='rotate(${a} 10 10)'/>`).join('')}${[36,108,180,252,324].map(a=>`<ellipse cx='30' cy='25.5' rx='2.2' ry='3.6' transform='rotate(${a} 30 30)'/>`).join('')}</g></svg>`));
+  rootStyle.setProperty('--svg-don', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 40'><text x='4' y='17' font-family='Georgia,serif' font-weight='900' font-size='14' fill='white' opacity='.75'>DON!!</text><text x='44' y='37' font-family='Georgia,serif' font-weight='900' font-size='14' fill='white' opacity='.75'>DON!!</text></svg>`));
+  rootStyle.setProperty('--svg-wave', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 10q5-6 10 0t10 0 10 0 10 0' fill='none' stroke='white' stroke-width='1.6' opacity='.8'/></svg>`));
+  rootStyle.setProperty('--svg-bolt', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='none' stroke='white' stroke-width='1.6' opacity='.85'><path d='M5 10l20 12-8 6 22 16-6 4 20 14'/><path d='M60 0l-6 18 10 4-8 20 12 6-6 22'/><path d='M100 60l-22 4 4 10-24 4 6 10-20 12'/></g></svg>`));
+  { // cracked ice: random shards
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    let polys = '';
+    for (let i = 0; i < 46; i++) {
+      const x = rnd() * 100, y = rnd() * 100, r = 6 + rnd() * 14, a0 = rnd() * 6.28;
+      const pts = [0, 1, 2].map(k => { const a = a0 + k * 2.1 + rnd() * .6; return `${(x + Math.cos(a) * r).toFixed(1)},${(y + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
+      polys += `<polygon points='${pts}' fill='hsl(0 0% ${Math.round(30 + rnd() * 70)}%)' opacity='${(.35 + rnd() * .5).toFixed(2)}'/>`;
+    }
+    rootStyle.setProperty('--svg-ice', svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>${polys}</svg>`));
+  }
+
+  /* -------------------------------------------------------------- model */
+  const packs = DATA.packs;
+  const packById = Object.fromEntries(packs.map(p => [p.id, p]));
+  for (const p of packs) {
+    p.charById = Object.fromEntries(p.characters.map(c => [c.id, c]));
+    p.tierIdx = Object.fromEntries(p.tiers.map((t, i) => [t.id, i]));
+  }
+  const pulls = DATA.pulls.slice().sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : a.id - b.id);
+  // preview the earned rule: ?pending=N marks the N newest pulls pending
+  const demoPending = Math.max(0, parseInt(params.get('pending') || '0', 10) || 0);
+  if (demoPending) pulls.slice(-demoPending).forEach(p => p.status = 'pending');
+
+  const slotKey = (pack, char, tier) => packById[pack]?.layout === 'dex' ? `${pack}|${char}` : `${pack}|${char}|${tier}`;
+  const slots = new Map();
+  function getSlot(pack, char, tier) {
+    const k = slotKey(pack, char, tier);
+    if (!slots.has(k)) slots.set(k, { key: k, pack, char, tier: packById[pack]?.layout === 'dex' ? null : tier, pulls: [] });
+    return slots.get(k);
+  }
+  for (const p of pulls) {
+    if (!packById[p.pack] || !packById[p.pack].charById[p.char]) continue;
+    getSlot(p.pack, p.char, p.tier).pulls.push(p);
+  }
+  function summarize(slot) {
+    const pk = packById[slot.pack];
+    const got = slot.pulls.filter(p => p.status === 'collected');
+    const pend = slot.pulls.filter(p => p.status === 'pending');
+    const pool = got.length ? got : pend;
+    let tier = slot.tier;
+    if (pk.layout === 'dex' && pool.length) tier = pool.reduce((best, p) => pk.tierIdx[p.tier] > pk.tierIdx[best] ? p.tier : best, pool[0].tier);
+    const inTier = pool.filter(p => p.tier === tier);
+    const shinyOne = [...inTier].reverse().find(p => p.shiny);
+    const show = shinyOne || inTier[inTier.length - 1] || null;
+    return { owned: got.length > 0, pending: !got.length && pend.length > 0, count: got.length, pendingCount: pend.length, isNew: got.some(p => p.new),
+             shiny: pool.some(p => p.shiny), tier, show, all: slot.pulls };
+  }
+
+  function packSlots(pk, caughtOnly) {
+    const out = [];
+    if (pk.layout === 'dex') {
+      for (const c of pk.characters) {
+        const s = slots.get(`${pk.id}|${c.id}`) || { key: `${pk.id}|${c.id}`, pack: pk.id, char: c.id, tier: null, pulls: [] };
+        if (caughtOnly && !s.pulls.length) continue;
+        out.push(s);
+      }
+    } else {
+      for (const t of pk.tiers) for (const c of pk.characters) out.push(slots.get(`${pk.id}|${c.id}|${t.id}`) || { key: `${pk.id}|${c.id}|${t.id}`, pack: pk.id, char: c.id, tier: t.id, pulls: [] });
+    }
+    return out;
+  }
+  function packStats(pk) {
+    const all = packSlots(pk);
+    const sums = all.map(summarize);
+    const filled = sums.filter(s => s.owned).length;
+    const pk_pulls = pulls.filter(p => p.pack === pk.id);
+    const tierFilled = pk.tiers.map(t => pk.layout === 'dex'
+      ? new Set(pk_pulls.filter(p => p.tier === t.id && p.status === 'collected').map(p => p.char)).size
+      : all.filter((s, i) => s.tier === t.id && sums[i].owned).length);
+    return { total: all.length, filled, pct: all.length ? filled / all.length : 0, pulls: pk_pulls.length,
+             collected: pk_pulls.filter(p => p.status === 'collected').length, pending: pk_pulls.filter(p => p.status === 'pending').length,
+             shinies: pk_pulls.filter(p => p.shiny).length, tierFilled };
+  }
+
+  /* -------------------------------------------------------------- formatting */
+  const RAR = {
+    pokemon: { common: '●', holo: '◆', 'rare-holo': '★', 'ultra-rare': '★★', 'secret-rare': '★★★' },
+    onepiece: { common: 'C', 'super-rare': 'SR', 'secret-rare': 'SEC', 'manga-rare': 'MR' },
+  };
+  RAR.pokedex = RAR.pokemon;
+  const rar = (pack, tier) => (RAR[pack] || {})[tier] || '●';
+  const pct = x => x >= .1 ? (x * 100).toFixed(1) + '%' : x >= .001 ? (x * 100).toFixed(2) + '%' : (x * 100).toFixed(3) + '%';
+  const oneIn = x => x > 0 ? '1 in ' + Math.round(1 / x).toLocaleString() : 'never';
+  const titleCase = s => s.replace(/(^|[\s-])\w/g, m => m.toUpperCase());
+  const skinName = id => id ? (DATA.skins[id]?.title ? titleCase(DATA.skins[id].title.toLowerCase()) : titleCase(id.replace(/-/g, ' '))) : null;
+  const when = iso => new Date(iso);
+  const fmtDate = iso => when(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  function ago(iso) {
+    const s = (Date.now() - when(iso).getTime()) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    const d = Math.floor(s / 86400);
+    return d < 30 ? d + 'd ago' : fmtDate(iso);
+  }
+  const hash = s => { let x = 2166136261; for (const ch of s) { x ^= ch.charCodeAt(0); x = Math.imul(x, 16777619); } return (x >>> 0) / 4294967296; };
+
+  /* -------------------------------------------------------------- art */
+  function imgInfo(pack, charId, tier, shiny) {
+    const c = packById[pack].charById[charId];
+    const map = c?.img || {};
+    const k1 = tier + (shiny ? '-shiny' : '');
+    if (map[k1]) return { src: `img/${pack}/${charId}/${k1}.png`, size: map[k1] };
+    if (map[tier]) return { src: `img/${pack}/${charId}/${tier}.png`, size: map[tier] };
+    const any = Object.keys(map)[0];
+    if (any) return { src: `img/${pack}/${charId}/${any}.png`, size: map[any] };
+    const t0 = packById[pack].tiers[0].id;
+    return { src: `img/${pack}/${charId}/${t0}.png`, size: [32, 32] };
+  }
+  const MISSING = svgUrl(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><path fill='#0003' d='M2 1h4v1h1v2H6v1H5v1H3V4h1V3h1V2H3v1H2zM3 7h2v1H3z'/></svg>`).slice(5, -2);
+  function pixImg(info, extra = {}) {
+    const im = h('img', { src: info.src, alt: '', loading: 'lazy', decoding: 'async', draggable: 'false', ...extra });
+    im.addEventListener('error', () => { im.src = MISSING; }, { once: true });
+    return im;
+  }
+
+  /* torn-paper clip paths for wanted posters, seeded per character */
+  function torn(seed) {
+    let s = Math.floor(hash(seed) * 1e9) || 1; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    const pts = [], n = 9, j = 1.6;
+    for (let i = 0; i <= n; i++) pts.push(`${(i / n * 100).toFixed(1)}% ${(r() * j).toFixed(2)}%`);
+    for (let i = 1; i <= n; i++) pts.push(`${(100 - r() * j).toFixed(2)}% ${(i / n * 100).toFixed(1)}%`);
+    for (let i = n - 1; i >= 0; i--) pts.push(`${(i / n * 100).toFixed(1)}% ${(100 - r() * j).toFixed(2)}%`);
+    for (let i = n - 1; i >= 1; i--) pts.push(`${(r() * j).toFixed(2)}% ${(i / n * 100).toFixed(1)}%`);
+    pts[0] = `${(2 + r() * 3).toFixed(1)}% 0%`; // a nibbled corner
+    return `polygon(${pts.join(',')})`;
+  }
+
+  const SPARKLE = `<svg viewBox="0 0 24 24"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9ad5"/></linearGradient></defs><path d="M12 0c1 6 3 9 12 12-9 3-11 6-12 12C11 18 9 15 0 12 9 9 11 6 12 0z" fill="url(#spg)" stroke="#8a5a00" stroke-width=".8"/><path d="M19 1c.3 2 1 3 3 3.3-2 .4-2.7 1-3 3.2-.4-2.2-1-2.8-3.2-3.2 2.2-.3 2.8-1.3 3.2-3.3z" fill="#fff"/></svg>`;
+
+  /**
+   * One card. o = { pack, char, tier, shiny, skin, count, pending, isNew, big }
+   */
+  function cardEl(o) {
+    const pk = packById[o.pack], c = pk.charById[o.char], t = pk.tiers[pk.tierIdx[o.tier]] || pk.tiers[0];
+    const ti = pk.tierIdx[t.id];
+    const foil = ti > 0;
+    const info = imgInfo(o.pack, o.char, t.id, o.shiny);
+    const fc = t.frame.colors || [];
+    const style = { '--tint': c.tint || '#9aa4b0', '--delay': (-hash(o.char + t.id) * 7).toFixed(2) + 's', '--idle': (6 + hash(t.id + o.char) * 4).toFixed(1) + 's' };
+    fc.slice(0, 5).forEach((col, i) => style['--f' + i] = col);
+    const cls = ['card', `tier-${t.id}`];
+    if (foil) cls.push('foil');
+    if (o.skin) cls.push(`skin-${o.skin}`);
+    if (o.pending) cls.push('pending');
+    let face;
+    const label = `${c.name}, ${t.label}${o.shiny ? ', shiny' : ''}${o.count > 1 ? `, ${o.count} copies` : ''}${o.pending ? ', pending' : ''}`;
+
+    if (t.frame.style === 'wanted') {
+      const pal = t.frame.palette;
+      cls.push('card--wanted', pal === 'secret-rare' ? 'card--gold' : pal === 'manga' ? 'card--manga' : 'card--paper');
+      const [paper, stain, ink, accent] = t.frame.colors;
+      Object.assign(style, { '--paper2': paper || '#e8c25a', '--stain': stain ? stain + '99' : 'rgba(120,70,0,.3)', '--ink2': ink, '--accent2': accent, '--torn': torn(o.char + t.id) });
+      const poster = c.poster || c.name.toUpperCase();
+      const bounty = c.bounty || '???';
+      face = h('div', { class: 'card__face' },
+        h('div', { class: 'w-title' }, 'WANTED'),
+        h('div', { class: 'w-art' }, pixImg(info, { class: ti > 0 ? 'fill' : '' })),
+        h('div', { class: 'w-doa' }, 'DEAD OR ALIVE'),
+        h('div', { class: 'w-name' + (poster.length > 18 ? ' xlong' : poster.length > 12 ? ' long' : '') }, poster),
+        h('div', { class: 'w-bounty' + (bounty.length > 11 ? ' long' : '') }, h('span', { class: 'w-berry' }, '฿'), bounty, '-'),
+        h('div', { class: 'w-foot' }, h('span', {}, c.tag || ''), h('span', { class: 'rar' }, rar(o.pack, t.id))));
+    } else if (pk.layout === 'dex') {
+      cls.push('card--dex');
+      const w = info.size?.[0] || 32;
+      face = h('div', { class: 'card__face' },
+        h('div', { class: 'card__panel' },
+          h('div', { class: 'dex-art', style: { '--iw': Math.min(96, Math.max(52, w / 44 * 100)) + '%' } }, pixImg(info)),
+          h('div', { class: 'dex-bar' },
+            h('span', { class: 'dex-no' }, `${c.tag || '#' + String(c.no).padStart(3, '0')} ${rar(o.pack, t.id)}`),
+            h('span', { class: 'dex-name' }, c.name))));
+    } else {
+      const full = t.art === 'fullart' || t.art === 'gold';
+      cls.push('card--tcg');
+      if (full) cls.push('card--full');
+      if (t.art === 'gold') cls.push('card--secret');
+      const skinTxt = o.skin ? skinName(o.skin) : (foil ? t.label : 'Plain tab');
+      face = h('div', { class: 'card__face' },
+        h('div', { class: 'card__panel' },
+          full ? h('div', { class: 'card__wash', style: { 'background-image': `url("${info.src}")` } }) : null,
+          h('div', { class: 'card__head' }, h('span', { class: 'card__name' }, (o.shiny ? '✦ ' : '') + c.name), h('span', { class: 'card__tag' }, c.tag || '')),
+          h('div', { class: 'card__art' }, pixImg(info)),
+          h('div', { class: 'card__box' },
+            h('div', { class: 'card__move' }, h('b', {}, skinTxt), h('span', {}, foil ? 'foil' : 'tab')),
+            h('div', { class: 'card__rule' }),
+            h('div', { class: 'card__move' }, h('b', {}, titleCase(t.label)), h('span', {}, o.count ? '×' + o.count : ''))),
+          h('div', { class: 'card__foot' }, h('span', {}, 'PKSH'), h('span', {}, `${String(c.no).padStart(3, '0')}/${String(pk.characters.length).padStart(3, '0')}`), h('span', { class: 'rar' }, rar(o.pack, t.id)))));
+    }
+    const card = h(o.static ? 'div' : 'button', { class: cls.join(' '), style, type: o.static ? null : 'button', 'aria-label': o.static ? null : label, title: o.static ? null : label },
+      h('div', { class: 'card__inner' }, face, h('div', { class: 'card__shine' }), h('div', { class: 'card__glare' })));
+    if (o.shiny) card.append(h('span', { class: 'badge-shiny', html: SPARKLE }));
+    if (o.count > 1) card.append(h('span', { class: 'badge-count' }, '×' + o.count));
+    if (o.isNew && !o.pending) card.append(h('span', { class: 'badge-new', title: 'new: not viewed in the binder yet' }, 'NEW'));
+    if (!o.static) attachTilt(card);
+    return card;
+  }
+
+  function attachTilt(card) {
+    let raf = 0;
+    const move = e => {
+      const r = card.getBoundingClientRect();
+      const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => { card.style.setProperty('--px', x.toFixed(3)); card.style.setProperty('--py', y.toFixed(3)); });
+    };
+    card.addEventListener('pointerenter', e => { card.classList.add('live'); move(e); });
+    card.addEventListener('pointermove', move);
+    card.addEventListener('pointerleave', () => {
+      card.classList.remove('live'); cancelAnimationFrame(raf);
+      card.style.removeProperty('--px'); card.style.removeProperty('--py');
+    });
+  }
+
+  function ghostEl(slot) {
+    const pk = packById[slot.pack], c = pk.charById[slot.char];
+    const g = h('div', { class: 'ghost', 'aria-label': `Empty: ${c.name}${slot.tier ? ', ' + pk.tiers[pk.tierIdx[slot.tier]].label : ''}`, role: 'img' });
+    if (pk.layout === 'dex' && pk.atlas) {
+      const a = pk.atlas, i = pk.characters.indexOf(c);
+      g.append(h('div', { class: 'ghost__sil atlas', style: {
+        '--m': `url("${a.file}")`, '--ms': `${a.cols * 100}% ${a.rows * 100}%`,
+        '--mp': `${(i % a.cols) / (a.cols - 1) * 100}% ${Math.floor(i / a.cols) / (a.rows - 1) * 100}%` } }));
+      g.append(h('div', { class: 'ghost__label' }, h('small', {}, c.tag || '')));
+    } else {
+      const info = imgInfo(slot.pack, slot.char, pk.tiers[0].id, false);
+      g.append(h('div', { class: 'ghost__sil', style: { '--m': `url("${info.src}")` } }));
+      g.append(h('div', { class: 'ghost__q' }, '?'));
+      const t = pk.tiers[pk.tierIdx[slot.tier]];
+      g.append(h('div', { class: 'ghost__label' }, h('small', {}, `${rar(slot.pack, t.id)} ${c.tag || ''}`), t.label));
+    }
+    return g;
+  }
+
+  function slotCard(slot, extra = {}) {
+    const s = summarize(slot);
+    if (!s.owned && !s.pending) return null;
+    return cardEl({ pack: slot.pack, char: slot.char, tier: s.tier, shiny: s.show?.shiny || false, skin: s.show?.skin,
+                    count: s.count || s.pendingCount, pending: s.pending, isNew: s.isNew, ...extra });
+  }
+
+  /* -------------------------------------------------------------- pages */
+  const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false };
+  const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot');
+  const mq = matchMedia('(max-width: 760px)');
+
+  function pagesFor(pk) {
+    const per = pk.layout === 'dex' ? 16 : 9;
+    const list = packSlots(pk, pk.layout === 'dex' && state.caughtOnly);
+    const pages = [{ kind: 'title', pack: pk.id }];
+    for (let i = 0; i < list.length; i += per) pages.push({ kind: 'pockets', pack: pk.id, slots: list.slice(i, i + per), n: pages.length });
+    if (list.length === 0) pages.push({ kind: 'pockets', pack: pk.id, slots: [], n: 1 });
+    if (!state.single && pages.length % 2) pages.push({ kind: 'blank', pack: pk.id });
+    return pages;
+  }
+
+  function holes() { return h('div', { class: 'page__holes' }, h('i'), h('i'), h('i')); }
+
+  function pageEl(pg, side, idx, total) {
+    const pk = packById[pg.pack];
+    const cls = ['page', side, `pk-${pk.id}`];
+    if (pg.kind === 'title') cls.push('page--title');
+    if (pk.layout === 'dex' && pg.kind === 'pockets') cls.push('page--dex');
+    const el = h('div', { class: cls.join(' ') }, holes());
+    if (pg.kind === 'title') el.append(titlePage(pk));
+    else if (pg.kind === 'pockets') {
+      const per = pk.layout === 'dex' ? 16 : 9;
+      const grid = h('div', { class: 'pockets' });
+      for (let i = 0; i < per; i++) {
+        const slot = pg.slots[i];
+        const pocket = h('div', { class: 'pocket' });
+        if (slot) {
+          const card = slotCard(slot);
+          if (card) { card.addEventListener('click', () => openDetail(slot)); pocket.append(card); }
+          else pocket.append(ghostEl(slot));
+        }
+        grid.append(pocket);
+      }
+      el.append(grid);
+      el.append(h('div', { class: 'page__label' }, pk.name.toUpperCase()));
+    } else {
+      el.append(h('div', { class: 'tp' }, h('div', { class: 'note', style: { margin: 'auto', textAlign: 'center', fontSize: '6cqi' } }, 'room for more…')));
+    }
+    if (idx != null && pg.kind !== 'blank') el.append(h('div', { class: 'page__folio' }, `${idx + 1}`));
+    return el;
+  }
+
+  function titlePage(pk) {
+    const st = packStats(pk);
+    const tp = h('div', { class: 'tp' });
+    const isDex = pk.layout === 'dex';
+    tp.append(h('div', { class: 'tp__kicker' }, isDex ? 'DIVIDER · LOCAL PACK' : 'DIVIDER'));
+    tp.append(h('h2', { class: 'tp__title' }, pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name));
+    const pctv = Math.round(st.pct * 1000) / 10;
+    tp.append(h('div', { class: 'tp__hero' },
+      h('div', { class: 'ring', style: { '--p': Math.max(st.pct * 100, st.filled ? 1.5 : 0) } }, h('span', {}, `${pctv}`, h('small', {}, '%'))),
+      h('div', { class: 'tp__facts' },
+        h('div', { class: 'fact' }, h('b', {}, `${st.filled}/${st.total}`), h('span', {}, isDex ? 'Pokémon caught' : 'card slots filled')),
+        h('div', { class: 'fact' }, h('b', {}, st.pulls), h('span', {}, 'pulls logged')),
+        h('div', { class: 'fact' }, h('b', {}, Math.max(0, st.collected - st.filled)), h('span', {}, 'duplicates')),
+        h('div', { class: 'fact' }, h('b', {}, pk.shiny_chance > 0 ? '✦ ' + st.shinies : '—'), h('span', {}, pk.shiny_chance > 0 ? 'shinies' : 'no shinies here')))));
+    // rarity table
+    const tb = h('tbody');
+    pk.tiers.forEach((t, i) => {
+      const tot = isDex ? pk.characters.length : pk.characters.length;
+      tb.append(h('tr', {},
+        h('td', {}, h('span', { class: 'rar' }, rar(pk.id, t.id)), ' ', t.label),
+        h('td', { class: 'num' }, pct(t.odds)),
+        h('td', { class: 'num' }, oneIn(t.odds)),
+        h('td', { style: { width: '20%', paddingLeft: '5cqi' } }, h('div', { class: 'bar', title: `${st.tierFilled[i]} of ${tot}` }, h('i', { style: { width: Math.max(st.tierFilled[i] ? 4 : 0, st.tierFilled[i] / tot * 100) + '%' } }))),
+        h('td', { class: 'num', style: { paddingLeft: '2cqi' } }, `${st.tierFilled[i]}/${tot}`)));
+    });
+    tp.append(h('table', { class: 'odds' }, h('thead', {}, h('tr', {}, h('th', {}, 'RARITY'), h('th', { style: { textAlign: 'right' } }, 'ODDS'), h('th', { style: { textAlign: 'right' } }, 'PER PULL'), h('th', { colspan: 2, style: { textAlign: 'right' } }, 'GOT'))), tb));
+    // best pulls
+    const best = pulls.filter(p => p.pack === pk.id).sort((a, b) => (pk.tierIdx[b.tier] - pk.tierIdx[a.tier]) || (b.shiny - a.shiny) || (a.time < b.time ? 1 : -1)).slice(0, 4);
+    if (best.length) {
+      const row = h('div', { class: 'tp__best' });
+      for (const b of best) {
+        const card = cardEl({ pack: b.pack, char: b.char, tier: b.tier, shiny: b.shiny, skin: b.skin, pending: b.status === 'pending', isNew: b.new });
+        card.addEventListener('click', () => openDetail(getSlot(b.pack, b.char, b.tier), b));
+        row.append(card);
+      }
+      tp.append(h('div', {}, h('div', { class: 'tp__best-label' }, 'BEST PULLS'), row));
+    }
+    const note = pk.active_packs > 1 ? `pokeshell picks 1 of ${pk.active_packs} packs per tab, so each tab lands here 1 time in ${pk.active_packs}.` : '';
+    tp.append(h('div', { class: 'note' }, (isDex ? 'Compact pages: 16 pockets each. ' : '') + note));
+    tp.append(h('div', { class: 'legend' },
+      h('span', {}, h('i', { style: { background: 'linear-gradient(135deg,#c9a93a,#f4dc6a)' } }), 'collected'),
+      h('span', {}, h('i', { style: { background: 'repeating-linear-gradient(90deg,#ffd666 0 3px,#ffe28c 3px 6px)' } }), 'pending (tab not used yet)'),
+      h('span', {}, h('i', { style: { border: '1.5px dashed var(--ghost-line)' } }), 'empty'),
+      h('span', {}, '✦ shiny'), h('span', {}, '×2 duplicates')));
+    return tp;
+  }
+
+  function currentPages() { return pagesFor(packById[state.pack]); }
+
+  function render() {
+    const pages = currentPages();
+    const pk = packById[state.pack];
+    if (state.single) {
+      state.page = Math.min(state.page, pages.length - 1);
+      rightSlot.replaceChildren(pageEl(pages[state.page], 'right', state.page, pages.length));
+      leftSlot.replaceChildren();
+    } else {
+      state.page = Math.min(state.page - (state.page % 2), pages.length - 2);
+      leftSlot.replaceChildren(pageEl(pages[state.page], 'left', state.page, pages.length));
+      rightSlot.replaceChildren(pageEl(pages[state.page + 1], 'right', state.page + 1, pages.length));
+    }
+    $('#coverBack').replaceChildren(pageEl(pages[0], 'left', 0, pages.length));
+    // tabs
+    for (const b of document.querySelectorAll('.tab')) b.setAttribute('aria-selected', String(b.dataset.pack === state.pack));
+    // pager
+    const step = state.single ? 1 : 2;
+    const n = pages.length;
+    const first = state.page + 1, last = Math.min(n, state.page + step);
+    const lbl = $('#pageLbl');
+    lbl.replaceChildren(h('b', {}, pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name), state.single || first === last ? `page ${first} of ${n}` : `pages ${first}–${last} of ${n}`);
+    const atStart = state.page === 0 && packs[0].id === state.pack;
+    $('#prevBtn').disabled = !state.open;
+    $('#nextBtn').disabled = state.open && state.page + step >= n && packs[packs.length - 1].id === state.pack;
+    const scrub = $('#scrub');
+    scrub.hidden = pk.layout !== 'dex' || !state.open;
+    const r = $('#scrubRange'); r.max = String(Math.max(0, Math.ceil(n / step) - 1)); r.value = String(Math.floor(state.page / step));
+    void atStart;
+  }
+
+  /* -------------------------------------------------------------- flipping */
+  const FLIP_MS = 720;
+  function animateLeaf(leaf, from, to, ms = FLIP_MS) {
+    const shade = leaf.querySelector('.leaf__shade');
+    const a = leaf.animate([{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${to}deg)` }], { duration: ms, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' });
+    if (shade) shade.animate([{ opacity: 0 }, { opacity: .8 }, { opacity: 0 }], { duration: ms, easing: 'ease-in-out' });
+    return a.finished;
+  }
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  async function goTo(packId, page, dir) {
+    if (state.busy) return;
+    const oldPages = currentPages(), oldPage = state.page, oldPack = state.pack;
+    state.pack = packId;
+    const newPages = currentPages();
+    if (state.single) page = Math.max(0, Math.min(page, newPages.length - 1));
+    else page = Math.max(0, Math.min(page - (page % 2), newPages.length - 2));
+    if (packId === oldPack && page === oldPage) { render(); return; }
+    state.page = page;
+    if (reduced || !state.open) { render(); return; }
+    state.busy = true;
+    const spread = $('#spread');
+    try {
+      if (state.single) {
+        const oldEl = pageEl(oldPages[oldPage], 'right', oldPage), newEl = pageEl(newPages[page], 'right', page);
+        const back = h('div', { class: 'page back right' });
+        if (dir > 0) {
+          rightSlot.replaceChildren(pageEl(newPages[page], 'right', page));
+          const leaf = h('div', { class: 'leaf', style: { left: '10px', 'transform-origin': 'left center' } }, oldEl, back, h('div', { class: 'leaf__shade' }));
+          spread.append(leaf);
+          await animateLeaf(leaf, 0, -180);
+          leaf.remove();
+        } else {
+          const leaf = h('div', { class: 'leaf', style: { left: '10px', 'transform-origin': 'left center' } }, newEl, back, h('div', { class: 'leaf__shade' }));
+          spread.append(leaf);
+          await animateLeaf(leaf, -180, 0);
+          leaf.remove();
+        }
+      } else {
+        const gap = 24;
+        if (dir > 0) {
+          // right page lifts and turns onto the left
+          rightSlot.replaceChildren(pageEl(newPages[page + 1], 'right', page + 1));
+          const front = pageEl(oldPages[oldPage + 1], 'right', oldPage + 1);
+          const back = pageEl(newPages[page], 'left back', page);
+          const leaf = h('div', { class: 'leaf', style: { left: `calc(var(--pw) + ${gap}px)`, 'transform-origin': `${-gap / 2}px center` } }, front, back, h('div', { class: 'leaf__shade' }));
+          spread.append(leaf);
+          await animateLeaf(leaf, 0, -180);
+          leftSlot.replaceChildren(pageEl(newPages[page], 'left', page));
+          leaf.remove();
+        } else {
+          leftSlot.replaceChildren(pageEl(newPages[page], 'left', page));
+          const front = pageEl(oldPages[oldPage], 'left', oldPage);
+          const back = pageEl(newPages[page + 1], 'right back', page + 1);
+          const leaf = h('div', { class: 'leaf', style: { left: '0px', 'transform-origin': `calc(100% + ${gap / 2}px) center` } }, front, back, h('div', { class: 'leaf__shade' }));
+          spread.append(leaf);
+          await animateLeaf(leaf, 0, 180);
+          rightSlot.replaceChildren(pageEl(newPages[page + 1], 'right', page + 1));
+          leaf.remove();
+        }
+      }
+    } finally {
+      state.busy = false;
+      render();
+    }
+  }
+
+  function next() {
+    if (!state.open) return openBinder();
+    const n = currentPages().length, step = state.single ? 1 : 2;
+    if (state.page + step < n) return goTo(state.pack, state.page + step, 1);
+    const i = packs.findIndex(p => p.id === state.pack);
+    if (i < packs.length - 1) return goTo(packs[i + 1].id, 0, 1);
+  }
+  function prev() {
+    if (!state.open) return;
+    const step = state.single ? 1 : 2;
+    if (state.page > 0) return goTo(state.pack, state.page - step, -1);
+    const i = packs.findIndex(p => p.id === state.pack);
+    if (i > 0) { const pk = packs[i - 1]; const saved = state.pack; state.pack = pk.id; const n = currentPages().length; state.pack = saved; return goTo(pk.id, n - (state.single ? 1 : 2), -1); }
+    closeBinder();
+  }
+
+  function openBinder() {
+    if (state.open || state.busy) return;
+    state.open = true; state.busy = true;
+    render();
+    binder.classList.remove('is-closed');
+    setTimeout(() => { binder.classList.add('cover-gone'); state.busy = false; render(); }, reduced ? 0 : 1050);
+  }
+  function closeBinder() {
+    if (!state.open || state.busy) return;
+    state.busy = true;
+    binder.classList.remove('cover-gone');
+    requestAnimationFrame(() => { binder.classList.add('is-closed'); state.open = false; });
+    setTimeout(() => { state.busy = false; render(); }, reduced ? 0 : 1050);
+  }
+
+  /* -------------------------------------------------------------- tabs, header, recent */
+  const dividers = $('#dividers');
+  packs.forEach((pk, i) => {
+    const st = packStats(pk);
+    const b = h('button', { class: `tab tab--${pk.id}`, role: 'tab', type: 'button', 'data-pack': pk.id, 'aria-selected': 'false', title: `${pk.name}: ${st.filled}/${st.total} (${pct(st.pct)})` },
+      pk.id === 'pokemon' ? 'Pokémon' : pk.id === 'pokedex' ? 'Pokédex' : pk.name, h('small', {}, Math.round(st.pct * 100) + '%'));
+    b.addEventListener('click', () => {
+      if (!state.open) { state.pack = pk.id; state.page = 0; openBinder(); return; }
+      if (pk.id === state.pack) { if (state.page !== 0) goTo(pk.id, 0, -1); return; }
+      goTo(pk.id, 0, i > packs.findIndex(p => p.id === state.pack) ? 1 : -1);
+    });
+    dividers.append(b);
+  });
+
+  const total = pulls.length;
+  const collected = pulls.filter(p => p.status === 'collected').length;
+  const uniq = [...slots.values()].filter(s => summarize(s).owned).length;
+  const shinies = pulls.filter(p => p.shiny).length;
+  const foils = pulls.filter(p => packById[p.pack] && packById[p.pack].tierIdx[p.tier] > 0).length;
+  $('#chips').append(
+    h('span', { class: 'chip' }, h('b', {}, total), 'pulls'),
+    h('span', { class: 'chip' }, h('b', {}, uniq), 'cards'),
+    h('span', { class: 'chip' }, h('b', {}, foils), 'foils'),
+    h('span', { class: 'chip' }, h('b', {}, '✦ ' + shinies), 'shiny'),
+    collected < total ? h('span', { class: 'chip' }, h('b', {}, total - collected), 'pending') : '');
+  const firstDay = pulls.length ? fmtDate(pulls[0].time) : '';
+  $('#subtitle').textContent = pulls.length ? `Trainer binder · pulling since ${firstDay}` : 'Trainer binder · open a new tab to pull a card';
+  $('#coverLabel').firstChild.textContent = (DATA.owner ? DATA.owner + "'s" : 'My') + ' cards';
+  $('#coverLabel small').textContent = `${total} pulls · ${uniq} cards`;
+
+  const rail = $('#recent');
+  const recent = pulls.slice().reverse().slice(0, 18);
+  recent.forEach((p, i) => {
+    const card = cardEl({ pack: p.pack, char: p.char, tier: p.tier, shiny: p.shiny, skin: p.skin, pending: p.status === 'pending', isNew: p.new });
+    card.addEventListener('click', () => openDetail(getSlot(p.pack, p.char, p.tier), p));
+    const isNew = p.new || Date.now() - when(p.time).getTime() < 3600e3;
+    rail.append(h('div', { class: 'recent__item' + (isNew ? ' is-new' : ''), style: { '--r': ((hash(p.time + i) - .5) * 9).toFixed(1) + 'deg' } }, card,
+      h('time', { class: 'recent__when', datetime: p.time, title: fmtDate(p.time) }, ago(p.time))));
+  });
+  if (!recent.length) rail.append(h('p', { class: 'note' }, 'No pulls yet. Open a new Windows Terminal tab!'));
+
+  /* -------------------------------------------------------------- detail */
+  const dlg = $('#detail');
+  function openDetail(slot, focusPull) {
+    const pk = packById[slot.pack], c = pk.charById[slot.char];
+    const s = summarize(slot);
+    const tierId = focusPull?.tier || s.tier || slot.tier || pk.tiers[0].id;
+    const t = pk.tiers[pk.tierIdx[tierId]];
+    const inTier = slot.pulls.filter(p => p.tier === tierId);
+    const got = inTier.filter(p => p.status === 'collected');
+    const hasShiny = inTier.some(p => p.shiny), hasPlain = inTier.some(p => !p.shiny);
+    let showShiny = focusPull ? focusPull.shiny : (s.show?.shiny || false);
+    const skinPull = focusPull || [...inTier].reverse().find(p => p.shiny === showShiny) || inTier[inTier.length - 1];
+    const skin = skinPull?.skin;
+    const status = got.length ? 'collected' : inTier.length ? 'pending' : 'none';
+
+    const stage = h('div', { class: 'detail__stage' });
+    const mkCard = () => cardEl({ pack: slot.pack, char: slot.char, tier: tierId, shiny: showShiny, skin, count: got.length, pending: status === 'pending', isNew: got.some(p => p.new) });
+    let big = mkCard();
+    stage.append(big);
+    if (hasShiny && hasPlain) {
+      const sw = h('div', { class: 'detail__swap' });
+      const b1 = h('button', { type: 'button', 'aria-pressed': String(!showShiny) }, 'Normal');
+      const b2 = h('button', { type: 'button', 'aria-pressed': String(showShiny) }, '✦ Shiny');
+      const set = v => { showShiny = v; b1.setAttribute('aria-pressed', String(!v)); b2.setAttribute('aria-pressed', String(v)); const nb = mkCard(); big.replaceWith(nb); big = nb; };
+      b1.onclick = () => set(false); b2.onclick = () => set(true);
+      sw.append(b1, b2); stage.append(sw);
+    }
+
+    const nameTxt = pk.id === 'onepiece' ? (c.poster || c.name) : c.name;
+    const info = h('div', { class: 'detail__info' });
+    info.append(h('div', { class: 'd-kicker' },
+      h('span', {}, (pk.id === 'pokemon' ? 'POKÉMON' : pk.id === 'pokedex' ? 'POKÉDEX' : pk.name.toUpperCase()) + ` · ${c.tag || '#' + c.no}`),
+      status === 'collected' ? h('span', { class: 'pill pill--ok' }, '✓ collected')
+        : status === 'pending' ? h('span', { class: 'pill pill--pending' }, '⏳ pending: use that tab to keep it')
+        : h('span', { class: 'pill pill--none' }, 'not pulled yet')));
+    info.append(h('h2', { class: 'd-name', id: 'dName' }, (showShiny ? '✦ ' : '') + nameTxt));
+    info.append(h('div', { class: 'd-sub' }, h('span', { class: 'rar' }, rar(pk.id, t.id)), ` ${titleCase(t.label)}`, pk.id === 'onepiece' && c.bounty ? ` · bounty ฿${c.bounty}` : ''));
+    const firstP = inTier[0], lastP = inTier[inTier.length - 1];
+    info.append(h('div', { class: 'd-grid' },
+      h('div', { class: 'd-stat' }, h('b', {}, '×' + inTier.length), h('span', {}, inTier.length === 1 ? 'pulled once' : 'times pulled')),
+      h('div', { class: 'd-stat' }, h('b', {}, firstP ? ago(firstP.time) : '—'), h('span', {}, 'first pulled')),
+      h('div', { class: 'd-stat' }, h('b', {}, oneIn(t.card_odds * (showShiny ? pk.shiny_chance : 1)).replace('1 in ', '1 in ')), h('span', {}, 'odds of this exact card'))));
+
+    // skin
+    const skinSec = h('div', { class: 'd-sec' }, h('h3', {}, 'TAB SKIN'));
+    if (skin) {
+      const sk = DATA.skins[skin] || {};
+      const so = t.skins.find(x => x.id === skin);
+      const sw = h('div', { class: `d-swatch card foil skin-${skin}`, style: { '--px': '.3', '--py': '.4' } }, h('div', { class: 'card__shine' }));
+      skinSec.append(h('div', { class: 'd-skin' }, sw, h('div', {}, h('b', {}, skinName(skin)), so ? h('span', { style: { color: 'var(--ink-soft)', fontSize: '13px' } }, ` · ${pct(so.odds)} of pulls`) : null,
+        sk.desc ? h('p', {}, 'Imitates ' + sk.desc) : null)));
+    } else if (pk.tierIdx[t.id] === 0) {
+      skinSec.append(h('div', { class: 'd-skin' }, h('div', { class: 'd-swatch', style: { background: 'linear-gradient(135deg,#3a3a44,#1c1c22)' } }), h('div', {}, h('b', {}, 'Plain tab'), h('p', {}, 'Commons print into your normal terminal colors; foil tiers swap in a holo pixel shader for that tab.'))));
+    } else skinSec.append(h('p', { class: 'd-foot' }, 'No skin recorded for this pull.'));
+    info.append(skinSec);
+
+    // odds
+    const tb = h('tbody');
+    pk.tiers.forEach(tt => tb.append(h('tr', { class: tt.id === t.id ? 'me' : '' }, h('td', {}, `${rar(pk.id, tt.id)} ${tt.label}`), h('td', {}, `${pct(tt.odds)} · ${oneIn(tt.odds)}`))));
+    if (pk.shiny_chance > 0) tb.append(h('tr', { class: showShiny ? 'me' : '' }, h('td', {}, '✦ shiny (any tier)'), h('td', {}, `${pct(pk.shiny_chance)} · ${oneIn(pk.shiny_chance)}`)));
+    const exact = t.card_odds * (showShiny ? pk.shiny_chance : 1);
+    tb.append(h('tr', { class: 'me' }, h('td', {}, `this card: ${c.name}${showShiny ? ' ✦' : ''}, ${t.label}`), h('td', {}, `${oneIn(exact)} pulls`)));
+    if (pk.active_packs > 1) tb.append(h('tr', {}, h('td', {}, `…counting tabs (1 of ${pk.active_packs} packs per tab)`), h('td', {}, `${oneIn(exact / pk.active_packs)} tabs`)));
+    info.append(h('div', { class: 'd-sec' }, h('h3', {}, 'ODDS FROM PACK.JSON'), h('table', { class: 'd-odds' }, tb)));
+
+    // pulls
+    if (inTier.length) {
+      const ul = h('ul', { class: 'd-pulls' });
+      for (const p of [...inTier].reverse()) {
+        const bits = [p.skin ? skinName(p.skin) : 'plain tab'];
+        if (p.shiny) bits.push('✦ shiny');
+        if (p.status === 'pending') bits.push('pending');
+        for (const f of p.flags) if (f.startsWith('denied:')) bits.push(`foil blocked (${f.slice(7)} gate)`);
+        ul.append(h('li', { class: focusPull && p.id === focusPull.id ? 'hl' : '' }, h('time', { datetime: p.time }, fmtDate(p.time)), h('span', {}, bits.join(' · '))));
+      }
+      info.append(h('div', { class: 'd-sec' }, h('h3', {}, `PULL HISTORY (${inTier.length})`), ul));
+    }
+    const otherTiers = pk.layout === 'dex' ? [...new Set(slot.pulls.map(p => p.tier))].filter(x => x !== tierId) : [];
+    if (otherTiers.length) info.append(h('p', { class: 'd-foot' }, `Also pulled as: ${otherTiers.map(x => pk.tiers[pk.tierIdx[x]].label).join(', ')}.`));
+    if (!DATA.earned?.enforced) info.append(h('p', { class: 'd-foot' }, DATA.earned?.note || ''));
+
+    const close = h('button', { class: 'detail__close', type: 'button', 'aria-label': 'Close' }, '✕');
+    close.onclick = () => dlg.close();
+    const box = h('div', { class: 'detail__box', tabindex: '-1' }, close, stage, info);
+    dlg.replaceChildren(box);
+    dlg.showModal();
+    box.focus({ preventScroll: true });
+    // the big card follows the pointer anywhere over the stage too
+    stage.addEventListener('pointermove', e => {
+      const r = big.getBoundingClientRect();
+      big.classList.add('live');
+      big.style.setProperty('--px', Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)).toFixed(3));
+      big.style.setProperty('--py', Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)).toFixed(3));
+    });
+    stage.addEventListener('pointerleave', () => { big.classList.remove('live'); big.style.removeProperty('--px'); big.style.removeProperty('--py'); });
+  }
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+  /* -------------------------------------------------------------- controls */
+  $('#prevBtn').onclick = prev;
+  $('#nextBtn').onclick = next;
+  $('#cover').addEventListener('click', openBinder);
+  $('#cover').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBinder(); } });
+  $('#scrubRange').addEventListener('input', e => {
+    const step = state.single ? 1 : 2, target = +e.target.value * step;
+    if (!state.busy) { state.page = target; render(); }
+  });
+  $('#caughtOnly').addEventListener('change', e => { state.caughtOnly = e.target.checked; state.page = 0; render(); });
+  document.addEventListener('keydown', e => {
+    if (dlg.open || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.matches?.('input, textarea')) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    else if (/^[1-9]$/.test(e.key) && packs[+e.key - 1]) { const pk = packs[+e.key - 1]; if (!state.open) { state.pack = pk.id; state.page = 0; openBinder(); } else if (pk.id !== state.pack) goTo(pk.id, 0, +e.key - 1 > packs.findIndex(p => p.id === state.pack) ? 1 : -1); }
+    else if (e.key === 'Home' && state.open) goTo(state.pack, 0, -1);
+  });
+  // swipe on touch
+  { let x0 = null, y0 = 0;
+    const sp = $('#spread');
+    sp.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    sp.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) (dx < 0 ? next : prev)(); }, { passive: true });
+  }
+
+  // theme toggle: auto -> light -> dark
+  const themes = ['auto', 'light', 'dark'];
+  let theme = 'auto';
+  try { theme = localStorage.getItem('pokeshell-binder-theme') || 'auto'; } catch {}
+  if (params.get('theme')) theme = params.get('theme');
+  const applyTheme = () => { if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; $('#themeLbl').textContent = theme; };
+  applyTheme();
+  $('#themeBtn').onclick = () => { theme = themes[(themes.indexOf(theme) + 1) % 3]; applyTheme(); try { localStorage.setItem('pokeshell-binder-theme', theme); } catch {} };
+
+  function layout() {
+    const single = mq.matches;
+    if (single !== state.single) { state.single = single; binder.classList.toggle('is-single', single); }
+    render();
+  }
+  mq.addEventListener('change', layout);
+  layout();
+
+  // deep links for screenshots / sharing: ?open=1&pack=onepiece&page=2&card=pokemon/pikachu/holo
+  if (params.get('pack') && packById[params.get('pack')]) state.pack = params.get('pack');
+  if (params.get('page')) state.page = +params.get('page') || 0;
+  if (params.get('caught')) { state.caughtOnly = true; $('#caughtOnly').checked = true; }
+  if (params.get('open')) { state.open = true; binder.classList.remove('is-closed'); binder.classList.add('cover-gone'); }
+  render();
+  if (params.get('card')) {
+    const [pp, cc, tt] = params.get('card').split('/');
+    if (packById[pp]?.charById[cc]) openDetail(getSlot(pp, cc, tt || packById[pp].tiers[0].id));
+  }
+})();
+</script>
+</body>
+</html>

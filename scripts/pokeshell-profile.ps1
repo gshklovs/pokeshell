@@ -1,9 +1,10 @@
 # pokeshell $PROFILE hook:  . "<repo>\scripts\pokeshell-profile.ps1"   (pokeshell install prints the line)
-# Defines `pokeshell` and rolls the startup pull on fresh plain tabs. Kept tiny because it runs on every
+# Defines `pokeshell` (and `binder`) and rolls the startup pull on fresh plain tabs. Kept tiny because it runs on every
 # new shell: a common pull is one call into the compiled core (lib\Pokeshell.cs) and one write. Foils,
 # a stale roll cache and the first compile go through lib\roll.ps1. Never throws into your profile;
 # errors go to %LOCALAPPDATA%\pokeshell\errors.log.
 function global:pokeshell { & "$PSScriptRoot\pokeshell.ps1" @args }
+function global:binder { & "$PSScriptRoot\pokeshell.ps1" binder @args }   # the binder app (pokeshell binder)
 & {
   $a = [Environment]::GetCommandLineArgs()
   $d = $env:POKESHELL_HOME; if (-not $d) { $d = "$env:LOCALAPPDATA\pokeshell" }
@@ -16,10 +17,10 @@ function global:pokeshell { & "$PSScriptRoot\pokeshell.ps1" @args }
       $r = $null
       if ([IO.File]::Exists($dll)) {
         [void][Reflection.Assembly]::LoadFile($dll)
-        $r = [Pokeshell.Core]::Startup($root, $d, $env:WT_PROFILE_ID, $a, $lib, -1)
+        $r = [Pokeshell.Core]::Startup($ExecutionContext, $root, $d, $env:WT_PROFILE_ID, $a, $lib, -1)
       }
       $act = 'stale'; if ($r) { $act = $r.Action }
-      if ($act -eq 'common' -or $act -eq 'foil-denied') { $Host.UI.Write($r.Text) }
+      if ($act -eq 'common' -or $act -eq 'foil-denied') { $Host.UI.Write($r.Text) }   # (Startup also hooked the prompt: this tab's first command earns the pull)
       elseif ($act -eq 'foil') { . "$lib\roll.ps1"; [void](Complete-PokeshellPull $r $d) }
       elseif ($act -eq 'stale') { . "$lib\roll.ps1"; [void](Invoke-PokeshellRoll -Root $root -StateDir $d -Argv $a) }   # compile / rebuild, then roll
     }

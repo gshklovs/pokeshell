@@ -20,6 +20,8 @@ $plain = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
 $env:WT_PROFILE_ID = $plain
 if ($Case -eq 'cold') { [IO.File]::Delete("$State\roll.tsv") }
 if ($Case -eq 'foil') { [IO.File]::Delete("$State\spawn-gate.txt") }
+$spawnLog = "$State\dryrun-spawns.log"
+$spawnsBefore = if ([IO.File]::Exists($spawnLog)) { [IO.File]::ReadAllLines($spawnLog).Count } else { 0 }
 $sw = [Diagnostics.Stopwatch]::StartNew()
 if ($Case -eq 'baseline') {
   # no pokeshell at all: the same probe with an empty profile line (PowerShell's own first-statement warm-up)
@@ -31,8 +33,10 @@ if ($Case -eq 'baseline') {
   # the real hook's text with a fresh tab's argv (no arguments) and forced odds substituted in
   . "$State\hook-$Case.ps1"
 }
-$script:action = if ($env:POKESHELL_PULL) { 'foil' } elseif ($env:POKESHELL_ROLLED) { 'rolled' } else { 'skip' }
 $ms = $sw.Elapsed.TotalMilliseconds
+# (every tab that rolls now carries POKESHELL_PULL = its pull id; a foil is the one that (dry-run) opened a tab)
+$spawned = [IO.File]::Exists($spawnLog) -and [IO.File]::ReadAllLines($spawnLog).Count -gt $spawnsBefore
+$script:action = if ($spawned) { 'foil' } elseif ($env:POKESHELL_ROLLED) { 'rolled' } else { 'skip' }
 [Console]::Out.WriteLine("RESULT`t$Case`t$ms`t$script:action")
 '@ | Set-Content $probe
 $hookText = [IO.File]::ReadAllText("$HookRoot\scripts\pokeshell-profile.ps1").Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')")

@@ -298,6 +298,51 @@ function Sync-PokeshellRuntime([string]$Root, [string]$StateDir, [string]$Versio
   $cur
 }
 
+<#
+The binder app (binder\, Rust): $env:POKESHELL_BINDER if set (tests point it at a missing file), else a prebuilt
+bin\binder.exe next to the scripts, else the cargo build in binder\target\release. $null when there is none.
+#>
+function Get-PokeshellBinderExe([string]$Root) {
+  if ($env:POKESHELL_BINDER) { if ([IO.File]::Exists($env:POKESHELL_BINDER)) { return $env:POKESHELL_BINDER } else { return $null } }
+  foreach ($p in (Join-Path $Root 'bin\binder.exe'), (Join-Path $Root 'binder\target\release\binder.exe')) { if ([IO.File]::Exists($p)) { return $p } }
+  $null
+}
+
+# the command line that opens the binder (hotkey pane, pokeshell:// handler); --state only when it isn't the default
+function Get-PokeshellBinderCommand([string]$Exe, [string]$Root, [string]$StateDir, [string]$Extra = '') {
+  $c = "`"$Exe`" --root `"$Root`""
+  if ($env:POKESHELL_HOME) { $c += " --state `"$StateDir`"" }
+  if ($Extra) { $c += " $Extra" }
+  $c
+}
+
+<#
+Register (or remove) the pokeshell:// URL handler under HKCU\Software\Classes\pokeshell, pointing at the binder:
+a click on the card's link opens the binder on that pull. Returns what it does (or would do, with -DryRun) as
+lines "set <key> [<name>] = <value>" / "remove <key>". The binder only accepts pokeshell://binder?pull=<ulid> or
+?card=<pack/char/tier> and opens a read-only view, so a crafted link can't make it do anything else.
+#>
+function Set-PokeshellUrlHandler([string]$Exe, [string]$Root, [string]$StateDir, [switch]$Remove, [switch]$DryRun,
+                                 [string]$Key = 'HKCU:\Software\Classes\pokeshell') {
+  $ops = [Collections.Generic.List[object]]::new()
+  if ($Remove) { $ops.Add(@('remove', $Key)) }
+  else {
+    $cmd = Get-PokeshellBinderCommand $Exe $Root $StateDir '--url "%1"'
+    $ops.Add(@('set', $Key, '', 'URL:pokeshell binder')); $ops.Add(@('set', $Key, 'URL Protocol', ''))
+    $ops.Add(@('set', "$Key\DefaultIcon", '', "`"$Exe`",0")); $ops.Add(@('set', "$Key\shell\open\command", '', $cmd))
+  }
+  foreach ($o in $ops) {
+    if (-not $DryRun) {
+      if ($o[0] -eq 'remove') { if (Test-Path $o[1]) { Remove-Item $o[1] -Recurse -Force } }
+      else {
+        if (-not (Test-Path $o[1])) { [void](New-Item $o[1] -Force) }
+        if ($o[2]) { [void](New-ItemProperty -Path $o[1] -Name $o[2] -Value $o[3] -PropertyType String -Force) } else { Set-Item -Path $o[1] -Value $o[3] }
+      }
+    }
+    if ($o[0] -eq 'remove') { "remove $($o[1])" } else { "set $($o[1]) [$(if ($o[2]) { $o[2] } else { '(default)' })] = $($o[3])" }
+  }
+}
+
 function Get-PokeshellWtSettingsPath {
   $candidates = @(
     (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'),

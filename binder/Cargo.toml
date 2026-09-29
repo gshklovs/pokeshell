@@ -1,0 +1,17 @@
+[package]
+name = "binder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+crossterm = "0.29.0"
+ratatui = "0.30.2"
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -72,6 +72,7 @@ $roll = Get-Content (Join-Path $st 'roll.tsv')
 Assert ($roll[1] -eq "select`tpokemon" -and @($roll | Where-Object { $_ -like 'skin*' }).Count -gt 0) "roll cache rebuilt for pokemon with its installed skins"
 
 Write-Host "3. collection" -ForegroundColor Cyan
+$null = Invoke-Cli earn off   # every pull counts at once (the earned rule has its own tests: test-earned.ps1)
 Import-PokeshellCore $st
 $lines = foreach ($i in 1..300) {
   $env:POKESHELL_ROLLED = $null; $env:POKESHELL_PULL = $null; $env:CARDSHELL_ROLLED = $null
@@ -192,10 +193,10 @@ Update-PokeshellRollCache -Root $fr -StateDir $pst
 $rt = @(Get-Content (Join-Path $pst 'roll.tsv') -Encoding UTF8)
 Assert ($rt -contains "char`tbob`tBob`t`t$bobPoster`t3,000,000,000" -and $rt -contains "char`tnido`tNido`t#029" -and $rt -contains "tier`tmanga-rare`tmanga rare`tcommon`twanted;palette=manga;seed=manga-rare") "roll cache carries poster names, bounties and style frames"
 $r = $null; foreach ($seed in 1..40) { $r = Invoke-Fresh { [Pokeshell.Core]::Roll($fr, $pst, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, $seed, 0, 'x', 'C:\', 'C:\') }; if ($r.Character -eq 'bob') { break } }
-Assert ($r.Action -eq 'common' -and $r.Poster -eq $bobPoster -and $r.Bounty -eq '3,000,000,000' -and $r.Text -eq $wt) "a common pull prints the tier-0 poster (same bytes as PullText)"
+Assert ($r.Action -eq 'common' -and $r.Poster -eq $bobPoster -and $r.Bounty -eq '3,000,000,000' -and $r.Text -eq [Pokeshell.Core]::WithFooter($wt, $r.Id)) "a common pull prints the tier-0 poster (same bytes as PullText, plus the binder footer)"
 $r = $null; foreach ($seed in 1..40) { [IO.File]::Delete((Join-Path $pst 'spawn-gate.txt')); $r = Invoke-Fresh { [Pokeshell.Core]::Roll($fr, $pst, $PlainGuid, @('powershell.exe'), [DateTime]::UtcNow.Ticks, $seed, 1, 'x', 'C:\', 'C:\') }; if ($r.Character -eq 'bob') { break } }
 $cmd = if ($r.WtArgs) { [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($r.WtArgs[-1])) } else { '' }
-Assert ($r.Action -eq 'foil' -and $cmd.Contains("-Frame 'wanted;palette=manga;seed=manga-rare'") -and $cmd.Contains("-Poster '$bobPoster' -Bounty '3,000,000,000'") -and $r.FallbackText -eq $wt) "a foil passes frame, poster name and bounty to the skinned tab; the fallback is the tier-0 poster"
+Assert ($r.Action -eq 'foil' -and $cmd.Contains("-Frame 'wanted;palette=manga;seed=manga-rare'") -and $cmd.Contains("-Poster '$bobPoster' -Bounty '3,000,000,000'") -and $r.FallbackText -eq [Pokeshell.Core]::WithFooter($wt, $r.Id)) "a foil passes frame, poster name and bounty to the skinned tab; the fallback is the tier-0 poster"
 Remove-Item Env:POKESHELL_ROLLED, Env:POKESHELL_PULL, Env:CARDSHELL_ROLLED -ErrorAction SilentlyContinue
 # the One Piece pack (local only): byte-identical to the style-lab prototype's output
 $proto = Join-Path $RepoRoot 'style-lab\op-frames\out'

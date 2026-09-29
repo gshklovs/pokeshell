@@ -16,6 +16,15 @@
 //   4 gate      machine-wide lock file: one spawn per 3 s; a 6th spawn inside 60 s trips a 10-minute breaker
 //   5 install   only skins recorded by `pokeshell install` can drop; nothing installed means no spawns
 //   6 kill      `pokeshell off` (enabled=0) or POKESHELL_DISABLE=1
+//
+// The earned rule (docs/BINDER_SPEC.md): every pull gets an id (a ULID) and is logged `pending`; the tab's first
+// real command earns it (Earn, below: it appends an `earned:<id>` line). pulls.log stays append-only TSV:
+//   pull    time pack character tier art skin shiny flags [id=<ulid> boot=<unix s> key=value...]
+//           flags: comma-separated notes (denied:rate, foil-not-placed:x, dryrun, ...) plus "pending"
+//   event   time earned:<id>   |   time expired:<id>
+// A line without an id (older logs) is earned. A pending pull with no event expires after 24 h, or when its boot
+// session is over (boot= differs from this boot's by more than BootSlackSec). ReadPulls applies these rules;
+// binder/src/data.rs and tools/binder_web.py mirror them.
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -33,11 +42,126 @@ namespace Pokeshell
         public string Poster = "", Bounty = "";   // frame-style texts (pack.json "poster_names", "bounties"): the wanted poster's full name and bounty
         public int Tier;
         public bool Shiny;
-        public string Text = "";          // art + banner to print (common / denied pulls)
-        public string FallbackText = "";  // what to print if opening the foil tab fails
-        public string LogLine = "";
-        public string FallbackLogLine = "";  // the log line if the foil ends up shown here as a common (note appended)
         public string[] WtArgs;
+        public string Id = "";            // the pull id (ULID); also the tab's POKESHELL_PULL
+        public string Earn = "first-command";   // the use rule (config `earn`): first-command | minutes:N | off
+        public long Boot;                 // boot session (unix seconds of the last boot)
+        public long PullTicks;            // UTC ticks of the roll
+
+        // The earned rule's additions are made on the way out, so Roll() sets these as before:
+        //   Text / FallbackText read back with the binder footer (Core.WithFooter) once the pull has an id;
+        //   LogLine / FallbackLogLine are set to the first 8 columns (time .. the flags / note column) and read back
+        //   complete: the pending flag and the id / boot columns added (Core.FinishLine).
+        string text = "", fallbackText = "", logHead = "", fallbackHead = "";
+        /// art + banner to print (common / denied pulls)
+        public string Text { get { return Core.WithFooter(text, Id); } set { text = value ?? ""; } }
+        /// what to print if opening the foil tab fails
+        public string FallbackText { get { return Core.WithFooter(fallbackText, Id); } set { fallbackText = value ?? ""; } }
+        public string LogLine { get { return Core.FinishLine(logHead, "", this); } set { logHead = value ?? ""; } }
+        /// the log line if the foil ends up shown here as a common
+        public string FallbackLogLine { get { return Core.FinishLine(fallbackHead, "", this); } set { fallbackHead = value ?? ""; } }
+        /// the complete pulls.log line with an extra note (dryrun, foil-not-placed:x, ...) before the pending flag
+        public string Line(string extra) { return Core.FinishLine(logHead, extra, this); }
+        public string FallbackLine(string extra) { return Core.FinishLine(fallbackHead, extra, this); }
+    }
+
+    /// <summary>
+    /// The earned rule in the tab that shows a pull: its first real command (anything that lands in Get-History; an
+    /// empty Enter doesn't) appends `earned:&lt;id&gt;` to pulls.log and prints one dim line, once.
+    ///
+    /// How: a PreCommandLookupAction delegate. Whenever the host looks up `prompt` (before every prompt), it hands
+    /// back a small wrapper that checks the history, then runs whatever `prompt` function is defined at that moment,
+    /// so a `function prompt` later in $PROFILE (or an oh-my-posh style prompt) keeps working and doesn't unhook us.
+    /// Every other lookup returns at once. Registering is one call from the $PROFILE hook (a few microseconds; the
+    /// wrapper is only parsed at the first prompt); once the pull is earned or expired the previous action is back.
+    /// </summary>
+    public static class Earn
+    {
+        static string id, stateDir, mode, text, msg;
+        static long ticks;
+        static bool done;
+        static System.Management.Automation.CommandInvocationIntrinsics invoke;
+        static EventHandler<System.Management.Automation.CommandLookupEventArgs> prev, mine;
+        static System.Management.Automation.ScriptBlock wrapper;
+
+        const string WrapperText =
+            "try { $__pokeshellH = Get-History -Count 1; $__pokeshellM = [Pokeshell.Earn]::OnPrompt($(if ($__pokeshellH) { [long]$__pokeshellH.Id } else { 0L })); " +
+            "if ($__pokeshellM) { $Host.UI.WriteLine($__pokeshellM) } } catch { }\n" +
+            "if ($function:prompt) { & $function:prompt } else { \"PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) \" }";
+
+        /// Start watching this tab for the first command. No-op when the rule is off, or already registered here.
+        public static void Register(System.Management.Automation.EngineIntrinsics engine, string pullId, string state, string earnMode,
+                                    long pullUtcTicks, string name, string label, bool shiny)
+        {
+            if (engine != null) Register(engine.InvokeCommand, pullId, state, earnMode, pullUtcTicks, name, label, shiny);
+        }
+
+        /// The $PROFILE hook's path (Core.Startup, which gets $ExecutionContext): no PowerShell call site of its own.
+        public static void Register(System.Management.Automation.EngineIntrinsics engine, Pull r, string state)
+        {
+            try { if (engine != null) Register(engine.InvokeCommand, r.Id, state, r.Earn, r.PullTicks, r.Name, r.Label, r.Shiny); }
+            catch (Exception) { }
+        }
+
+        static void Register(System.Management.Automation.CommandInvocationIntrinsics ic, string pullId, string state, string earnMode,
+                             long pullUtcTicks, string name, string label, bool shiny)
+        {
+            if (ic == null || string.IsNullOrEmpty(pullId) || id != null || Core.EarnMode(earnMode) == "off") return;
+            id = pullId; stateDir = state; mode = earnMode; ticks = pullUtcTicks; done = false; msg = null;
+            text = "\u001b[2m\u2726 " + name + " " + label + (shiny ? " (shiny)" : "") + " added to your binder\u001b[0m";
+            invoke = ic;
+            prev = invoke.PreCommandLookupAction;
+            mine = OnLookup;
+            invoke.PreCommandLookupAction = mine;
+        }
+
+        public static bool Active { get { return id != null && !done; } }
+
+        static void OnLookup(object sender, System.Management.Automation.CommandLookupEventArgs e)
+        {
+            if (prev != null) prev(sender, e);
+            if (done || !string.Equals(e.CommandName, "prompt", StringComparison.OrdinalIgnoreCase)) return;
+            if (wrapper == null) wrapper = System.Management.Automation.ScriptBlock.Create(WrapperText);
+            e.CommandScriptBlock = wrapper;
+            e.StopSearch = true;
+        }
+
+        /// Called by the prompt wrapper with the newest history id (0: nothing run yet). Returns the line to print, or null.
+        public static string OnPrompt(long lastHistoryId)
+        {
+            if (done || id == null) return null;
+            try
+            {
+                long now = DateTime.UtcNow.Ticks;
+                string v = Core.EarnCheck(mode, lastHistoryId, ticks, now);
+                if (v == "wait") return null;
+                done = true;
+                Core.Log(stateDir, "pulls.log", Core.EventLine(v == "earn" ? "earned" : "expired", id, now));
+                msg = v == "earn" ? text : null;
+            }
+            catch (Exception) { done = true; msg = null; }
+            // hand command lookup back as it was
+            if (invoke != null && invoke.PreCommandLookupAction == mine) invoke.PreCommandLookupAction = prev;
+            string m = msg; msg = null;
+            return m;
+        }
+
+        /// tests: forget this process's registration
+        public static void Reset()
+        {
+            if (invoke != null && mine != null && invoke.PreCommandLookupAction == mine) invoke.PreCommandLookupAction = prev;
+            id = null; done = false; msg = null; prev = null; mine = null; invoke = null;
+        }
+    }
+
+    /// One pull as ReadPulls sees it, with the earned rule applied.
+    public class PullRecord
+    {
+        public string Time = "", Pack = "", Character = "", Tier = "", Art = "", Skin = "", Flags = "", Id = "", Card = "";
+        public bool Shiny, New;
+        public bool Derived;               // expired by age / boot session (no expired:<id> line yet)
+        public long Boot;
+        public string Status = "earned";   // earned | pending | expired
     }
 
     public static class Core
@@ -53,7 +177,7 @@ namespace Pokeshell
         public static Dictionary<string, string> ReadConfig(string stateDir)
         {
             var cfg = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            cfg["pack"] = "pokemon"; cfg["enabled"] = "1"; cfg["plain_profiles"] = DefaultPlainProfiles;
+            cfg["pack"] = "pokemon"; cfg["enabled"] = "1"; cfg["plain_profiles"] = DefaultPlainProfiles; cfg["earn"] = "first-command";
             string p = Path.Combine(stateDir, "config.txt");
             if (File.Exists(p))
                 foreach (string line in File.ReadAllLines(p))
@@ -525,6 +649,170 @@ namespace Pokeshell
             return sb.ToString();
         }
 
+        // ---- the earned rule
+
+        public const long ExpireSec = 24 * 3600;   // a pending pull older than this is expired
+        public const long BootSlackSec = 120;      // boot ids of one session differ by clock jitter only
+        const long UnixEpochTicks = 621355968000000000L;
+        const string Crockford = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern ulong GetTickCount64();
+
+        /// This boot session: the unix time (seconds) the machine last booted. Pulls from another session expire.
+        public static long BootId()
+        {
+            try { return (DateTime.UtcNow.Ticks - UnixEpochTicks) / Tps - (long)(GetTickCount64() / 1000UL); }
+            catch (Exception) { return 0; }
+        }
+
+        /// A new pull id: a ULID (48-bit unix ms + 80 random bits, Crockford base32, 26 chars, sorts by time).
+        public static string NewPullId(long utcTicks)
+        {
+            long ms = Math.Max(0, (utcTicks - UnixEpochTicks) / 10000L);
+            byte[] r = Guid.NewGuid().ToByteArray();
+            var c = new char[26];
+            for (int i = 9; i >= 0; i--) { c[i] = Crockford[(int)(ms & 31)]; ms >>= 5; }
+            int bit = 0;
+            for (int i = 10; i < 26; i++)
+            {
+                int v = 0;
+                for (int b = 0; b < 5; b++, bit++) v = (v << 1) | ((r[bit >> 3] >> (7 - (bit & 7))) & 1);
+                c[i] = Crockford[v];
+            }
+            return new string(c);
+        }
+
+        /// UTC ticks encoded in a pull id (0 if it isn't a ULID)
+        public static long PullIdTicks(string id)
+        {
+            if (id == null || id.Length != 26) return 0;
+            long ms = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                int v = Crockford.IndexOf(char.ToUpperInvariant(id[i]));
+                if (v < 0) return 0;
+                ms = ms * 32 + v;
+            }
+            return UnixEpochTicks + ms * 10000L;
+        }
+
+        /// head = the first 8 columns (the flags column may already hold a note); adds the extra note, the pending
+        /// flag (unless the rule is off) and the id / boot columns
+        public static string FinishLine(string head, string extra, Pull p)
+        {
+            var sb = new StringBuilder(head ?? "");
+            bool empty = sb.Length == 0 || sb[sb.Length - 1] == '\t';
+            if (!string.IsNullOrEmpty(extra)) { if (!empty) sb.Append(','); sb.Append(extra); empty = false; }
+            if (p == null || string.IsNullOrEmpty(p.Id)) return sb.ToString();
+            if (EarnMode(p.Earn) != "off") { if (!empty) sb.Append(','); sb.Append("pending"); }
+            return sb.Append("\tid=").Append(p.Id).Append("\tboot=").Append(p.Boot.ToString(CultureInfo.InvariantCulture)).ToString();
+        }
+
+        /// the use rule, normalized: first-command (default) | minutes:N | off
+        public static string EarnMode(string v)
+        {
+            v = (v ?? "").Trim().ToLowerInvariant();
+            if (v == "off" || v == "0" || v == "none") return "off";
+            if (v.StartsWith("minutes:"))
+            {
+                double m;
+                if (double.TryParse(v.Substring(8), NumberStyles.Float, CultureInfo.InvariantCulture, out m) && m >= 0) return "minutes:" + m.ToString(CultureInfo.InvariantCulture);
+            }
+            return "first-command";
+        }
+
+        /// Is a pending pull earned yet? commands = how many commands this tab has run. "earn" | "wait" | "expired".
+        public static string EarnCheck(string mode, long commands, long pullUtcTicks, long nowUtcTicks)
+        {
+            if (pullUtcTicks > 0 && nowUtcTicks - pullUtcTicks > ExpireSec * Tps) return "expired";
+            mode = EarnMode(mode);
+            if (mode == "off") return "earn";
+            if (mode.StartsWith("minutes:"))
+            {
+                double m = double.Parse(mode.Substring(8), CultureInfo.InvariantCulture);
+                return nowUtcTicks - pullUtcTicks >= (long)(m * 60 * Tps) ? "earn" : "wait";
+            }
+            return commands > 0 ? "earn" : "wait";
+        }
+
+        static string LocalStamp(long utcTicks) { return new DateTime(utcTicks, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture); }
+
+        /// the event line that earns (or expires) a pull
+        public static string EventLine(string what, string id, long utcTicks) { return LocalStamp(utcTicks) + "\t" + what + ":" + id; }
+
+        /// Every pull in pulls.log with the earned rule applied (dry runs left out, expired ones included with
+        /// Status "expired"). viewed.txt (ids the binder has shown) clears New.
+        public static PullRecord[] ReadPulls(string stateDir, long nowUtcTicks, long bootNow)
+        {
+            var list = new List<PullRecord>();
+            string log = Path.Combine(stateDir, "pulls.log");
+            if (!File.Exists(log)) return list.ToArray();
+            string[] lines;
+            try { lines = File.ReadAllLines(log, Encoding.UTF8); } catch (IOException) { return list.ToArray(); }
+            var earned = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var expired = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (string line in lines)
+            {
+                string[] f = line.Split('\t');
+                if (f.Length < 2 || f.Length >= 7) continue;
+                string ev = f[1].Trim();
+                if (ev.StartsWith("earned:")) earned[ev.Substring(7)] = true;
+                else if (ev.StartsWith("expired:")) expired[ev.Substring(8)] = true;
+            }
+            var viewed = new Dictionary<string, bool>(StringComparer.Ordinal);
+            string vf = Path.Combine(stateDir, "viewed.txt");
+            if (File.Exists(vf)) try { foreach (string v in File.ReadAllLines(vf)) if (v.Trim().Length > 0) viewed[v.Trim()] = true; } catch (IOException) { }
+            foreach (string line in lines)
+            {
+                string[] f = line.Split('\t');
+                if (f.Length < 7) continue;
+                var r = new PullRecord { Time = f[0], Pack = f[1], Character = f[2], Tier = f[3], Art = f[4], Skin = f[5], Shiny = f[6].Trim() == "1" };
+                r.Flags = f.Length > 7 ? f[7].Trim() : "";
+                if (r.Flags.Contains("dryrun")) continue;
+                for (int i = 8; i < f.Length; i++)
+                {
+                    int eq = f[i].IndexOf('=');
+                    if (eq <= 0) continue;
+                    string k = f[i].Substring(0, eq).Trim(), v = f[i].Substring(eq + 1).Trim();
+                    long b;
+                    if (k == "id") r.Id = v;
+                    else if (k == "boot" && long.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out b)) r.Boot = b;
+                    else if (k == "card") r.Card = v;
+                }
+                bool pending = false;
+                foreach (string fl in r.Flags.Split(',')) if (fl.Trim() == "pending") pending = true;
+                if (r.Id.Length == 0 || !pending || earned.ContainsKey(r.Id)) r.Status = "earned";
+                else if (expired.ContainsKey(r.Id)) r.Status = "expired";
+                else
+                {
+                    long t = PullIdTicks(r.Id);
+                    bool old = t > 0 && nowUtcTicks - t > ExpireSec * Tps;
+                    bool otherBoot = r.Boot != 0 && bootNow != 0 && Math.Abs(r.Boot - bootNow) > BootSlackSec;
+                    r.Status = old || otherBoot ? "expired" : "pending";
+                    r.Derived = r.Status == "expired";
+                }
+                r.New = r.Status == "earned" && r.Id.Length > 0 && !viewed.ContainsKey(r.Id);
+                list.Add(r);
+            }
+            return list.ToArray();
+        }
+
+        /// The small footer printed under a pulled card: "binder \u23ce", an OSC 8 link to pokeshell://binder?pull=<id>
+        /// (the art itself is left unlinked: Windows Terminal underlines link text). Right-aligned to the card.
+        public static string WithFooter(string text, string id)
+        {
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(text)) return text;
+            int e = text.Length;
+            while (e > 0 && (text[e - 1] == '\n' || text[e - 1] == '\r')) e--;
+            string body = text.Substring(0, e), tail = text.Substring(e);
+            int w = 0;
+            foreach (string l in body.Split('\n')) w = Math.Max(w, VisibleWidth(l.TrimEnd('\r')));
+            const string hint = "binder \u23ce";
+            string url = "pokeshell://binder?pull=" + id;
+            string link = "\u001b]8;;" + url + "\u001b\\" + hint + "\u001b]8;;\u001b\\";
+            return body + "\r\n" + new string(' ', Math.Max(2, w - hint.Length - 1)) + "\u001b[2;38;2;140;140;150m" + link + "\u001b[0m" + (tail.Length > 0 ? tail : "\r\n");
+        }
+
         public static void Log(string stateDir, string file, string line)
         {
             try { Directory.CreateDirectory(stateDir); File.AppendAllText(Path.Combine(stateDir, file), line + "\r\n"); }
@@ -629,6 +917,16 @@ namespace Pokeshell
         {
             return Roll(root, stateDir, profileId, argv, DateTime.UtcNow.Ticks, Guid.NewGuid().GetHashCode(), foilChance, null, null, libDir);
         }
+
+        /// The same, given the hook's $ExecutionContext: a pull shown in this tab (common, or a foil the gate denied)
+        /// also starts the earned rule's hook (Earn), in the same call.
+        public static Pull Startup(System.Management.Automation.EngineIntrinsics engine, string root, string stateDir, string profileId,
+                                   string[] argv, string libDir, double foilChance)
+        {
+            Pull r = Startup(root, stateDir, profileId, argv, libDir, foilChance);
+            if (r.Action == "common" || r.Action == "foil-denied") Earn.Register(engine, r, stateDir);
+            return r;
+        }
         [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
 
         /// The foreground window: Windows Terminal's `-w 0` targets the most recently used window, which is
@@ -682,6 +980,11 @@ namespace Pokeshell
             res.Frame = t.Length > 4 ? t[4] : ""; res.Tag = ch.Length > 3 ? ch[3] : ""; res.Display = Display(cfg);
             res.Poster = ch.Length > 4 ? ch[4] : ""; res.Bounty = ch.Length > 5 ? ch[5] : "";
             bool picture = res.Display == "picture";
+            // the earned rule: the pull's id (the tab carries it as POKESHELL_PULL), logged pending until the tab is used
+            string earn; cfg.TryGetValue("earn", out earn);
+            res.Earn = EarnMode(earn); res.PullTicks = now; res.Id = NewPullId(now); res.Boot = BootId();
+            Environment.SetEnvironmentVariable("POKESHELL_PULL", res.Id);   // layer 3 as well: set in every tab that rolled
+
             res.LogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch[1] + "\t" +
                           t[1] + "\t" + art + "\t" + res.Skin + "\t" + (shiny ? "1" : "0") + "\t" + note;
 
@@ -695,7 +998,6 @@ namespace Pokeshell
 
             // foil: PowerShell opens this skinned tab (same folder) and closes the current one
             res.Action = "foil";
-            Environment.SetEnvironmentVariable("POKESHELL_PULL", "1");
             if (string.IsNullOrEmpty(exe))   // the shell running this: powershell.exe or pwsh.exe
                 try { exe = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName; } catch (Exception) { exe = "powershell.exe"; }
             if (string.IsNullOrEmpty(cwd)) cwd = Environment.CurrentDirectory;   // at profile time = the tab's folder   // layer 3: inherited if WT passes our environment on
@@ -704,11 +1006,13 @@ namespace Pokeshell
             res.FallbackText = PullText(root, p.Id, ch0[1], ch0[2], art0, t0[2], tier0, shiny, t0.Length > 4 ? t0[4] : "", ch0.Length > 3 ? ch0[3] : "", picture, res.Poster, res.Bounty);
             res.FallbackLogLine = new DateTime(now, DateTimeKind.Utc).ToLocalTime().ToString("s", CultureInfo.InvariantCulture) + "\t" + p.Id + "\t" + ch0[1] + "\t" +
                                   t0[1] + "\t" + art0 + "\t\t" + (shiny ? "1" : "0") + "\t";
-            string cmd = "$env:POKESHELL_PULL='1'; $env:POKESHELL_ROLLED='1'; $env:" + SharedMarker + "='1'; . " + Quote(Path.Combine(libDir, "roll.ps1")) +
+            string cmd = "$env:POKESHELL_PULL=" + Quote(res.Id) + "; $env:POKESHELL_ROLLED='1'; $env:" + SharedMarker + "='1'; . " + Quote(Path.Combine(libDir, "roll.ps1")) +
                          "; Show-PokeshellPull -Root " + Quote(root) + " -Pack " + Quote(p.Id) + " -Character " + Quote(ch[1]) +
                          " -Name " + Quote(ch[2]) + " -Art " + Quote(art) +" -Label " + Quote(t[2]) + " -Tier " + tier + (shiny ? " -Shiny" : "") +
                          (res.Frame != "" ? " -Frame " + Quote(res.Frame) : "") + (res.Tag != "" ? " -Tag " + Quote(res.Tag) : "") +
-                         (res.Poster != "" ? " -Poster " + Quote(res.Poster) : "") + (res.Bounty != "" ? " -Bounty " + Quote(res.Bounty) : "") + (picture ? " -Picture" : "");   // the pulled tab prints the same way
+                         (res.Poster != "" ? " -Poster " + Quote(res.Poster) : "") + (res.Bounty != "" ? " -Bounty " + Quote(res.Bounty) : "") +
+                         " -PullId " + Quote(res.Id) + " -Earn " + Quote(res.Earn) + " -PullTicks " + now.ToString(CultureInfo.InvariantCulture) + " -StateDir " + Quote(stateDir) +
+                         (picture ? " -Picture" : "");   // the pulled tab prints the same way, and earns its pull
             string enc = Convert.ToBase64String(Encoding.Unicode.GetBytes(cmd));
             // wt.exe treats ';' as its own command separator, so escape it; base64 never contains one
             res.WtArgs = new[] { "-w", "0", "nt", "-p", res.Guid, "-d", cwd.Replace(";", "\\;"), exe, "-NoLogo", "-NoExit", "-EncodedCommand", enc };

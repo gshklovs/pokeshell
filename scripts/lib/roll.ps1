@@ -34,12 +34,16 @@ function Import-PokeshellCore([string]$StateDir) {
   [void][Reflection.Assembly]::LoadFile((New-PokeshellCore $StateDir))
 }
 
-# Print art + banner (the pulled foil tab, `pokeshell show`)
+# Print art + banner (the pulled foil tab, `pokeshell show`). -PullId (the foil tab): add the binder footer and
+# start the earned rule's hook (Pokeshell.Earn) for that pull in this tab.
 function Show-PokeshellPull([string]$Root, [string]$Pack, [string]$Character, [string]$Name, [string]$Art,
                             [string]$Label, [int]$Tier, [switch]$Shiny, [string]$Frame = '', [string]$Tag = '', [switch]$Picture,
-                            [string]$Poster = '', [string]$Bounty = '') {
-  Import-PokeshellCore
-  $Host.UI.Write([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty))
+                            [string]$Poster = '', [string]$Bounty = '', [string]$PullId = '', [string]$Earn = '', [long]$PullTicks = 0,
+                            [string]$StateDir = '') {
+  if (-not $StateDir) { $StateDir = Get-PokeshellStateDir }
+  Import-PokeshellCore $StateDir
+  $Host.UI.Write([Pokeshell.Core]::WithFooter([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty), $PullId))
+  if ($PullId) { [Pokeshell.Earn]::Register($ExecutionContext, $PullId, $StateDir, $Earn, $PullTicks, $Name, $Label, [bool]$Shiny) }
 }
 
 <#
@@ -92,21 +96,23 @@ function Complete-PokeshellPull($R, [string]$StateDir, [switch]$DryRun, [switch]
   if ($env:POKESHELL_DRYRUN -eq '1') { $DryRun = $true }
   if ($R.Action -ne 'foil') {
     if ($R.Text -and -not $Quiet) { $Host.UI.Write($R.Text) }
+    if (-not $Quiet) { Start-PokeshellEarn $R $StateDir }
     return $R
   }
   if (-not $DryRun -or $env:POKESHELL_PLACEMENT -eq '1') {
     $where = Get-PokeshellPlacement
     if ($where -ne 'nt' -and $where -ne 'sp') {
       # can't be sure where the new tab would land: keep this one, show the pull here as a common
-      [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.FallbackLogLine + "foil-not-placed:$where")
+      [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.FallbackLine("foil-not-placed:$where"))
       $R.Action = 'foil-denied'; $R.Reason = "placement:$where"
       if (-not $Quiet) { $Host.UI.Write($R.FallbackText) }
+      if (-not $Quiet) { Start-PokeshellEarn $R $StateDir }
       return $R
     }
     $R.WtArgs[2] = $where
   }
   if ($DryRun) {
-    [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.LogLine + 'dryrun')
+    [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.Line('dryrun'))
     [Pokeshell.Core]::Log($StateDir, 'dryrun-spawns.log', "$($R.Guid)`t$($R.WtArgs -join ' ')")
     return $R
   }
@@ -114,13 +120,18 @@ function Complete-PokeshellPull($R, [string]$StateDir, [switch]$DryRun, [switch]
   try { & wt.exe $R.WtArgs; $ok = $? } catch { }
   if (-not $ok) {
     # couldn't open the tab: show the pull here (as a common) and never exit
-    [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.FallbackLogLine + 'foil-spawn-failed')
+    [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.FallbackLine('foil-spawn-failed'))
     $R.Action = 'foil-denied'
-    if (-not $Quiet) { $Host.UI.Write($R.FallbackText) }
+    if (-not $Quiet) { $Host.UI.Write($R.FallbackText); Start-PokeshellEarn $R $StateDir }
     return $R
   }
-  [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.LogLine)
+  [Pokeshell.Core]::Log($StateDir, 'pulls.log', $R.Line(''))
   [Environment]::Exit(0)
+}
+
+# the pull was shown in this tab: its first real command earns it (Pokeshell.Earn)
+function Start-PokeshellEarn($R, [string]$StateDir) {
+  [Pokeshell.Earn]::Register($ExecutionContext, $R.Id, $StateDir, $R.Earn, $R.PullTicks, $R.Name, $R.Label, $R.Shiny)
 }
 
 <#

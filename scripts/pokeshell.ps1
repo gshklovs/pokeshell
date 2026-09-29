@@ -26,7 +26,7 @@ $Command = ''; $Pos = @(); $Flags = @{}; $Opts = @{}
 $argList = @($args)
 for ($i = 0; $i -lt $argList.Count; $i++) {
   $a = [string]$argList[$i]
-  if ($a -match '^-(settingspath|shell)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1]] = [string]$argList[++$i] }
+  if ($a -match '^--?(settingspath|shell|pull|card|keys)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1].ToLower()] = [string]$argList[++$i] }
   elseif ($a -match '^--?[a-z]') { $Flags[$a.TrimStart('-').ToLower()] = $true }
   elseif (-not $Command) { $Command = $a.ToLower() }
   else { $Pos += $a }
@@ -39,7 +39,17 @@ pokeshell - every new Windows Terminal tab is a pack pull
 
   pokeshell pack [<pack>|all]             show or choose the active pack
   pokeshell odds [pack]                   pull odds for the active pack (or the one named)
-  pokeshell collection                    your binder: every character/variant/shiny pulled so far
+  pokeshell binder [--pull <id>|--card <pack/char/tier>]
+                                          the binder app, full screen (q returns); `binder` for short.
+                                          Without the app built: the text binder (pokeshell collection)
+  pokeshell binder --web                  rebuild the web binder and open it in your browser
+  pokeshell collection                    the text binder: every character/variant/shiny you've earned
+  pokeshell earn [first-command|minutes:N|off]
+                                          what earns a pull: its tab's first command (default), the tab
+                                          staying open N minutes, or nothing (off: every pull counts)
+  pokeshell hotkey [on|off] [-Keys ctrl+shift+b] [-SettingsPath <p>]
+                                          a Windows Terminal key that opens the binder in a split pane
+  pokeshell urlhandler [on|off] [-DryRun] register pokeshell:// links (the card's "binder" link)
   pokeshell show <pack>/<character> [variant|card id|tier] [-shiny] [-picture|-card]
                                           print a card (pokeshell show: list what's available; also pokemon/<card id>)
   pokeshell display [card|picture]        how pulls print: the full card (default) or just the picture
@@ -159,6 +169,17 @@ function Invoke-Uninstall {
       Write-Host "pokeshell: removed the skin profiles from $path (backup: $backup)" -ForegroundColor Green
     }
   } else { Write-Host "pokeshell: Windows Terminal settings.json not found; nothing to remove there" }
+  # the binder hotkey and the pokeshell:// handler, if this state dir installed them
+  $hk = Join-Path $State 'hotkey.tsv'
+  if ([IO.File]::Exists($hk)) {
+    $hp = [IO.File]::ReadAllText($hk).Trim().Split("`t")[0]
+    if ($hp -and (Test-Path $hp)) { $b = Remove-PokeshellHotkey $hp; Write-Host "pokeshell: removed the binder hotkey from $hp$(if ($b) { " (backup: $b)" })" }
+    Remove-Item $hk -ErrorAction SilentlyContinue
+  }
+  if ([IO.File]::Exists((Join-Path $State 'urlhandler.txt'))) {
+    [void](Set-PokeshellUrlHandler -Remove); Remove-Item (Join-Path $State 'urlhandler.txt') -ErrorAction SilentlyContinue
+    Write-Host "pokeshell: removed the pokeshell:// link handler"
+  }
   Remove-Item (Join-Path $State 'installed.tsv'), (Join-Path $State 'roll.tsv') -ErrorAction SilentlyContinue
   if (Has 'purge') { Remove-Item $State -Recurse -Force -ErrorAction SilentlyContinue; Write-Host "pokeshell: deleted $State" }
   elseif ($Packaged -and [IO.Directory]::Exists($Current)) { Write-Host "pokeshell: kept $Current so tabs keep working until you remove the line below (-Purge deletes it)" }
@@ -244,13 +265,15 @@ function Show-CardOdds($p) {
   if ($p.shiny_chance -gt 0) { Write-Host ("  shiny: {0:0.00}% of pulls (1 in {1:0}), any tier" -f (100 * $p.shiny_chance), (1 / $p.shiny_chance)) }
 }
 
-function Read-Pulls {
-  $log = Join-Path $State 'pulls.log'
-  if (-not (Test-Path $log)) { return @() }
-  foreach ($line in [IO.File]::ReadAllLines($log)) {
-    $f = $line.Split("`t")
-    if ($f.Count -lt 7 -or ($f.Count -ge 8 -and $f[7] -match 'dryrun')) { continue }
-    [pscustomobject]@{ time = $f[0]; pack = $f[1]; character = $f[2]; tier = $f[3]; art = $f[4]; skin = $f[5]; shiny = $f[6] -eq '1' }
+# Every pull with the earned rule applied (status earned | pending | expired; dry runs left out). Pending pulls that
+# have since expired get their `expired:<id>` line written here (the log stays append-only).
+function Read-Pulls([switch]$All) {
+  $now = [DateTime]::UtcNow.Ticks
+  $recs = @([Pokeshell.Core]::ReadPulls($State, $now, [Pokeshell.Core]::BootId()))
+  foreach ($r in $recs) {
+    if ($r.Status -eq 'expired' -and $r.Derived) { [Pokeshell.Core]::Log($State, 'pulls.log', [Pokeshell.Core]::EventLine('expired', $r.Id, $now)) }
+    if (-not $All -and $r.Status -ne 'earned') { continue }
+    [pscustomobject]@{ time = $r.Time; pack = $r.Pack; character = $r.Character; tier = $r.Tier; art = $r.Art; skin = $r.Skin; shiny = $r.Shiny; id = $r.Id; status = $r.Status; new = $r.New }
   }
 }
 
@@ -270,11 +293,20 @@ function Get-ShownPulls($Pulls) {
 }
 
 function Invoke-Collection {
-  $pulls = @(Get-ShownPulls @(Read-Pulls))
+  $every = @(Get-ShownPulls @(Read-Pulls -All))   # earned, pending (expired left out); retired art hidden
+  $pulls = @($every | Where-Object status -eq 'earned')
+  $pending = @($every | Where-Object status -eq 'pending')
   $hidden = if ($script:HiddenPulls) { "  ($script:HiddenPulls pulls of retired art not shown)" } else { '' }
-  if (-not $pulls) { Write-Host "pokeshell: no pulls yet. Open a new tab!$hidden"; return }
+  if (-not $pulls) {
+    if ($pending) { Write-Host "pokeshell: $($pending.Count) pending pull$(if ($pending.Count -gt 1) { 's' }): use $(if ($pending.Count -gt 1) { 'their tabs' } else { 'its tab' }) to earn $(if ($pending.Count -gt 1) { 'them' } else { 'it' })$hidden" }
+    else { Write-Host "pokeshell: no pulls yet. Open a new tab!$hidden" }
+    return
+  }
   Write-Host ''
-  Write-Host "BINDER  $($pulls.Count) pulls since $($pulls[0].time.Replace('T', ' '))$hidden" -ForegroundColor Cyan
+  $newN = @($pulls | Where-Object new).Count
+  Write-Host ("BINDER  $($pulls.Count) pulls since $($pulls[0].time.Replace('T', ' '))$hidden" +
+    $(if ($pending) { "  ($($pending.Count) pending: use $(if ($pending.Count -gt 1) { 'their tabs' } else { 'its tab' }) to earn $(if ($pending.Count -gt 1) { 'them' } else { 'it' }))" }) +
+    $(if ($newN) { "  $newN new" })) -ForegroundColor Cyan
   foreach ($grp in ($pulls | Group-Object pack)) {
     $pack = try { Read-PokeshellPack $Root $grp.Name } catch { $null }
     $tiers = if ($pack -and $pack.isCardPack) { $has = @($pack.cardList | ForEach-Object tier); @(for ($i = 0; $i -lt @($pack.tiers).Count; $i++) { if ($has -contains $i) { $pack.tiers[$i] } }) }   # the rarities it has cards in
@@ -411,6 +443,153 @@ function Invoke-Show {
   # -Picture / -Card override the display setting (config `display`, or POKESHELL_DISPLAY for this shell)
   $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
   Show-PokeshellPull -Root $Root -Pack $packId -Character $char -Name $p.names[$char] -Art $art -Label $label -Tier $ti -Shiny:$shiny -Frame $frame -Tag $p.tags[$char] -Picture:$picture -Poster $p.posterNames[$char] -Bounty $p.bounties[$char]
+}
+
+# ---------------------------------------------------------------- binder / earn / hotkey / urlhandler
+# `pokeshell binder` (and the `binder` function the $PROFILE hook defines): the Rust binder app full screen in this
+# tab (it switches to the alternate screen; q brings the prompt back as it was). Without the app: the text binder.
+function Invoke-Binder {
+  if (Has @('web')) { Invoke-BinderWeb; return }
+  $exe = Get-PokeshellBinderExe $Root
+  [void]@(Read-Pulls -All)   # writes expired:<id> lines for pulls that have expired since the last look
+  if (-not $exe) {
+    Write-Host "(the binder app isn't built: binder\build.ps1 builds it; here is the text binder)" -ForegroundColor DarkGray
+    Invoke-Collection
+    return
+  }
+  $a = @('--root', $RuntimeRoot, '--state', $State)
+  if ($Opts.pull) { $a += '--pull', $Opts.pull }
+  if ($Opts.card) { $a += '--card', $Opts.card }
+  & $exe @a
+  if ($LASTEXITCODE) { throw "the binder exited with code $LASTEXITCODE" }
+}
+
+# Python with Pillow for the web export: $env:POKESHELL_PYTHON, the repo's .venv, then py -3 / python on PATH
+function Find-PokeshellPython {
+  $c = @()
+  if ($env:POKESHELL_PYTHON) { $c += , @($env:POKESHELL_PYTHON) }
+  $c += , @((Join-Path $Root '.venv\Scripts\python.exe'))
+  $c += , @('py', '-3'); $c += , @('python')
+  foreach ($x in $c) {
+    $exe = $x[0]
+    if ($exe -match '[\\/]' -and -not (Test-Path $exe)) { continue }
+    if ($exe -notmatch '[\\/]' -and -not (Get-Command $exe -ErrorAction SilentlyContinue)) { continue }
+    $rest = @($x | Select-Object -Skip 1)
+    & $exe @rest -c 'import PIL' 2>$null
+    if ($LASTEXITCODE -eq 0) { return , $x }
+  }
+  $null
+}
+
+# `binder --web`: rebuild the static web binder into <state>\web (about a second) and open it in the browser
+function Invoke-BinderWeb {
+  $py = Find-PokeshellPython
+  if (-not $py) { throw "binder --web needs Python 3 with Pillow (py -3 -m venv .venv; .venv\Scripts\python -m pip install pillow), or set POKESHELL_PYTHON" }
+  $out = Join-Path $State 'web'
+  [void]@(Read-Pulls -All)
+  $exe = $py[0]; $pre = @($py | Select-Object -Skip 1)
+  & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out
+  if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
+  $page = Join-Path $out 'binder.html'
+  if ($env:POKESHELL_NO_OPEN -eq '1' -or (Has @('noopen'))) { Write-Host "pokeshell: web binder at $page" }
+  else { Start-Process $page; Write-Host "pokeshell: opened $page" }
+}
+
+function Invoke-Earn {
+  if (-not $Pos) {
+    Write-Host "earn: $([Pokeshell.Core]::EarnMode($Cfg.earn))  (pokeshell earn first-command|minutes:N|off)"
+    Write-Host '  first-command: a pull counts once you run a command in its tab; minutes:N: once its tab has been open N minutes; off: every pull counts'
+    return
+  }
+  $want = $Pos[0].ToLower()
+  if ($want -notmatch '^(first-command|off|minutes:\d+(\.\d+)?)$') { throw "earn is first-command, minutes:N or off, not '$want'" }
+  Set-PokeshellConfigValue $State 'earn' $want
+  Update-PokeshellRollCache -Root $RuntimeRoot -StateDir $State   # config.txt is in the cache stamp
+  Write-Host "pokeshell: new pulls are earned by: $want"
+}
+
+function Get-HotkeySettingsPath {
+  if ($Opts.settingspath) { return (Resolve-Path $Opts.settingspath).ProviderPath }
+  $f = Join-Path $State 'hotkey.tsv'
+  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); if ($x[0] -and (Test-Path $x[0])) { return $x[0] } }
+  $p = Get-PokeshellWtSettingsPath
+  if (-not $p) { throw "Windows Terminal settings.json not found (pass -SettingsPath <path>)" }
+  $p
+}
+
+# write settings.json the way install does: verify, back up, then replace in one step
+function Save-HotkeySettings([string]$Path, $Orig, [string]$New, [string]$Tag) {
+  [void](ConvertFrom-Jsonc $New)   # must still parse
+  if ($New.Equals($Orig.text)) { return $null }
+  $backupDir = Join-Path $State 'backups'
+  [void][IO.Directory]::CreateDirectory($backupDir)
+  $backup = Join-Path $backupDir ("settings-{0:yyyyMMdd-HHmmss}-$Tag.json" -f (Get-Date))
+  Copy-Item -LiteralPath $Path -Destination $backup
+  Write-WtSettingsFile $Path $New $Orig.bom
+  $backup
+}
+
+function Remove-PokeshellHotkey([string]$Path) {
+  $f = Join-Path $State 'hotkey.tsv'
+  $created = $false
+  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); $created = $x.Count -ge 3 -and $x[2] -eq '1' }
+  $orig = Read-WtSettingsFile $Path
+  $new = Remove-PokeshellHotkeyText $orig.text -DropEmptyActions:$created
+  $b = Save-HotkeySettings $Path $orig $new 'hotkey-off'
+  Remove-Item $f -ErrorAction SilentlyContinue
+  $b
+}
+
+# `pokeshell hotkey on|off`: a Windows Terminal key (default Ctrl+Shift+B) that opens the binder in a split pane
+function Invoke-Hotkey {
+  . (Join-Path $PSScriptRoot 'lib\wtsettings.ps1')
+  $path = Get-HotkeySettingsPath
+  $keys = if ($Opts['keys']) { $Opts['keys'] } else { 'ctrl+shift+b' }
+  $f = Join-Path $State 'hotkey.tsv'
+  if (-not $Pos) {
+    $on = $null -ne (Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $path).text) 'actions') -and
+          @((Get-JsoncMember (ConvertFrom-Jsonc (Read-WtSettingsFile $path).text) 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ }).Count -gt 0
+    Write-Host "hotkey: $(if ($on) { 'on' } else { 'off' })  ($path)  (pokeshell hotkey on|off [-Keys ctrl+shift+b])"
+    return
+  }
+  $want = $Pos[0].ToLower()
+  if ($want -in 'off', 'remove', 'uninstall') {
+    $b = Remove-PokeshellHotkey $path
+    Write-Host "pokeshell: binder hotkey removed from $path$(if ($b) { " (backup: $b)" })"
+    return
+  }
+  if ($want -notin 'on', 'install') { throw "hotkey is on or off, not '$want'" }
+  $exe = Get-PokeshellBinderExe $RuntimeRoot
+  if (-not $exe) { throw "the binder app isn't built (binder\build.ps1), so there is nothing for the hotkey to open" }
+  $orig = Read-WtSettingsFile $path
+  $res = Add-PokeshellHotkeyText $orig.text (Get-PokeshellBinderCommand $exe $RuntimeRoot $State) $keys
+  # verify like install: removing it again gives back exactly what was there
+  $undo = Remove-PokeshellHotkeyText $res.text -DropEmptyActions:$res.created
+  if (-not $undo.Equals((Remove-PokeshellHotkeyText $orig.text))) { throw "verification failed: removing the hotkey again would not restore settings.json; nothing written" }
+  $created = $res.created
+  if ([IO.File]::Exists($f)) { $x = [IO.File]::ReadAllText($f).Trim().Split("`t"); if ($x.Count -ge 3 -and $x[2] -eq '1') { $created = $true } }
+  $b = Save-HotkeySettings $path $orig $res.text 'hotkey'
+  [IO.File]::WriteAllText($f, "$path`t$keys`t$(if ($created) { '1' } else { '0' })")
+  Write-Host "pokeshell: $keys opens the binder in a split pane ($path$(if ($b) { "; backup: $b" }))" -ForegroundColor Green
+}
+
+# `pokeshell urlhandler on|off [-DryRun]`: the pokeshell:// link handler (HKCU\Software\Classes\pokeshell)
+function Invoke-UrlHandler {
+  $f = Join-Path $State 'urlhandler.txt'
+  $dry = Has @('dryrun')
+  if (-not $Pos) { Write-Host "urlhandler: $(if (Test-Path $f) { 'on' } else { 'off' })  (pokeshell urlhandler on|off [-DryRun])"; return }
+  $want = $Pos[0].ToLower()
+  if ($want -in 'off', 'remove', 'uninstall') {
+    $ops = @(Set-PokeshellUrlHandler -Remove -DryRun:$dry)
+    if (-not $dry) { Remove-Item $f -ErrorAction SilentlyContinue }
+  } elseif ($want -in 'on', 'install') {
+    $exe = Get-PokeshellBinderExe $RuntimeRoot
+    if (-not $exe) { throw "the binder app isn't built (binder\build.ps1), so there is nothing for pokeshell:// links to open" }
+    $ops = @(Set-PokeshellUrlHandler -Exe $exe -Root $RuntimeRoot -StateDir $State -DryRun:$dry)
+    if (-not $dry) { [IO.File]::WriteAllText($f, $exe) }
+  } else { throw "urlhandler is on or off, not '$want'" }
+  foreach ($o in $ops) { Write-Host "  $(if ($dry) { 'would ' })$o" }
+  Write-Host "pokeshell: pokeshell:// handler $(if ($want -in 'on', 'install') { 'registered' } else { 'removed' })$(if ($dry) { ' (dry run: nothing changed)' })"
 }
 
 # ---------------------------------------------------------------- holo / color / colorwatch
@@ -555,7 +734,10 @@ switch ($Command) {
   'pack'       { Invoke-Pack }
   'odds'       { Invoke-Odds }
   'collection' { Invoke-Collection }
-  'binder'     { Invoke-Collection }
+  'binder'     { Invoke-Binder }
+  'earn'       { Invoke-Earn }
+  'hotkey'     { Invoke-Hotkey }
+  'urlhandler' { Invoke-UrlHandler }
   'show'       { Invoke-Show }
   'display'    { Invoke-Display }
   'holo'       { Invoke-Holo }
