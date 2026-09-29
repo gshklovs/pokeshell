@@ -66,6 +66,10 @@ BATCHES = {
     # Hidden Fates (sm115) + its Shiny Vault (sma): one ART_FORMAT file per card in hf/art/ (artlab/sets/hf), card data
     # in hf/cards/, effect loops in hf/anim/<id>[_shiny]/. Shiny Vault art is the shiny sprite on both rolls.
     "hf": {"dir": "hf", "globs": ["art/*.json"], "skip_variants": []},
+    # Base Set (base1, 1999): one ART_FORMAT file per card in base/art/ (artlab/sets/base), card data in base/cards/,
+    # Rare Holo loops in base/anim/<id>[_shiny]/. Keyed by the real base1 ids, so the four suite3 commons already in
+    # pack.json (base1-44 / 46 / 58 / 63, the targets of the retired "<name>/common" pulls) are rebuilt in place
+    "base": {"dir": "base", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
