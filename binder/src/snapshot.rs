@@ -76,6 +76,7 @@ fn save(dir: &Path, name: &str, buf: &Buffer) -> io::Result<()> {
 }
 
 pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
+    crate::require_packs(&App::new(Opts { log: dir.join("-none-"), ..opts.clone() }, theme));
     std::fs::create_dir_all(dir)?;
     let mk = |pending: usize| {
         let mut app = App::new(Opts { demo_pending: pending, ..opts.clone() }, theme);
@@ -162,7 +163,7 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
     let mut app = mk(0);
     if let Some(pi) = app.coll.packs.iter().position(|p| !p.sets.is_empty()) {
         app.pack = pi;
-        app.cycle_set(1);
+        app.choose_set(1);
     }
     save(dir, "set-120x40", &frame(&mut app, 120, 40))?;
     let mut app = mk(0);
@@ -174,7 +175,67 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
     app.searching = true;
     app.pack = 0;
     save(dir, "search-120x40", &frame(&mut app, 120, 40))?;
+    qa_scenes(&opts, theme, dir)
+}
+
+/// The QA scenes, each at 120x40, 80x24 and 200x60: qa-<scene>-<w>x<h>. The main view, a set's checklist (--set),
+/// the set picker (S), search results (a word, and set + rarity tags) and the text half (v) of a V card.
+fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
+    let sizes = [(120u16, 40u16), (80, 24), (200, 60)];
+    type Setup = fn(&mut App);
+    let scenes: Vec<(&str, Opts, Setup)> = vec![
+        ("main", opts.clone(), |_| {}),
+        ("set", Opts { set: "evolving".into(), ..opts.clone() }, |_| {}),
+        ("picker", opts.clone(), |app| app.on_event(key('S'))),
+        ("search", Opts { search: "pikachu".into(), ..opts.clone() }, |_| {}),
+        ("search-page1", Opts { search: "pikachu".into(), ..opts.clone() }, |app| app.on_event(key('g'))),
+        ("search-owned", Opts { search: "pikachu owned".into(), ..opts.clone() }, |_| {}),
+        ("search-tags", Opts { search: "set:30th rarity:\"pikachu rare\"".into(), ..opts.clone() }, |_| {}),
+        ("search-typing", opts.clone(), |app| {
+            for c in "/set:evo".chars() {
+                app.on_event(key(c));
+            }
+        }),
+        ("text", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| app.on_event(key('v'))),
+        ("text-scrolled", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| {
+            app.on_event(key('v'));
+            app.focus = crate::app::Focus::Card;
+        }),
+        ("dex", opts.clone(), |app| app.on_event(key('d'))),
+        ("url-lycanroc", Opts { start: crate::app::Start::Pull("01M3PVNCBPMN1R80FRY6ZMVD19".into()), ..opts.clone() }, |_| {}),
+        ("missing", Opts { set: "evolving".into(), ..opts.clone() }, |app| app.on_event(key('m'))),
+        ("nomatch", Opts { search: "set:zzz foo:bar".into(), ..opts.clone() }, |_| {}),
+        ("help", opts.clone(), |app| app.on_event(key('?'))),
+    ];
+    for (name, o, setup) in scenes {
+        for &(w, h) in &sizes {
+            let mut app = App::new(o.clone(), theme);
+            app.phase_override = Some(0.9);
+            setup(&mut app);
+            if name == "text-scrolled" {
+                // scroll the text half as a user would: a frame first (it measures what is hidden), then ↓ x6
+                frame(&mut app, w, h);
+                for _ in 0..6 {
+                    app.on_event(crossterm::event::Event::Key(crossterm::event::KeyEvent::new(crossterm::event::KeyCode::Down, crossterm::event::KeyModifiers::NONE)));
+                    frame(&mut app, w, h);
+                }
+            }
+            save(dir, &format!("qa-{name}-{w}x{h}"), &frame(&mut app, w, h))?;
+        }
+    }
+    // small terminals: the binder as a list, the header and borders degrading
+    for (w, h) in [(40u16, 12u16), (60, 10), (30, 8), (20, 6)] {
+        let mut app = App::new(opts.clone(), theme);
+        app.phase_override = Some(0.9);
+        save(dir, &format!("qa-small-{w}x{h}"), &frame(&mut app, w, h))?;
+    }
     Ok(())
+}
+
+fn key(c: char) -> crossterm::event::Event {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    let m = if c.is_ascii_uppercase() { KeyModifiers::SHIFT } else { KeyModifiers::NONE };
+    Event::Key(KeyEvent::new(KeyCode::Char(c), m))
 }
 
 /// Cold start: parse the log + packs, lay out, paint a full frame and encode it (what the real
@@ -182,6 +243,7 @@ pub fn run(opts: Opts, theme: usize, dir: &Path) -> io::Result<()> {
 pub fn bench(opts: Opts, theme: usize, t0: Instant, first_only: bool) -> io::Result<()> {
     let t_args = t0.elapsed();
     let mut app = App::new(opts, theme);
+    crate::require_packs(&app);
     let t_load = t0.elapsed();
     let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
     let base = term.draw(|f| ui::render(&mut app, f.buffer_mut())).unwrap().buffer.clone();
@@ -211,13 +273,32 @@ pub fn bench(opts: Opts, theme: usize, t0: Instant, first_only: bool) -> io::Res
         term.draw(|f| ui::render(&mut app, f.buffer_mut())).unwrap();
     }
     let per_full = tf.elapsed() / 50;
+    // a keypress: move the selection (new card panel, history, text) and redraw; a search keystroke (the slot list
+    // is recomputed) and redraw
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    let k = |c: KeyCode| Event::Key(KeyEvent::new(c, KeyModifiers::NONE));
+    let tk = Instant::now();
+    for i in 0..50 {
+        app.on_event(k(if i % 10 < 5 { KeyCode::Right } else { KeyCode::Left }));
+        term.draw(|f| ui::render(&mut app, f.buffer_mut())).unwrap();
+    }
+    let per_key = tk.elapsed() / 50;
+    app.on_event(k(KeyCode::Char('/')));
+    let ts = Instant::now();
+    for c in "set:evolving rare ".chars() {
+        app.on_event(k(KeyCode::Char(c)));
+        term.draw(|f| ui::render(&mut app, f.buffer_mut())).unwrap();
+    }
+    let per_search = ts.elapsed() / 18;
     println!(
-        "args {:.2} ms | load (log + packs) {:.2} ms | first frame {:.2} ms ({} KB ansi) | full redraw {:.3} ms | shimmer frame {:.3} ms | pulls {} packs {}",
+        "args {:.2} ms | load (log + packs) {:.2} ms | first frame {:.2} ms ({} KB ansi) | full redraw {:.3} ms | keypress + redraw {:.3} ms | search keystroke + redraw {:.3} ms | shimmer frame {:.3} ms | pulls {} packs {}",
         t_args.as_secs_f64() * 1e3,
         t_load.as_secs_f64() * 1e3,
         t_frame.as_secs_f64() * 1e3,
         ansi.len() / 1024,
         per_full.as_secs_f64() * 1e3,
+        per_key.as_secs_f64() * 1e3,
+        per_search.as_secs_f64() * 1e3,
         per_anim.as_secs_f64() * 1e3,
         app.coll.pulls.len(),
         app.coll.packs.len()
@@ -230,15 +311,31 @@ pub fn bench(opts: Opts, theme: usize, t0: Instant, first_only: bool) -> io::Res
 pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
     use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     let mut app = App::new(opts, theme);
+    crate::require_packs(&app);
     let key = |c: KeyCode| Event::Key(KeyEvent::new(c, KeyModifiers::NONE));
-    let script: Vec<Event> = vec![
+    let shift = |c: char| Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::SHIFT));
+    let ctrl = |c: char| Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL));
+    let mut script: Vec<Event> = vec![
         key(KeyCode::Right), key(KeyCode::Down), key(KeyCode::PageDown), key(KeyCode::Char('2')), key(KeyCode::Left),
         key(KeyCode::Tab), key(KeyCode::Right), key(KeyCode::Tab), key(KeyCode::Down), key(KeyCode::Enter),
         key(KeyCode::Char('/')), key(KeyCode::Char('z')), key(KeyCode::Char('o')), key(KeyCode::Enter), key(KeyCode::Esc),
-        key(KeyCode::Char('s')), key(KeyCode::Char('3')), key(KeyCode::Char('d')), key(KeyCode::Char('v')), key(KeyCode::Char('S')), key(KeyCode::End), key(KeyCode::Char('s')),
+        key(KeyCode::Char('s')), key(KeyCode::Char('3')), key(KeyCode::Char('d')), key(KeyCode::Char('v')), shift('S'), key(KeyCode::End), key(KeyCode::Char('s')),
         key(KeyCode::Char('t')), key(KeyCode::Char('?')), key(KeyCode::Char('x')), key(KeyCode::Char('o')), key(KeyCode::Char('L')),
+        // the set picker: open, move both ways, filter, backspace, pick; reopen and close; then # and search editing
+        key(KeyCode::Char('1')), shift('S'), key(KeyCode::Down), key(KeyCode::Down), key(KeyCode::Up), key(KeyCode::Tab), key(KeyCode::BackTab),
+        shift('S'), key(KeyCode::PageDown), key(KeyCode::PageUp), key(KeyCode::Char('e')), key(KeyCode::Char('v')), key(KeyCode::Backspace),
+        key(KeyCode::Char('z')), key(KeyCode::Char('q')), key(KeyCode::Enter), shift('S'), key(KeyCode::Esc), shift('S'), key(KeyCode::Char('3')), key(KeyCode::Char('0')),
+        key(KeyCode::Esc), key(KeyCode::Esc), shift('S'), key(KeyCode::End), key(KeyCode::Enter), key(KeyCode::Char('m')), key(KeyCode::Char('d')), key(KeyCode::Char('m')),
+        key(KeyCode::Char('#')), key(KeyCode::Char('1')), key(KeyCode::Char('7')), key(KeyCode::Enter), key(KeyCode::Char('#')), key(KeyCode::Backspace),
+        key(KeyCode::Char('/')), key(KeyCode::Char('s')), key(KeyCode::Char('e')), key(KeyCode::Char('t')), key(KeyCode::Char(':')), key(KeyCode::Tab), key(KeyCode::Char('3')),
+        key(KeyCode::Tab), key(KeyCode::Left), key(KeyCode::Left), key(KeyCode::Delete), key(KeyCode::Home), key(KeyCode::End), ctrl('w'), ctrl('u'), key(KeyCode::Enter),
+        key(KeyCode::Char('v')), key(KeyCode::Tab), key(KeyCode::Down), key(KeyCode::Down), key(KeyCode::Up), key(KeyCode::Char('v')), ctrl('s'), ctrl('q'),
     ];
-    let sizes = [(120u16, 40u16), (80, 24), (60, 20), (45, 16), (200, 60), (100, 30), (20, 6), (10, 3)];
+    // every picker row, both directions, at each size (the picker is re-rendered after each key)
+    for _ in 0..4 {
+        script.extend([shift('S'), key(KeyCode::Down), key(KeyCode::Enter), shift('S'), key(KeyCode::Up), key(KeyCode::Up), key(KeyCode::Enter)]);
+    }
+    let sizes = [(120u16, 40u16), (80, 24), (60, 20), (45, 16), (200, 60), (100, 30), (40, 12), (20, 6), (10, 3)];
     let mut seed = 0x1234_5678u32;
     let mut rnd = move |n: u32| {
         seed ^= seed << 13;
@@ -248,9 +345,10 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
     };
     let keys = [
         KeyCode::Left, KeyCode::Right, KeyCode::Up, KeyCode::Down, KeyCode::PageUp, KeyCode::PageDown, KeyCode::Tab, KeyCode::BackTab,
-        KeyCode::Enter, KeyCode::Char('s'), KeyCode::Char('o'), KeyCode::Char('v'), KeyCode::Char('d'), KeyCode::Char('S'), KeyCode::Char('1'), KeyCode::Char('2'),
-        KeyCode::Char('3'), KeyCode::Char('/'), KeyCode::Char('a'), KeyCode::Backspace, KeyCode::Esc, KeyCode::Char('?'),
-        KeyCode::Char('g'), KeyCode::Char('G'), KeyCode::Char(']'), KeyCode::Char('t'),
+        KeyCode::Enter, KeyCode::Char('s'), KeyCode::Char('o'), KeyCode::Char('m'), KeyCode::Char('v'), KeyCode::Char('d'), KeyCode::Char('S'), KeyCode::Char('S'),
+        KeyCode::Char('1'), KeyCode::Char('2'), KeyCode::Char('3'), KeyCode::Char('/'), KeyCode::Char('#'), KeyCode::Char('a'), KeyCode::Char('e'), KeyCode::Char(':'),
+        KeyCode::Backspace, KeyCode::Delete, KeyCode::Home, KeyCode::End, KeyCode::Esc, KeyCode::Char('?'), KeyCode::Char('g'), KeyCode::Char('G'),
+        KeyCode::Char(']'), KeyCode::Char('t'),
     ];
     let mut steps = 0;
     for (si, &(w, h)) in sizes.iter().enumerate() {
@@ -258,18 +356,26 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
         let evs: Vec<Event> = if si == 0 {
             script.clone()
         } else {
-            (0..400)
-                .map(|_| match rnd(10) {
-                    0..=6 => key(keys[rnd(keys.len() as u32) as usize]),
+            let mut v: Vec<Event> = script.clone();
+            v.extend((0..400).map(|_| match rnd(10) {
+                    0..=6 => {
+                        let c = keys[rnd(keys.len() as u32) as usize];
+                        let m = if c == KeyCode::Char('S') { KeyModifiers::SHIFT } else { KeyModifiers::NONE };
+                        Event::Key(KeyEvent::new(c, m))
+                    }
                     7 | 8 => Event::Mouse(MouseEvent {
-                        kind: if rnd(2) == 0 { MouseEventKind::Down(MouseButton::Left) } else { MouseEventKind::ScrollDown },
+                        kind: match rnd(3) {
+                            0 => MouseEventKind::Down(MouseButton::Left),
+                            1 => MouseEventKind::ScrollDown,
+                            _ => MouseEventKind::ScrollUp,
+                        },
                         column: rnd(w as u32) as u16,
                         row: rnd(h as u32) as u16,
                         modifiers: KeyModifiers::NONE,
                     }),
                     _ => Event::Resize(w, h),
-                })
-                .collect()
+                }));
+            v
         };
         for ev in evs {
             app.quit = false;

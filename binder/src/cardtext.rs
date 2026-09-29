@@ -2,7 +2,7 @@
 //! and artist, stacked under the art like a real card (`v`). The box is the card's width, in the tier's colour.
 
 use crate::color::{Rgb, lighten, mix, rgb};
-use crate::draw::{put, putc, trunc, width};
+use crate::draw::{put, puts, take_cells, trunc, width};
 use crate::theme::Theme;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -68,8 +68,11 @@ pub fn wrap(text: &str, w: usize) -> Vec<String> {
                 if !line.is_empty() {
                     out.push(std::mem::take(&mut line));
                 }
-                let head: String = word.chars().take(w).collect();
-                word = word.chars().skip(w).collect();
+                let head = take_cells(&word, w);
+                if head.is_empty() {
+                    break;
+                }
+                word = word[head.len()..].to_string();
                 out.push(head);
             }
             if line.is_empty() {
@@ -102,12 +105,20 @@ fn glyphs(types: &[String]) -> Vec<Run> {
 pub fn rows(v: &Value, w: usize, t: &Theme, accent: Rgb) -> Vec<Row> {
     let mut out: Vec<Row> = Vec::new();
     // header: name, subtype badge .. HP + type glyph
-    let mut head = vec![run(s(v, "name"), t.title, true)];
+    let name = s(v, "name");
+    let mut head = vec![run(name, t.title, true)];
     let subs = strs(v, "subtypes");
-    if let Some(b) = subs.iter().find(|x| matches!(x.as_str(), "V" | "VMAX" | "VSTAR" | "EX" | "ex" | "GX" | "BREAK" | "MEGA" | "Radiant")) {
-        head.push(run(format!(" {b}"), accent, true));
-    } else if let Some(stage) = subs.first() {
-        head.push(run(format!(" {stage}"), t.dim, false));
+    // the mechanic badge (V, VMAX, ex ...) in the accent, unless the name already ends with it ("Rayquaza V", V-02):
+    // then the stage (Basic, Stage 1) in dim
+    let last = name.split_whitespace().last().unwrap_or("");
+    let badge = subs.iter().find(|x| matches!(x.as_str(), "V" | "VMAX" | "VSTAR" | "EX" | "ex" | "GX" | "BREAK" | "MEGA" | "Radiant" | "V-UNION"));
+    match badge {
+        Some(b) if !b.eq_ignore_ascii_case(last) => head.push(run(format!(" {b}"), accent, true)),
+        _ => {
+            if let Some(stage) = subs.iter().find(|x| Some(*x) != badge) {
+                head.push(run(format!(" {stage}"), t.dim, false));
+            }
+        }
     }
     let mut right = vec![];
     if !s(v, "hp").is_empty() {
@@ -198,10 +209,12 @@ pub fn height(v: &Value, outer_w: u16, t: &Theme) -> u16 {
     rows(v, outer_w.saturating_sub(4) as usize, t, t.accent).len() as u16 + 2
 }
 
-/// Draw the text half in `r` (its top row is the box's top edge). Rows that don't fit end in an ellipsis row.
-pub fn draw(buf: &mut Buffer, r: Rect, v: &Value, line: Rgb, t: &Theme) {
+/// Draw the text half in `r` (its top row is the box's top edge), scrolled down `scroll` rows. When it doesn't fit,
+/// the borders say so (▲ / ▼ n more) and the rest scrolls (↑↓ with the card focused, or the wheel). Returns the scroll
+/// used (clamped) and how many rows are still hidden below.
+pub fn draw(buf: &mut Buffer, r: Rect, v: &Value, line: Rgb, t: &Theme, scroll: usize) -> (usize, usize) {
     if r.width < 8 || r.height < 3 {
-        return;
+        return (0, 0);
     }
     let (x0, y0, x1, y1) = (r.x as i32, r.y as i32, (r.x + r.width - 1) as i32, (r.y + r.height - 1) as i32);
     let bg = t.card_bg;
@@ -226,33 +239,35 @@ pub fn draw(buf: &mut Buffer, r: Rect, v: &Value, line: Rgb, t: &Theme) {
     let w = r.width.saturating_sub(4) as usize;
     let all = rows(v, w, t, lighten(line, 0.2));
     let room = r.height.saturating_sub(2) as usize;
-    let cut = all.len() > room;
-    for (i, row) in all.iter().take(room).enumerate() {
+    let scroll = scroll.min(all.len().saturating_sub(room));
+    let below = all.len().saturating_sub(scroll + room);
+    let (left_x, right_x) = (x0 + 2, x0 + 2 + w as i32); // the text column: [left_x, right_x)
+    for (i, row) in all.iter().skip(scroll).take(room).enumerate() {
         let y = y0 + 1 + i as i32;
-        if cut && i + 1 == room {
-            putc(buf, x0 + 2, y, '…', Some(t.dim), Some(bg), false);
-            break;
-        }
-        let rw: usize = row.right.iter().map(|r| width(&r.text)).sum();
-        let mut x = x0 + 2;
-        let limit = x0 + 2 + w as i32 - if rw > 0 { rw as i32 + 1 } else { 0 };
+        // the right runs (HP, damage) keep their cells when they fit; the left text stops a cell before them
+        let rw: usize = row.right.iter().map(|r| width(&r.text)).sum::<usize>().min(w);
+        let limit = right_x - if rw > 0 { rw as i32 + 1 } else { 0 };
+        let mut x = left_x;
         for run in &row.left {
             let room = (limit - x).max(0) as usize;
             if room == 0 {
                 break;
             }
-            let s = trunc(&run.text, room);
-            for ch in s.chars() {
-                putc(buf, x, y, ch, Some(run.fg), Some(bg), run.bold);
-                x += 1;
-            }
+            x += puts(buf, x, y, &trunc(&run.text, room), run.fg, Some(bg), run.bold, room) as i32;
         }
-        let mut rx = x0 + 2 + w as i32 - rw as i32;
+        let mut rx = (right_x - rw as i32).max(left_x);
         for run in &row.right {
-            for ch in run.text.chars() {
-                putc(buf, rx, y, ch, Some(run.fg), Some(bg), run.bold);
-                rx += 1;
-            }
+            let room = (right_x - rx).max(0) as usize;
+            rx += puts(buf, rx, y, &run.text, run.fg, Some(bg), run.bold, room) as i32;
         }
     }
+    let dim = t.dim;
+    if scroll > 0 {
+        puts(buf, x1 - 4, y0, " ▲ ", dim, edge, false, 3);
+    }
+    if below > 0 {
+        let note = format!(" ▼ {below} more ");
+        puts(buf, x1 - 1 - width(&note) as i32, y1, &note, dim, edge, false, 20);
+    }
+    (scroll, below)
 }

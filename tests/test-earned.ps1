@@ -232,7 +232,7 @@ if (Test-Path $exe) {
   $viewedBefore = (Get-FileHash (Join-Path $rs 'viewed.txt')).Hash
   $frame = Strip (& $exe --root $fx --state $rs --first-frame | Out-String)
   Assert ($frame -match 'last Bulbasaur illustration rare' -and $frame -match '1 pending' -and $frame -match '1 new') "the app opens on the newest pull (bulbasaur illustration rare); header counts pending and new"
-  Assert ($frame -match '\b8 pulls' -and $frame -match "best pulls\S*since $sinceLabel") "unbuilt and retired pulls are left out (8 shown); best pulls since ${sinceLabel}: $((($frame -split "`n") | Select-Object -First 1).Trim()) / $((($frame -split "`n") | Where-Object { $_ -match 'best pulls' }) -replace '.*best pulls', 'best pulls')"
+  Assert ($frame -match '\b8 pulls' -and $frame -match 'best pulls' -and $frame -match "since $sinceLabel") "unbuilt and retired pulls are left out (8 shown); best pulls since ${sinceLabel} (on the panel's bottom border): $((($frame -split "`n") | Select-Object -First 1).Trim()) / $((($frame -split "`n") | Where-Object { $_ -match 'since' }) -replace '.*(since)', '$1')"
   $frame = Strip (& $exe --root $fx --state $rs --pull $a.id --first-frame | Out-String)
   Assert ($frame -match 'Pikachu' -and $frame -match 'NEW' -and $frame -match 'collected') "--pull <id> opens that pull, with its NEW sticker"
   $frame = Strip (& $exe --root $fx --state $rs --card 'pokemon/charmander/rare shiny' --first-frame | Out-String)
@@ -244,7 +244,11 @@ if (Test-Path $exe) {
   Assert ((Get-FileHash (Join-Path $rs 'viewed.txt')).Hash -eq $viewedBefore) "headless frames don't mark anything viewed"
   # tags and sets: a set's checklist (every pack.json card of the set, pulled or not) and a tag search
   $frame = Strip (& $exe --root $fx --state $rs --set sv3pt5 --first-frame | Out-String)
-  Assert ($frame -match 'set 151' -and $frame -match '2/3' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled, one of them pending)"
+  Assert ($frame -match 'set 151' -and $frame -match '1/3' -and $frame -match '\+1 pending' -and $frame -match 'Bulbasaur') "--set sv3pt5: that set's checklist (2 of its 3 cards pulled: 1 earned, and 1 pending, which isn't done yet)"
+  $frame = Strip (& $exe --root $fx --state $rs --set '151' --first-frame | Out-String)
+  Assert ($frame -match 'set 151' -and $frame -match '1/3') "--set by name (fuzzy): 151"
+  $frame = Strip (& $exe --root $fx --state $rs --set 'zzz' --first-frame | Out-String)
+  Assert ($frame -match 'no set matches') "--set with no match says so"
   $frame = Strip (& $exe --root $fx --state $rs --search 'set:base1 owned' --first-frame | Out-String)
   Assert ($frame -match '/set:base1 owned 2') "--search 'set:base1 owned': tag filter + state word (2 cards)"
   $frame = Strip (& $exe --root $fx --state $rs --search 'rarity:\"illustration rare\" pending' --first-frame | Out-String)
@@ -255,7 +259,7 @@ if (Test-Path $exe) {
   Assert ($frame -notmatch 'Pikachu V') "an unbuilt card is no slot (--card pokemon/swsh4-170 doesn't land on it)"
   [IO.File]::WriteAllLines((Join-Path $rs 'config.txt'), [string[]]@('best_since=all'))
   $frame = Strip (& $exe --root $fx --state $rs --first-frame | Out-String)
-  Assert ($frame -match 'best pulls\S*rarest' -and $frame -notmatch 'best pulls\S*since') "config best_since=all: every pull, no cutoff label"
+  Assert ($frame -match 'rarest' -and $frame -notmatch 'since [A-Z][a-z][a-z] \d') "config best_since=all: every pull, no cutoff label"
   Remove-Item (Join-Path $rs 'config.txt')
   $out = & $exe --root $fx --state $rs --selftest | Out-String
   Assert ($out -match 'selftest ok') "binder --selftest (keys incl. v / d, mouse, resizes): $($out.Trim())"

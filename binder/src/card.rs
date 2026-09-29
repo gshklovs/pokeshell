@@ -4,7 +4,7 @@
 use crate::art::Img;
 use crate::color::{Rgb, darken, desat, grad, hex, lighten, mix, noise, rainbow, rgb, str_seed};
 use crate::data::{FrameSpec, Pack, SlotState};
-use crate::draw::{fill, image, put, putc, trunc, width};
+use crate::draw::{fill, image, put, putc, puts, trunc, width};
 use crate::theme::Theme;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -44,7 +44,8 @@ pub fn card_size(c: &Card, img_w: usize, img_rows: usize) -> (u16, u16) {
         FrameSpec::Box(_) => {
             let title = width(&c.pack.name_for(c.ch, c.card)) + if c.shiny { 2 } else { 0 };
             let tag = width(&c.pack.tag_for(c.ch, c.card));
-            (title + 2 + if tag > 0 { tag + 2 } else { 0 } + 3).max(width(&t.label) + 5)
+            let new = if c.new && c.state == SlotState::Owned { width(STICKER) + 1 } else { 0 };
+            (title + 2 + if tag > 0 { tag + 2 } else { 0 } + new + 3).max(width(&t.label) + 5)
         }
         FrameSpec::Wanted(_) => {
             let poster = width(&c.pack.poster_of(ch)) + 6;
@@ -96,16 +97,77 @@ pub fn draw(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Them
     }
 }
 
-/// The NEW sticker: a bright tab on the card's top-right edge (earned, not viewed yet).
+/// The big card's NEW sticker text (its number tag sits left of it).
+pub const STICKER: &str = " NEW ";
+
+/// The NEW sticker: a bright tab on the card's top-right edge (earned, not viewed yet). The big card keeps its number
+/// tag beside it (draw_box leaves the room, V-01); a thumbnail too narrow for "NEW" and a readable name gets a one-cell
+/// tab.
 pub fn sticker(buf: &mut Buffer, r: Rect, thumb: bool) {
-    let label = if thumb || r.width < 14 { "NEW" } else { " NEW " };
+    let label = if !thumb && r.width >= 14 { STICKER } else if r.width >= 16 { "NEW" } else { "N" };
     if (r.width as usize) < width(label) + 4 {
         return;
     }
     let x = (r.x + r.width) as i32 - 2 - width(label) as i32;
-    for (i, ch) in label.chars().enumerate() {
-        putc(buf, x + i as i32, r.y as i32, ch, Some(rgb(0x1a1020)), Some(rgb(0xff5fa2)), true);
+    puts(buf, x, r.y as i32, label, rgb(0x1a1020), Some(rgb(0xff5fa2)), true, 8);
+}
+
+/// Cells a thumbnail's NEW sticker takes on its top edge (with the gap before it).
+fn sticker_w(r: Rect) -> usize {
+    if r.width >= 16 { 4 } else { 2 }
+}
+
+/// A rarity label shortened to fit `max` cells, keeping what tells rarities apart (V-07): "rare holo VMAX" ->
+/// "R holo VMAX", "special illustration rare" -> "sp illus R", then initials with the all-caps tokens kept
+/// ("RH VMAX"), then an ellipsis.
+pub fn short_label(label: &str, max: usize) -> String {
+    if width(label) <= max {
+        return label.to_string();
     }
+    let words: Vec<&str> = label.split_whitespace().collect();
+    let abbr = |w: &str| -> String {
+        match w.to_ascii_lowercase().as_str() {
+            "rare" => "R".into(),
+            "illustration" => "illus".into(),
+            "special" => "sp".into(),
+            "trainer" => "tr".into(),
+            "gallery" => "gal".into(),
+            "uncommon" => "unc".into(),
+            "common" => "com".into(),
+            "secret" => "secr".into(),
+            "rainbow" => "rainb".into(),
+            "double" => "dbl".into(),
+            "futuristic" => "futur".into(),
+            "amazing" => "amaz".into(),
+            "radiant" => "rad".into(),
+            "shining" => "shin".into(),
+            "reverse" => "rev".into(),
+            "pikachu" => "pika".into(),
+            _ => w.to_string(),
+        }
+    };
+    let a = words.iter().map(|w| abbr(w)).collect::<Vec<_>>().join(" ");
+    if width(&a) <= max {
+        return a;
+    }
+    let mut ini = String::new();
+    for w in &words {
+        let caps = (w.len() > 1 && w.chars().all(|c| c.is_ascii_uppercase())) || *w == "ex" || *w == "V";
+        if caps {
+            if !ini.is_empty() {
+                ini.push(' ');
+            }
+            ini.push_str(w);
+        } else if let Some(c) = w.chars().next() {
+            ini.extend(c.to_uppercase());
+        }
+    }
+    if width(&ini) <= max {
+        return ini;
+    }
+    // just the initials: "RHV"
+    let bare: String = words.iter().filter_map(|w| w.chars().next()).flat_map(|c| c.to_uppercase()).collect();
+    if width(&bare) <= max { bare } else { trunc(&a, max) }
 }
 
 fn art_origin(r: Rect, img: &Img, px: usize, py: usize, top_pad: usize) -> (i32, i32) {
@@ -151,15 +213,18 @@ fn draw_empty(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, theme: &Th
     let label = if !tag.is_empty() { tag.to_string() } else { "???".into() };
     let w = r.width as usize;
     let l = trunc(&label, w.saturating_sub(4));
-    crate::draw::puts(buf, x0 + 2, y1, &l, dim, None, false, w.saturating_sub(4));
-    if w > 12 {
-        let tl = trunc(&c.pack.tiers[c.tier].label, w.saturating_sub(width(&l) + 7));
+    puts(buf, x0 + 2, y1, &l, dim, None, false, w.saturating_sub(4));
+    let room = w.saturating_sub(width(&l) + 6);
+    if room >= 3 {
+        let tl = short_label(&c.pack.tiers[c.tier].label, room);
         let tx = x1 - 1 - width(&tl) as i32;
-        crate::draw::puts(buf, tx, y1, &tl, dim, None, false, 40);
+        puts(buf, tx, y1, &tl, dim, None, false, room);
     }
-    if c.selected {
+    // the card's name on the top edge, so a checklist reads without selecting each slot (S-11)
+    if w > 6 {
         let name = trunc(&c.pack.name_for(c.ch, c.card), w.saturating_sub(4));
-        crate::draw::puts(buf, x0 + 2, y0, &name, theme.dim, None, false, w - 4);
+        let fg = if c.selected { theme.fg } else { mix(theme.faint, theme.dim, 0.45) };
+        puts(buf, x0 + 2, y0, &name, fg, None, c.selected, w - 4);
     }
 }
 
@@ -201,6 +266,12 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
     put(buf, x0, y1, "╰", Some(edge(0.5)), None, false);
     put(buf, x1, y1, "╯", Some(edge(1.0)), None, false);
 
+    if img.is_none() {
+        // an owned card whose art is missing: say so instead of an empty frame (V-10)
+        let note = if r.width >= 12 { "no art" } else { "?" };
+        let (nx, ny) = (x0 + (r.width as i32 - width(note) as i32) / 2, y0 + (r.height as i32 - 1) / 2);
+        puts(buf, nx, ny, note, tone(mix(theme.faint, theme.dim, 0.5)), None, false, r.width as usize);
+    }
     if let Some(img) = img {
         let (pw, ph) = frame_pad(&c.pack.tiers[c.tier].frame, c.thumb);
         let (ax, ay) = art_origin(r, img, pw, ph, 1);
@@ -234,7 +305,7 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
     if c.thumb {
         // top: name; bottom: ×count left, tier label right
         let name = c.pack.name_for(c.ch, c.card);
-        let room = rw.saturating_sub(4 + if c.shiny { 2 } else { 0 } + if c.new && !pending { 4 } else { 0 });
+        let room = rw.saturating_sub(4 + if c.shiny { 2 } else { 0 } + if c.new && !pending { sticker_w(r) } else { 0 });
         let name = trunc(&name, room);
         let mut tx = x0 + 1;
         let (nfg, nbg) = if c.selected { (theme_bg(theme), Some(theme.hi)) } else { (tone(text_col(0.2, true)), None) };
@@ -257,8 +328,8 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
             put(buf, x0 + 2 + used as i32 - 2, y1, " ", None, None, false);
         }
         let room = rw.saturating_sub(used + 5);
-        if room >= 4 && !pending {
-            let lab = trunc(&tier.label, room);
+        if room >= 3 && !pending {
+            let lab = short_label(&tier.label, room);
             let lx = x1 - 2 - width(&lab) as i32;
             put(buf, lx - 1, y1, " ", None, None, false);
             crate::draw::puts(buf, lx, y1, &lab, tone(text_col(0.9, false)), None, false, room);
@@ -267,15 +338,26 @@ fn draw_box(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, stops: &[Rgb
     } else {
         let title = format!("{}{}", if c.shiny { "✦ " } else { "" }, c.pack.name_for(c.ch, c.card));
         let tag = c.pack.tag_for(c.ch, c.card);
-        edge_text(buf, x0 + 2, y0, &format!(" {title} "), tone(text_col(0.15, true)), true);
-        if !tag.is_empty() {
-            let s = format!(" {tag} ");
-            edge_text(buf, x1 - 1 - width(&s) as i32, y0, &s, tone(text_col(0.45, false)), false);
+        // top: the name left, the number (and the NEW sticker) right; a narrow card drops the number, then cuts the name
+        let new = if c.new && !pending && r.width >= 14 { width(STICKER) + 1 } else { 0 };
+        let tag_s = format!(" {tag} ");
+        let room = (r.width as usize).saturating_sub(4 + new);
+        let show_tag = !tag.is_empty() && width(&title) + 2 + width(&tag_s) + 1 <= room;
+        let title_room = room.saturating_sub(if show_tag { width(&tag_s) + 1 } else { 0 } + 2);
+        edge_text(buf, x0 + 2, y0, &format!(" {} ", trunc(&title, title_room)), tone(text_col(0.15, true)), true);
+        if show_tag {
+            edge_text(buf, x1 - 1 - new as i32 - width(&tag_s) as i32, y0, &tag_s, tone(text_col(0.45, false)), false);
         }
-        let bottom = format!(" {}{} ", tier.label, if c.shiny { " ✦ shiny" } else { "" });
-        edge_text(buf, x1 - 1 - width(&bottom) as i32, y1, &bottom, tone(text_col(0.95, true)), true);
+        // bottom: the tier label right, "pending" left; a narrow card keeps "pending" and a shortened label (or none)
+        let pend = " ◌ pending ";
+        let room = (r.width as usize).saturating_sub(4 + if pending { width(pend) + 1 } else { 0 });
+        let label = short_label(&tier.label, room.saturating_sub(2 + if c.shiny { 8 } else { 0 }));
+        if room >= 5 && !label.is_empty() {
+            let bottom = format!(" {}{} ", label, if c.shiny && room >= width(&label) + 10 { " ✦ shiny" } else { "" });
+            edge_text(buf, x1 - 1 - width(&bottom) as i32, y1, &bottom, tone(text_col(0.95, true)), true);
+        }
         if pending {
-            edge_text(buf, x0 + 2, y1, " ◌ pending ", theme.warn, true);
+            edge_text(buf, x0 + 2, y1, pend, theme.warn, true);
         }
     }
 }
@@ -285,9 +367,7 @@ fn theme_bg(theme: &Theme) -> Rgb {
 }
 
 fn edge_text(buf: &mut Buffer, x: i32, y: i32, s: &str, fg: Rgb, bold: bool) {
-    for (i, ch) in s.chars().enumerate() {
-        putc(buf, x + i as i32, y, ch, Some(fg), None, bold);
-    }
+    puts(buf, x, y, s, fg, None, bold, usize::MAX);
 }
 
 // ---------------------------------------------------------------- wanted poster
@@ -390,11 +470,11 @@ fn draw_wanted(buf: &mut Buffer, r: Rect, c: &Card, img: Option<&Img>, pal: &str
     // texts
     let center = |buf: &mut Buffer, y: i32, s: &str, fg: Rgb, bold: bool| {
         let s = trunc(s, (w - 2).max(0) as usize);
-        let sx = x0 + (w - width(&s) as i32) / 2;
-        for (i, chr) in s.chars().enumerate() {
-            let px = sx + i as i32;
+        let mut px = x0 + (w - width(&s) as i32) / 2;
+        for (g, cw) in crate::draw::clusters(&s) {
             let p = tone(pp.at(px - x0, y - y0));
-            putc(buf, px, y, chr, Some(fg), Some(p), bold);
+            put(buf, px, y, g, Some(fg), Some(p), bold);
+            px += cw as i32;
         }
     };
     let tier = &c.pack.tiers[c.tier];
@@ -456,7 +536,7 @@ pub fn shimmer(buf: &mut Buffer, r: Rect, frame: &FrameSpec, shiny: bool, phase:
                 (0.85, rgb(0xffffff))
             } else if warm {
                 (0.0, rgb(0xfff3c4))
-            } else if stops.iter().any(|s| s[2] > s[0] + 30) {
+            } else if stops.iter().any(|s| s[2] as u16 > s[0] as u16 + 30) {
                 (0.55, rgb(0xf4f8ff))
             } else {
                 (0.15, rgb(0xffffff))

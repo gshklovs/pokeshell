@@ -4,8 +4,8 @@
 //!   binder --pull <id>         open on that pull (its id is the tab's POKESHELL_PULL)
 //!   binder --card <pack/character/tier>   open on that card
 //!   binder --url pokeshell://binder?pull=<id>   what the pokeshell:// link handler runs (also ?card=...)
-//!   binder --search <query>    open with a search: words and tag filters (set:swsh7 rarity:"rare rainbow" type:water shiny)
-//!   binder --set <set id>      open on a set's checklist (e.g. swsh7)
+//!   binder --search <query>    open with a search: words and tag filters (set:evolving rarity:"rare rainbow" type:water owned)
+//!   binder --set <set>         open on a set's checklist: its id or name, fuzzy (swsh7, evolving, "30th")
 //!   binder --state <dir>       the state folder (default: $POKESHELL_HOME, else %LOCALAPPDATA%\pokeshell)
 //!   binder --root <dir>        the pokeshell checkout (default: $POKESHELL_ROOT, else found from the exe / cwd)
 //!   binder --theme btop        start with a theme (holo | btop | gameboy | term)
@@ -80,20 +80,31 @@ fn default_state() -> PathBuf {
 }
 
 /// pokeshell://binder?pull=<ulid> | pokeshell://binder?card=<pack/character/tier>. Anything else is ignored (the
-/// URL comes from a link anyone could write, so only these two exact shapes are accepted).
+/// URL comes from a link anyone could write, so only these two exact shapes are accepted). The scheme and host are
+/// case-insensitive, a slash after the host or at the end is fine, and the pull/card parameter may come after others
+/// (D-06).
 fn parse_url(u: &str) -> Option<Start> {
-    let rest = u.trim().strip_prefix("pokeshell://")?;
-    let rest = rest.strip_prefix("binder").unwrap_or(rest).trim_start_matches('/');
-    let q = rest.strip_prefix('?')?;
-    let (k, v) = q.split('&').next()?.split_once('=')?;
-    let v = v.replace("%2F", "/").replace("%2f", "/").replace("%20", " ").replace('+', " ");
-    match k {
-        "pull" if data::is_pull_id(&v) => Some(Start::Pull(v)),
-        "card" if !v.is_empty() && v.len() <= 120 && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_./ ".contains(c)) && v.matches('/').count() <= 2 => {
-            Some(Start::Card(v))
-        }
-        _ => None,
+    let u = u.trim();
+    let lower = u.to_ascii_lowercase();
+    if !lower.starts_with("pokeshell://") {
+        return None;
     }
+    let rest = &u["pokeshell://".len()..];
+    let rest = if rest.len() >= 6 && rest[..6].eq_ignore_ascii_case("binder") { &rest[6..] } else { rest };
+    let q = rest.trim_start_matches('/').strip_prefix('?')?;
+    for pair in q.split('&') {
+        let Some((k, v)) = pair.split_once('=') else { continue };
+        let v = v.trim_end_matches('/').replace("%2F", "/").replace("%2f", "/").replace("%20", " ").replace('+', " ");
+        match k.to_ascii_lowercase().as_str() {
+            "pull" if data::is_pull_id(&v) => return Some(Start::Pull(v)),
+            "card" if !v.is_empty() && v.len() <= 120 && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_./ ".contains(c)) && v.matches('/').count() <= 2 => {
+                return Some(Start::Card(v));
+            }
+            "pull" | "card" => return None,
+            _ => {}
+        }
+    }
+    None
 }
 
 struct Args {
@@ -126,38 +137,43 @@ fn parse_args() -> Args {
         selftest: false,
         demo_pending: 0,
     };
-    let mut it = std::env::args().skip(1);
+    let mut it = std::env::args().skip(1).peekable();
+    // a flag's value: the next argument, unless it is another flag (D-07: `--state --snapshot x` is an error, not a
+    // state folder called --snapshot)
+    let val = |flag: &str, it: &mut std::iter::Peekable<std::iter::Skip<std::env::Args>>| -> String {
+        match it.peek() {
+            Some(v) if !v.starts_with("--") => it.next().unwrap_or_default(),
+            _ => {
+                eprintln!("binder: {flag} needs a value (try --help)");
+                std::process::exit(2);
+            }
+        }
+    };
     while let Some(x) = it.next() {
         match x.as_str() {
-            "--root" => a.root = it.next(),
-            "--log" => a.log = it.next(),
-            "--state" => a.state = it.next(),
-            "--search" => a.search = it.next().unwrap_or_default(),
-            "--set" => a.set = it.next().unwrap_or_default(),
-            "--pull" => {
-                if let Some(v) = it.next() {
-                    a.start = Start::Pull(v)
-                }
-            }
-            "--card" => {
-                if let Some(v) = it.next() {
-                    a.start = Start::Card(v)
-                }
-            }
+            "--root" => a.root = Some(val("--root", &mut it)),
+            "--log" => a.log = Some(val("--log", &mut it)),
+            "--state" => a.state = Some(val("--state", &mut it)),
+            "--search" => a.search = val("--search", &mut it),
+            "--set" => a.set = val("--set", &mut it),
+            "--pull" => a.start = Start::Pull(val("--pull", &mut it)),
+            "--card" => a.start = Start::Card(val("--card", &mut it)),
             "--url" => {
-                if let Some(s) = it.next().as_deref().and_then(parse_url) {
-                    a.start = s
+                let u = val("--url", &mut it);
+                match parse_url(&u) {
+                    Some(s) => a.start = s,
+                    None => eprintln!("binder: ignoring the link {u:?} (not a pokeshell://binder?pull= or ?card= link)"),
                 }
             }
-            "--theme" => a.theme = it.next().unwrap_or_default(),
-            "--snapshot" => a.snapshot = it.next(),
+            "--theme" => a.theme = val("--theme", &mut it),
+            "--snapshot" => a.snapshot = Some(val("--snapshot", &mut it)),
             "--bench" => a.bench = true,
             "--selftest" => a.selftest = true,
             "--first-frame" => {
                 a.bench = true;
                 a.first_only = true
             }
-            "--demo-pending" => a.demo_pending = it.next().and_then(|n| n.parse().ok()).unwrap_or(0),
+            "--demo-pending" => a.demo_pending = val("--demo-pending", &mut it).parse().unwrap_or(0),
             "-h" | "--help" => {
                 println!("{}", include_str!("main.rs").lines().take_while(|l| l.starts_with("//!")).map(|l| l.trim_start_matches("//!")).collect::<Vec<_>>().join("\n"));
                 std::process::exit(0);
@@ -178,6 +194,10 @@ fn main() -> io::Result<()> {
         eprintln!("binder: can't find the pokeshell checkout (use --root or POKESHELL_ROOT)");
         std::process::exit(1);
     };
+    if !root.join("packs").is_dir() {
+        eprintln!("binder: {} is not a pokeshell checkout (no packs folder)", root.display());
+        std::process::exit(1);
+    }
     let state = args.state.clone().map(PathBuf::from).unwrap_or_else(default_state);
     let log = args.log.clone().map(PathBuf::from).unwrap_or_else(|| state.join("pulls.log"));
     let viewed = log.parent().map(|d| d.join("viewed.txt")).unwrap_or_else(|| state.join("viewed.txt"));
@@ -205,7 +225,17 @@ fn main() -> io::Result<()> {
     }
 
     let mut app = App::new(opts, theme);
+    require_packs(&app);
     run(&mut app)
+}
+
+/// No pack loaded (an empty packs folder, or every pack.json unreadable): say so and exit, rather than draw an empty
+/// binder (T-01).
+pub fn require_packs(app: &App) {
+    if app.coll.packs.is_empty() {
+        eprintln!("binder: no packs found under {} (every packs/*/pack.json is missing or unreadable)", app.opts.root.join("packs").display());
+        std::process::exit(1);
+    }
 }
 
 fn restore() {
@@ -240,7 +270,10 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
             cached = Some(done.buffer.clone());
             app.dirty = false;
             anim_due = false;
-            app.mark_seen();   // the card on screen: its NEW sticker is cleared for next time
+            // the card on screen: its NEW sticker is cleared for next time (only if the card panel showed it, D-15)
+            if !app.help && app.picker.is_none() && app.hits.card_art.width > 0 {
+                app.mark_seen();
+            }
         } else if anim_due {
             let base = cached.as_ref().unwrap();
             term.draw(|f| {
@@ -260,7 +293,8 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
         // Sleep until the next thing can change: an input event, the next shimmer frame
         // (only while a foil card is on screen and mid-sweep), or the clock's next minute.
         let now_s = data::now_local();
-        let to_minute = Duration::from_millis(((60 - now_s.rem_euclid(60)) * 1000 + 50) as u64);
+        // (and every couple of seconds: pulls.log is polled, so a new pull shows up while the binder is open, D-10)
+        let to_minute = Duration::from_millis(((60 - now_s.rem_euclid(60)) * 1000 + 50) as u64).min(Duration::from_millis(2000));
         let timeout = if app.animating() {
             let ph = app.anim_phase();
             if ph < card::SWEEP {
@@ -283,12 +317,14 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
             }
         } else {
             let n = data::now_local();
+            if app.poll_reload() {
+                app.now = n;
+            }
             if n / 60 != minute {
                 minute = n / 60;
                 app.now = n;
-                app.reload_if_changed();
                 app.dirty = true;
-            } else if app.animating() {
+            } else if !app.dirty && app.animating() {
                 anim_due = true;
             }
         }
@@ -307,5 +343,10 @@ mod tests {
         assert_eq!(parse_url("pokeshell://binder?card=a/b/c/d"), None);
         assert_eq!(parse_url("pokeshell://binder?card=x\";calc"), None);
         assert_eq!(parse_url("https://example.com/?pull=01M3NZHEB37XPA8TAG8Z9MZ8C3"), None);
+        // D-06: other params first, a trailing slash, upper-case scheme/host
+        assert_eq!(parse_url("pokeshell://binder?x=1&pull=01M3NZHEB37XPA8TAG8Z9MZ8C3"), Some(Start::Pull("01M3NZHEB37XPA8TAG8Z9MZ8C3".into())));
+        assert_eq!(parse_url("pokeshell://binder?pull=01M3NZHEB37XPA8TAG8Z9MZ8C3/"), Some(Start::Pull("01M3NZHEB37XPA8TAG8Z9MZ8C3".into())));
+        assert_eq!(parse_url("POKESHELL://Binder/?card=pokemon/swsh7-92"), Some(Start::Card("pokemon/swsh7-92".into())));
+        assert_eq!(parse_url("pokeshell://binder?pull=nope&card=pokemon/x"), None, "a bad pull value is not skipped over");
     }
 }

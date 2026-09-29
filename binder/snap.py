@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[1] / "tools"))
+sys.path.insert(0, str(HERE.parent / "tools"))
 import render_ansi  # noqa: E402
 from PIL import Image  # noqa: E402
 

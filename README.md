@@ -142,7 +142,7 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 |---|---|
 | `pokeshell pack [<pack>\|all]` | show or choose the pack new tabs pull from |
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
-| `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on your newest pull; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set id>` (a set's checklist), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
+| `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on your newest pull; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set>` (a set's checklist, by id or name: `swsh7`, `evolving`, `30th`), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
 | `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (about a second; needs Python with Pillow) and opens it |
 | `pokeshell collection` | the text binder: per pack, every character x tier you've earned, shiny counts, completion, best pulls, how many are pending; pulls of retired art, or of cards whose art isn't built, are left out |
 | `pokeshell earn [first-command\|minutes:N\|off]` | what earns a pull: the first command you run in its tab (default), its tab staying open N minutes, or nothing (`off`: every pull counts at once) |
@@ -205,8 +205,9 @@ A card only goes into your binder once you use the tab it was pulled in:
 Four ways in: `binder` / `pokeshell binder` (the app, full screen; `q` returns), the `pokeshell hotkey` key (a split
 pane), the `binder ⏎` link under a pulled card (`pokeshell urlhandler on`; Windows Terminal may only open http(s) links,
 in which case the hint tells you what to type), and `binder --web` (a static page). In the app: arrows / `hjkl` move,
-`1`-`9` switch packs, `S` cycles a pack's sets (a set page is that set's whole checklist, with empty pockets for the
-cards you haven't pulled), `/` searches, `v` shows the card's text half (HP, attacks, weakness) under the art when
+`1`-`9` switch packs, `S` opens the set picker (each set's completion; type to filter, Enter opens that set's whole
+checklist, with empty pockets for the cards you haven't pulled), `#17` jumps to a printed number, `/` searches, `o` /
+`m` show only the cards you own / miss, `v` shows the card's text half (HP, attacks, weakness) under the art when
 `packs/<pack>/cards/<card id>.json` exists, `d` toggles one-slot-per-character, `?` lists the rest.
 
 **Tags and search** (the app and the web page): every card is tagged with its set (id and name), printed rarity and

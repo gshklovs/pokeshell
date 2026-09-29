@@ -6,11 +6,27 @@ pub type Rgb = [u8; 3];
 
 pub fn hex(s: &str) -> Option<Rgb> {
     let s = s.trim().trim_start_matches('#');
-    if s.len() != 6 {
+    // (a byte-length check alone would let a non-ASCII string through, and slicing it could split a character)
+    if s.len() != 6 || !s.bytes().all(|b| b.is_ascii_hexdigit()) {
         return None;
     }
-    let p = |i: usize| u8::from_str_radix(&s[i..i + 2], 16).ok();
+    let p = |i: usize| u8::from_str_radix(s.get(i..i + 2)?, 16).ok();
     Some([p(0)?, p(2)?, p(4)?])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hex_colors() {
+        assert_eq!(hex("#ff5fa2"), Some([0xff, 0x5f, 0xa2]));
+        assert_eq!(hex(" 0c0e16 "), Some([0x0c, 0x0e, 0x16]));
+        assert_eq!(hex("#ff5fa"), None);
+        assert_eq!(hex("#gg0000"), None);
+        assert_eq!(hex("ééé"), None, "6 bytes of non-ASCII: no panic on a char boundary");
+        assert_eq!(hex("+12345"), None, "from_str_radix would take a sign");
+    }
 }
 
 /// `hex` for string literals we own (panics are compile-time-obvious typos).
