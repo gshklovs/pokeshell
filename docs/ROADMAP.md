@@ -15,6 +15,12 @@ full-art cards frame and pose the character, the gold variant on the secret-rare
 should study reference card art per character and per rarity before redrawing, then iterate with
 `tools/build_art.py` previews side by side with the reference.
 
+### Full card by default
+Every pull prints as a full card (art plus the card's text: name, HP, attacks, weakness/retreat, flavor), as
+decided in the lookbook. A setting switches to picture-only (just the art):
+`pokeshell display card|picture` (persisted in the config) and `POKESHELL_DISPLAY=picture` for one shell.
+Narrow windows fall back per the lookbook's choice.
+
 ### Earned collection
 You only collect a card if you actually use the terminal session it was pulled in.
 - A pull starts as *pending*, tied to its tab (pull id passed to the tab, e.g. an env var).

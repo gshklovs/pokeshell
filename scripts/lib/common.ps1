@@ -18,18 +18,45 @@ function ConvertTo-PokeshellTitle([string]$Id) {
   (($Id -split '[-_]') | ForEach-Object { if ($_) { $_.Substring(0, 1).ToUpper() + $_.Substring(1) } }) -join ' '
 }
 
-# pack.json + display names from art/<id>.json (falls back to a title-cased id while art is missing)
+# pack.json + display names: pack.json "names" {id: name}, else art/<id>.json, else a title-cased id.
+# Optional pack.json "tags" {id: text} (shown on a card frame's top edge, e.g. a dex number), the frame-style
+# texts "poster_names" and "bounties" {id: text} (the wanted style's full name and bounty) and per-tier
+# "frame" are normalized to .tags, .posterNames, .bounties and .frames. A frame is a preset name or a list of
+# #rrggbb gradient stops (kept as "a,b,..."), or a style object ({ "style": "wanted", "palette": "manga" },
+# kept as "wanted;palette=manga;seed=<tier id>": the one string the roll cache and the core pass around).
 function Read-PokeshellPack([string]$Root, [string]$Id) {
   $dir = Join-Path $Root "packs\$Id"
-  $pack = Get-Content (Join-Path $dir 'pack.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  $pack = [IO.File]::ReadAllText((Join-Path $dir 'pack.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+  $given = @{}; if ($pack.names) { foreach ($p in $pack.names.PSObject.Properties) { $given[$p.Name] = [string]$p.Value } }
+  $tags = @{}; if ($pack.tags) { foreach ($p in $pack.tags.PSObject.Properties) { $tags[$p.Name] = [string]$p.Value } }
+  $posters = @{}; if ($pack.poster_names) { foreach ($p in $pack.poster_names.PSObject.Properties) { $posters[$p.Name] = [string]$p.Value } }
+  $bounties = @{}; if ($pack.bounties) { foreach ($p in $pack.bounties.PSObject.Properties) { $bounties[$p.Name] = [string]$p.Value } }
   $names = [ordered]@{}
   foreach ($c in $pack.characters) {
-    $artFile = Join-Path $dir "art\$c.json"
-    $name = $null
-    if (Test-Path $artFile) { try { $name = (Get-Content $artFile -Raw -Encoding UTF8 | ConvertFrom-Json).name } catch { } }
+    $name = $given[$c]
+    if (-not $name) {
+      $artFile = Join-Path $dir "art\$c.json"
+      if (Test-Path $artFile) { try { $name = (Get-Content $artFile -Raw -Encoding UTF8 | ConvertFrom-Json).name } catch { } }
+    }
     $names[$c] = if ($name) { $name } else { ConvertTo-PokeshellTitle $c }
   }
+  $frames = @(foreach ($t in @($pack.tiers)) {
+    $f = $t.frame
+    if (-not $f) { '' }
+    elseif ($f -is [Management.Automation.PSCustomObject]) {
+      if (-not $f.style) { throw "pack $Id, tier $($t.id): a frame object needs a style" }
+      $kv = @("$($f.style)".Trim())
+      foreach ($p in $f.PSObject.Properties) { if ($p.Name -ne 'style') { $kv += "$($p.Name)=$("$($p.Value)" -replace '[;\s]+', ' ')".Trim() } }
+      if (-not $f.seed) { $kv += "seed=$($t.id)" }   # the stain / edge pattern: per tier unless the pack says otherwise
+      $kv -join ';'
+    }
+    else { (@($f) | ForEach-Object { "$_".Trim() }) -join ',' }
+  })
   $pack | Add-Member -NotePropertyName names -NotePropertyValue $names -Force
+  $pack | Add-Member -NotePropertyName tags -NotePropertyValue $tags -Force
+  $pack | Add-Member -NotePropertyName posterNames -NotePropertyValue $posters -Force
+  $pack | Add-Member -NotePropertyName bounties -NotePropertyValue $bounties -Force
+  $pack | Add-Member -NotePropertyName frames -NotePropertyValue $frames -Force
   $pack | Add-Member -NotePropertyName dir -NotePropertyValue $dir -Force
   $pack
 }
@@ -103,11 +130,16 @@ function Update-PokeshellRollCache([string]$Root, [string]$StateDir, [hashtable]
     $pack = Read-PokeshellPack $Root $id
     $stampFiles += (Join-Path $pack.dir 'pack.json'), (Join-Path $pack.dir 'art')
     $body.Add("pack`t$id`t$(([double]$pack.foil_chance).ToString($inv))`t$(([double]$pack.shiny_chance).ToString($inv))")
-    foreach ($c in $pack.characters) { $body.Add("char`t$c`t$($pack.names[$c])") }
+    foreach ($c in $pack.characters) {
+      # char id name [tag [poster bounty]] (trailing empty columns left off)
+      $cols = @("char", $c, $pack.names[$c], $pack.tags[$c], $pack.posterNames[$c], $pack.bounties[$c])
+      $n = $cols.Count; while ($n -gt 3 -and -not $cols[$n - 1]) { $n-- }
+      $body.Add(($cols[0..($n - 1)] | ForEach-Object { "$_" }) -join "`t")
+    }
     $tiers = @($pack.tiers)
     for ($i = 0; $i -lt $tiers.Count; $i++) {
       $t = $tiers[$i]
-      $body.Add("tier`t$($t.id)`t$($t.label)`t$($t.art)")
+      $body.Add("tier`t$($t.id)`t$($t.label)`t$($t.art)$(if ($pack.frames[$i]) { "`t$($pack.frames[$i])" })")
       if ($i -eq 0) { continue }
       foreach ($prop in $t.skins.PSObject.Properties) {
         $g = $installed["$id/$($prop.Name)"]

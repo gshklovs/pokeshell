@@ -126,7 +126,7 @@ $r = Start-SimTab $st $PlainGuid @('powershell.exe') $t0
 $enc = $r.wtArgs[$r.wtArgs.Count - 1]
 $env:POKESHELL_HOME = $st; try { $out = (& powershell.exe -NoProfile -EncodedCommand $enc | Out-String) } finally { Remove-Item Env:POKESHELL_HOME }
 $e = [char]27; $plainOut = $out -replace "$e\[[0-9;]*m", ''
-Assert ($plainOut -match [regex]::Escape(" : ")) "the pulled tab's -EncodedCommand prints the banner: '$(($plainOut -split "`n" | Where-Object { $_ -match ' : ' } | Select-Object -First 1).Trim())'"
+Assert ($plainOut -match (' : |' + [char]0x256d)) "the pulled tab's -EncodedCommand prints the card (banner or frame): '$(($plainOut -split "`n" | Where-Object { $_ -match (' : |' + [char]0x256d) } | Select-Object -First 1).Trim())'"
 
 Write-Host "6. a foil that can't find its own tab in the foreground Windows Terminal window stays here" -ForegroundColor Cyan
 # this test process isn't a pane of the foreground WT window, so placement must refuse (no tab replaced)

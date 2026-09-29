@@ -120,7 +120,8 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 | `pokeshell pack [<pack>\|all]` | show or choose the pack new tabs pull from |
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
 | `pokeshell collection` | your binder: per pack, every character x tier you've pulled, shiny counts, completion, best pulls |
-| `pokeshell show <pack>/<character> [variant] [-shiny]` | print a card (`pokeshell show` lists everything built) |
+| `pokeshell show <pack>/<character> [variant] [-shiny] [-picture\|-card]` | print a card (`pokeshell show` lists everything built); `-picture` / `-card` override the display setting |
+| `pokeshell display [card\|picture]` | how pulls print: `card` (default) is the full card (a framed card for packs with tier frames, otherwise the art plus the `label : name` line); `picture` is just the art. Saved in `config.txt`; `$env:POKESHELL_DISPLAY = 'picture'` overrides it for one shell (and the foil tabs it opens) |
 | `pokeshell holo [<skin>\|plain] [-s] [-r]` | open a skinned tab here; `-s` splits a pane instead; `-r` moves the Claude Code session running in this tab into the new one (`claude --resume`), e.g. from inside Claude Code: `! pokeshell holo -r cosmos` |
 | `pokeshell color <name\|#hex\|reset>` | tint this tab (35 named colors; other CSS color names work too and are logged to `color-misses.log`) |
 | `pokeshell colorwatch [on\|off]` | optional: tint each tab to match the `/color` of the Claude Code session running in it |
@@ -216,7 +217,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 
 | file | |
 |---|---|
-| `config.txt` | `key=value`: `pack`, `enabled`, and `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.) |
+| `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), and `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.) |
 | `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, note |
 | `color-misses.log` | color names that weren't in the table |
 | `installed.tsv` | the skin profiles install added (what uninstall removes) |

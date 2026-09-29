@@ -40,8 +40,10 @@ pokeshell - every new Windows Terminal tab is a pack pull
   pokeshell pack [<pack>|all]             show or choose the active pack
   pokeshell odds [pack]                   pull odds for the active pack (or the one named)
   pokeshell collection                    your binder: every character/variant/shiny pulled so far
-  pokeshell show <pack>/<character> [variant] [-shiny]
-                                          print a card's art (pokeshell show: list what's available)
+  pokeshell show <pack>/<character> [variant] [-shiny] [-picture|-card]
+                                          print a card (pokeshell show: list what's available)
+  pokeshell display [card|picture]        how pulls print: the full card (default) or just the picture
+                                          (POKESHELL_DISPLAY=picture overrides it for one shell)
   pokeshell holo [<skin>|plain] [-s] [-r] open a skinned tab here (-s: split pane instead;
                                           -r: move the Claude Code session running here into it)
   pokeshell color <name|#hex|reset>       tint this tab (pokeshell color: list names)
@@ -180,6 +182,19 @@ function Invoke-Pack {
   Write-Host "pokeshell: new tabs now pull from $want"
 }
 
+function Invoke-Display {
+  if (-not $Pos) {
+    $d = [Pokeshell.Core]::Display($Cfg)
+    Write-Host "display: $d$(if ($env:POKESHELL_DISPLAY) { "  (POKESHELL_DISPLAY=$env:POKESHELL_DISPLAY in this shell)" })  (pokeshell display card|picture)"
+    return
+  }
+  $want = $Pos[0].ToLower()
+  if ($want -notin 'card', 'picture') { throw "display is card or picture, not '$want'" }
+  Set-PokeshellConfigValue $State 'display' $want
+  Update-PokeshellRollCache -Root $RuntimeRoot -StateDir $State   # config.txt is in the cache stamp: rebuild now, not in the next tab
+  Write-Host "pokeshell: pulls now print as $(if ($want -eq 'card') { 'the full card' } else { 'just the picture' })"
+}
+
 function Invoke-Odds {
   $ids = if ($Pos) { @($Pos[0].ToLower()) } else { Get-ActivePackIds }
   foreach ($id in $ids) {
@@ -222,6 +237,12 @@ function Invoke-Collection {
     $pack = try { Read-PokeshellPack $Root $grp.Name } catch { $null }
     $tiers = if ($pack) { @($pack.tiers) } else { @($grp.Group | Select-Object -ExpandProperty tier -Unique | ForEach-Object { [pscustomobject]@{ id = $_; label = $_ } }) }
     $chars = if ($pack) { @($pack.characters) } else { @($grp.Group | Select-Object -ExpandProperty character -Unique) }
+    $caught = ''
+    if ($chars.Count -gt 40) {   # big packs: only the rows you have pulled
+      $seen = @{}; foreach ($x in $grp.Group) { $seen[$x.character] = $true }
+      $caught = "  (caught $(@($chars | Where-Object { $seen[$_] }).Count) of $($chars.Count); rows for those only)"
+      $chars = @($chars | Where-Object { $seen[$_] })
+    }
     $owned = 0; $slots = 0
     $rows = foreach ($c in $chars) {
       $mine = @($grp.Group | Where-Object character -eq $c)
@@ -236,7 +257,7 @@ function Invoke-Collection {
       [pscustomobject]$row
     }
     Write-Host ''
-    Write-Host "$(if ($pack) { $pack.name } else { $grp.Name })  -  $($grp.Count) pulls, $owned/$slots card slots filled" -ForegroundColor Yellow
+    Write-Host "$(if ($pack) { $pack.name } else { $grp.Name })  -  $($grp.Count) pulls, $owned/$slots card slots filled$caught" -ForegroundColor Yellow
     $rows | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
     $best = @($grp.Group | Where-Object { $_.tier -ne $tiers[0].id -or $_.shiny })
     if ($best) {
@@ -256,9 +277,16 @@ function Invoke-Show {
   if (-not $Pos) {
     foreach ($id in Get-PokeshellPackIds $Root) {
       $p = Read-PokeshellPack $Root $id
+      $built = @(Get-ChildItem (Join-Path $Root "dist\$id") -Filter '*.ans' -File -ErrorAction SilentlyContinue | ForEach-Object BaseName)
+      $chars = @($p.characters)
       Write-Host "$id" -ForegroundColor Cyan
-      foreach ($c in $p.characters) {
-        $v = @(Get-ChildItem (Join-Path $Root "dist\$id") -Filter "$c-*.ans" -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName.Substring($c.Length + 1) })
+      if ($chars.Count -gt 40) {   # big packs: one summary line instead of a line per character
+        $framed = @($p.frames | Where-Object { $_ }).Count -gt 0
+        Write-Host ("  {0} characters, {1} art files{2}; e.g. {3}" -f $chars.Count, $built.Count, $(if ($framed) { ', tiers shown as card frames' }), (($chars | Select-Object -First 6 | ForEach-Object { "$id/$_" }) -join ' '))
+        continue
+      }
+      foreach ($c in $chars) {
+        $v = @($built | Where-Object { $_.StartsWith("$c-") } | ForEach-Object { $_.Substring($c.Length + 1) })
         Write-Host ("  {0,-22} {1}" -f "$id/$c", $(if ($v) { $v -join ' ' } else { '(no art built yet)' }))
       }
     }
@@ -273,18 +301,30 @@ function Invoke-Show {
   }
   $packId = $Matches[1]; $char = $Matches[2]
   $p = Read-PokeshellPack $Root $packId
-  if (@($p.characters) -notcontains $char) { throw "pack '$packId' has no character '$char' (has: $(@($p.characters) -join ', '))" }
+  if (@($p.characters) -notcontains $char) {
+    $has = @($p.characters); $more = if ($has.Count -gt 12) { " ... ($($has.Count) in all)" } else { '' }
+    throw "pack '$packId' has no character '$char' (has: $(($has | Select-Object -First 12) -join ', ')$more)"
+  }
   $tiers = @($p.tiers)
   $variant = if ($Pos.Count -gt 1) { $Pos[1].ToLower() } else { $tiers[0].art }
   $shiny = Has @('shiny')
-  $file = Join-Path $Root "dist\$packId\$char-$variant$(if ($shiny) { '-shiny' }).ans"
+  # the variant names an art variant, or a tier (by id, label, or frame preset: `show pokedex/pikachu gold`)
+  $ti = -1
+  for ($i = $tiers.Count - 1; $i -ge 0; $i--) {
+    if ($tiers[$i].id -eq $variant -or ($tiers[$i].label -replace ' ', '-') -eq $variant -or ($p.frames[$i] -and $p.frames[$i] -eq $variant)) { $ti = $i }
+  }
+  $art = if ($ti -ge 0) { $tiers[$ti].art } else { $variant }
+  $file = Join-Path $Root "dist\$packId\$char-$art$(if ($shiny) { '-shiny' }).ans"
   if (-not (Test-Path $file)) {
     $have = @(Get-ChildItem (Join-Path $Root "dist\$packId") -Filter "$char-*.ans" -ErrorAction SilentlyContinue | ForEach-Object { $_.BaseName.Substring($char.Length + 1) })
-    throw "no art $packId/$char-$variant$(if ($shiny) { '-shiny' }) in dist (have: $(if ($have) { $have -join ' ' } else { 'none' }))"
+    throw "no art $packId/$char-$art$(if ($shiny) { '-shiny' }) in dist (have: $(if ($have) { $have -join ' ' } else { 'none' }))"
   }
-  $ti = 0; for ($i = $tiers.Count - 1; $i -ge 0; $i--) { if ($tiers[$i].art -eq $variant) { $ti = $i } }
-  $label = if (@($tiers | Where-Object art -eq $variant)) { $tiers[$ti].label } else { $variant }
-  Show-PokeshellPull -Root $Root -Pack $packId -Character $char -Name $p.names[$char] -Art $variant -Label $label -Tier $ti -Shiny:$shiny
+  if ($ti -lt 0) { $ti = 0; for ($i = $tiers.Count - 1; $i -ge 0; $i--) { if ($tiers[$i].art -eq $variant) { $ti = $i } } }
+  $label = if (@($tiers | Where-Object art -eq $art)) { $tiers[$ti].label } else { $variant }
+  $frame = if ($tiers[$ti].art -eq $art) { $p.frames[$ti] } else { '' }
+  # -Picture / -Card override the display setting (config `display`, or POKESHELL_DISPLAY for this shell)
+  $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
+  Show-PokeshellPull -Root $Root -Pack $packId -Character $char -Name $p.names[$char] -Art $art -Label $label -Tier $ti -Shiny:$shiny -Frame $frame -Tag $p.tags[$char] -Picture:$picture -Poster $p.posterNames[$char] -Bounty $p.bounties[$char]
 }
 
 # ---------------------------------------------------------------- holo / color / colorwatch
@@ -431,6 +471,7 @@ switch ($Command) {
   'collection' { Invoke-Collection }
   'binder'     { Invoke-Collection }
   'show'       { Invoke-Show }
+  'display'    { Invoke-Display }
   'holo'       { Invoke-Holo }
   'color'      { Invoke-Color }
   'colorwatch' { Invoke-ColorWatch }

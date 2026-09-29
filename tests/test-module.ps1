@@ -75,7 +75,7 @@ function Run([string]$Mode, [string[]]$CliArgs) {
 function Invoke-HookRoll {
   $probe = Join-Path $work 'hookprobe.ps1'
   $t = [IO.File]::ReadAllText((Join-Path $cur 'scripts\pokeshell-profile.ps1'))
-  $t = $t.Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')").Replace('$lib, -1)', '$lib, 0)')
+  $t = $t.Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')").Replace('$lib, -1)', '$lib, 0)').Replace('-Argv $a)', '-Argv $a -FoilChance 0)')
   $t = "`$env:LOCALAPPDATA = '$lad'; `$env:WT_PROFILE_ID = '$PlainGuid'; `$env:POKESHELL_DRYRUN = '1'`r`n`$__hookDir = '$cur\scripts'`r`n" + $t +
        "`r`nif (`$env:POKESHELL_ROLLED) { 'ROLLED' }"
   [IO.File]::WriteAllText($probe, $t)
@@ -115,7 +115,7 @@ $afterV1 = [IO.File]::ReadAllBytes($settings)
 $dll = Join-Path $state ("pokeshell-core-" + [IO.File]::GetLastWriteTimeUtc((Join-Path $cur 'scripts\lib\Pokeshell.cs')).Ticks + '-Desktop.dll')
 Assert (Test-Path $dll) "the core DLL the hook looks for (named after current's Pokeshell.cs) is compiled"
 $out = Invoke-HookRoll
-Assert ($out -match 'ROLLED' -and $out -match ' : ') "the hook from current rolls a pull: '$((($out -split "`n") | Where-Object { $_ -match ' : ' } | Select-Object -First 1).Trim())'"
+Assert ($out -match 'ROLLED' -and $out -match (' : |' + [char]0x256d)) "the hook from current rolls a pull: '$((($out -split "`n") | Where-Object { $_ -match (' : |' + [char]0x256d) } | Select-Object -First 1).Trim())'"
 Assert (-not (Test-Path (Join-Path $state 'errors.log'))) "no hook errors"
 
 Write-Host "3. simulated Update-Module: 0.2.0 next to 0.1.0" -ForegroundColor Cyan
@@ -134,7 +134,7 @@ Assert (-not (Test-Path $v1)) "old module version folder deleted (as Uninstall-M
 Assert (-not @(Get-ShaderPaths | Where-Object { -not (Test-Path $_) })) "every shader path still resolves"
 Remove-Item (Join-Path $state 'roll.tsv')   # force the stale path too: roll.ps1 + common.ps1 from current rebuild the cache
 $out = Invoke-HookRoll
-Assert ($out -match 'ROLLED' -and $out -match ' : ' -and (Test-Path (Join-Path $state 'roll.tsv'))) "the hook still rolls (incl. rebuilding the roll cache from current)"
+Assert ($out -match 'ROLLED' -and $out -match (' : |' + [char]0x256d) -and (Test-Path (Join-Path $state 'roll.tsv'))) "the hook still rolls (incl. rebuilding the roll cache from current)"
 $out = Run hook @('version')
 Assert ($out -match 'pokeshell 0\.2\.0' -and $out -match '\(0\.2\.0\)' -and $out -notmatch 'still run') "`pokeshell` from the hook resolves to 0.2.0"
 $out = Run module @('odds')

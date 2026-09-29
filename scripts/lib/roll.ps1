@@ -36,9 +36,10 @@ function Import-PokeshellCore([string]$StateDir) {
 
 # Print art + banner (the pulled foil tab, `pokeshell show`)
 function Show-PokeshellPull([string]$Root, [string]$Pack, [string]$Character, [string]$Name, [string]$Art,
-                            [string]$Label, [int]$Tier, [switch]$Shiny) {
+                            [string]$Label, [int]$Tier, [switch]$Shiny, [string]$Frame = '', [string]$Tag = '', [switch]$Picture,
+                            [string]$Poster = '', [string]$Bounty = '') {
   Import-PokeshellCore
-  $Host.UI.Write([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny))
+  $Host.UI.Write([Pokeshell.Core]::PullText($Root, $Pack, $Character, $Name, $Art, $Label, $Tier, [bool]$Shiny, $Frame, $Tag, [bool]$Picture, $Poster, $Bounty))
 }
 
 <#

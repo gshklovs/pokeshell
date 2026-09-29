@@ -8,7 +8,7 @@ Cases:
   foil    a fresh plain tab that pulls a foil: roll + spawn gate, up to (not including) the wt.exe call
   cold    the first tab after a pack/art change: the roll cache is rebuilt (rare)
 #>
-param([int]$Runs = 15, [string]$HookRoot)   # -HookRoot: measure a deployed copy (e.g. <state>\current) instead of the repo
+param([int]$Runs = 15, [string]$HookRoot, [string]$Pack)   # -HookRoot: measure a deployed copy (e.g. <state>\current) instead of the repo; -Pack: pull from that pack (default: the default pack)
 . (Join-Path $PSScriptRoot '_setup.ps1')
 if (-not $HookRoot) { $HookRoot = $RepoRoot }
 $st = New-TestState 'timing'
@@ -36,15 +36,17 @@ $ms = $sw.Elapsed.TotalMilliseconds
 [Console]::Out.WriteLine("RESULT`t$Case`t$ms`t$script:action")
 '@ | Set-Content $probe
 $hookText = [IO.File]::ReadAllText("$HookRoot\scripts\pokeshell-profile.ps1").Replace('$PSScriptRoot', '$__hookDir').Replace('[Environment]::GetCommandLineArgs()', "@('powershell.exe')")
-if (-not $hookText.Contains('$lib, -1)')) { throw 'measure-startup: hook layout changed; update the substitution' }
+if (-not $hookText.Contains('$lib, -1)') -or -not $hookText.Contains('-Argv $a)')) { throw 'measure-startup: hook layout changed; update the substitution' }
 foreach ($c in @(@('common', '0'), @('foil', '1'), @('cold', '0'))) {
-  $t = $hookText.Replace('$lib, -1)', '$lib, ' + $c[1] + ')')
+  # the forced odds go to both the fast path and the stale path (cold: roll cache rebuilt, then rolled in roll.ps1)
+  $t = $hookText.Replace('$lib, -1)', '$lib, ' + $c[1] + ')').Replace('-Argv $a)', '-Argv $a -FoilChance ' + $c[1] + ')')
   $t = "`$env:POKESHELL_DRYRUN = '1'`r`n" + $t     # never open a real tab, whatever the dice say
   $t = "`$__hookDir = '$HookRoot\scripts'`r`n" + $t
   [IO.File]::WriteAllText("$st\hook-$($c[0]).ps1", $t)
 }
 $env:POKESHELL_HOME = $st
 [void](New-PokeshellCore $st)   # compile the core into the test state (a real install does this)
+if ($Pack) { Set-PokeshellConfigValue $st 'pack' $Pack; Write-Host "pack: $Pack" }
 Update-PokeshellRollCache -Root $HookRoot -StateDir $st
 Remove-Item Env:POKESHELL_HOME
 
