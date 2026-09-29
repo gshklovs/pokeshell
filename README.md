@@ -2,10 +2,10 @@
 
 Every new Windows Terminal PowerShell tab is a trading-card pack pull.
 
-<!-- TODO(media): the README images (hero.png, tiers.png, pull.gif, foil.png, foil-gold.png) showed the old
-     hand-drawn art and were removed. tools/make_media.py renders new ones into previews/media from the locally built
-     real cards, but they show Nintendo sprites: put them back (make_media.py --out docs/media, plus new Windows
-     Terminal screenshots of a foil) only once it's decided the public repo may show them. -->
+[![pokeshell: every new tab is a pack (32 s video)](docs/media/promo-poster.png)](docs/media/promo.mp4)
+
+*Click for the 32 s video: real Windows Terminal pulls from Evolving Skies, the foil shaders, the card animations,
+the earn line and both binders.*
 
 Every pull is a **real printed card**: the Pokemon's pixel sprite over that card's scene, framed like a card with
 its name, printed number and rarity. Most tabs pull a common, which prints right there. Rarer cards (rare holo,
