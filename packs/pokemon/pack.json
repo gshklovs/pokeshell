@@ -453,7 +453,7 @@
       "number": "44/102",
       "rarity": "Common",
       "set": "Base",
-      "source": "suite3:bulbasaur-suite3.json#common"
+      "source": "base:sprite"
     },
     "sv3pt5-166": {
       "character": "bulbasaur",
@@ -471,7 +471,7 @@
       "number": "46/102",
       "rarity": "Common",
       "set": "Base",
-      "source": "suite3:charmander-suite3.json#common"
+      "source": "base:sprite:flip"
     },
     "sma-SV6": {
       "character": "charmander",
@@ -507,7 +507,7 @@
       "number": "58/102",
       "rarity": "Common",
       "set": "Base",
-      "source": "suite3:pikachu-suite3.json#common"
+      "source": "base:sprite"
     },
     "cel25-5": {
       "character": "pikachu",
@@ -543,7 +543,7 @@
       "number": "63/102",
       "rarity": "Common",
       "set": "Base",
-      "source": "suite3:squirtle-suite3.json#common"
+      "source": "base:sprite"
     },
     "sv3pt5-170": {
       "character": "squirtle",
@@ -6466,6 +6466,591 @@
       "rarity": "Rare Shiny",
       "set": "Hidden Fates Shiny Vault",
       "source": "hf:sma-SV9.json#rare-shiny"
+    },
+    "base1-1": {
+      "character": "alakazam",
+      "tier": "rare-holo",
+      "name": "Alakazam",
+      "number": "1/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-1.json#rare-holo"
+    },
+    "base1-10": {
+      "character": "mewtwo",
+      "tier": "rare-holo",
+      "name": "Mewtwo",
+      "number": "10/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-10.json#rare-holo"
+    },
+    "base1-11": {
+      "character": "nidoking",
+      "tier": "rare-holo",
+      "name": "Nidoking",
+      "number": "11/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-11.json#rare-holo"
+    },
+    "base1-12": {
+      "character": "ninetales",
+      "tier": "rare-holo",
+      "name": "Ninetales",
+      "number": "12/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-12.json#rare-holo"
+    },
+    "base1-13": {
+      "character": "poliwrath",
+      "tier": "rare-holo",
+      "name": "Poliwrath",
+      "number": "13/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-13.json#rare-holo"
+    },
+    "base1-14": {
+      "character": "raichu",
+      "tier": "rare-holo",
+      "name": "Raichu",
+      "number": "14/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-14.json#rare-holo"
+    },
+    "base1-15": {
+      "character": "venusaur",
+      "tier": "rare-holo",
+      "name": "Venusaur",
+      "number": "15/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-15.json#rare-holo"
+    },
+    "base1-16": {
+      "character": "zapdos",
+      "tier": "rare-holo",
+      "name": "Zapdos",
+      "number": "16/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-16.json#rare-holo"
+    },
+    "base1-17": {
+      "character": "beedrill",
+      "tier": "rare",
+      "name": "Beedrill",
+      "number": "17/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-17.json#rare"
+    },
+    "base1-18": {
+      "character": "dragonair",
+      "tier": "rare",
+      "name": "Dragonair",
+      "number": "18/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-18.json#rare"
+    },
+    "base1-19": {
+      "character": "dugtrio",
+      "tier": "rare",
+      "name": "Dugtrio",
+      "number": "19/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-19.json#rare"
+    },
+    "base1-2": {
+      "character": "blastoise",
+      "tier": "rare-holo",
+      "name": "Blastoise",
+      "number": "2/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-2.json#rare-holo"
+    },
+    "base1-20": {
+      "character": "electabuzz",
+      "tier": "rare",
+      "name": "Electabuzz",
+      "number": "20/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-20.json#rare"
+    },
+    "base1-21": {
+      "character": "electrode",
+      "tier": "rare",
+      "name": "Electrode",
+      "number": "21/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-21.json#rare"
+    },
+    "base1-22": {
+      "character": "pidgeotto",
+      "tier": "rare",
+      "name": "Pidgeotto",
+      "number": "22/102",
+      "rarity": "Rare",
+      "set": "Base",
+      "source": "base:base1-22.json#rare"
+    },
+    "base1-23": {
+      "character": "arcanine",
+      "tier": "uncommon",
+      "name": "Arcanine",
+      "number": "23/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-23.json#uncommon"
+    },
+    "base1-24": {
+      "character": "charmeleon",
+      "tier": "uncommon",
+      "name": "Charmeleon",
+      "number": "24/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-24.json#uncommon"
+    },
+    "base1-25": {
+      "character": "dewgong",
+      "tier": "uncommon",
+      "name": "Dewgong",
+      "number": "25/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-25.json#uncommon"
+    },
+    "base1-26": {
+      "character": "dratini",
+      "tier": "uncommon",
+      "name": "Dratini",
+      "number": "26/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-26.json#uncommon"
+    },
+    "base1-27": {
+      "character": "farfetchd",
+      "tier": "uncommon",
+      "name": "Farfetch'd",
+      "number": "27/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-27.json#uncommon"
+    },
+    "base1-28": {
+      "character": "growlithe",
+      "tier": "uncommon",
+      "name": "Growlithe",
+      "number": "28/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-28.json#uncommon"
+    },
+    "base1-29": {
+      "character": "haunter",
+      "tier": "uncommon",
+      "name": "Haunter",
+      "number": "29/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-29.json#uncommon"
+    },
+    "base1-3": {
+      "character": "chansey",
+      "tier": "rare-holo",
+      "name": "Chansey",
+      "number": "3/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-3.json#rare-holo"
+    },
+    "base1-30": {
+      "character": "ivysaur",
+      "tier": "uncommon",
+      "name": "Ivysaur",
+      "number": "30/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-30.json#uncommon"
+    },
+    "base1-31": {
+      "character": "jynx",
+      "tier": "uncommon",
+      "name": "Jynx",
+      "number": "31/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-31.json#uncommon"
+    },
+    "base1-32": {
+      "character": "kadabra",
+      "tier": "uncommon",
+      "name": "Kadabra",
+      "number": "32/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-32.json#uncommon"
+    },
+    "base1-33": {
+      "character": "kakuna",
+      "tier": "uncommon",
+      "name": "Kakuna",
+      "number": "33/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-33.json#uncommon"
+    },
+    "base1-34": {
+      "character": "machoke",
+      "tier": "uncommon",
+      "name": "Machoke",
+      "number": "34/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-34.json#uncommon"
+    },
+    "base1-35": {
+      "character": "magikarp",
+      "tier": "uncommon",
+      "name": "Magikarp",
+      "number": "35/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-35.json#uncommon"
+    },
+    "base1-36": {
+      "character": "magmar",
+      "tier": "uncommon",
+      "name": "Magmar",
+      "number": "36/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-36.json#uncommon"
+    },
+    "base1-37": {
+      "character": "nidorino",
+      "tier": "uncommon",
+      "name": "Nidorino",
+      "number": "37/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-37.json#uncommon"
+    },
+    "base1-38": {
+      "character": "poliwhirl",
+      "tier": "uncommon",
+      "name": "Poliwhirl",
+      "number": "38/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-38.json#uncommon"
+    },
+    "base1-39": {
+      "character": "porygon",
+      "tier": "uncommon",
+      "name": "Porygon",
+      "number": "39/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-39.json#uncommon"
+    },
+    "base1-4": {
+      "character": "charizard",
+      "tier": "rare-holo",
+      "name": "Charizard",
+      "number": "4/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-4.json#rare-holo"
+    },
+    "base1-40": {
+      "character": "raticate",
+      "tier": "uncommon",
+      "name": "Raticate",
+      "number": "40/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-40.json#uncommon"
+    },
+    "base1-41": {
+      "character": "seel",
+      "tier": "uncommon",
+      "name": "Seel",
+      "number": "41/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-41.json#uncommon"
+    },
+    "base1-42": {
+      "character": "wartortle",
+      "tier": "uncommon",
+      "name": "Wartortle",
+      "number": "42/102",
+      "rarity": "Uncommon",
+      "set": "Base",
+      "source": "base:base1-42.json#uncommon"
+    },
+    "base1-43": {
+      "character": "abra",
+      "tier": "common",
+      "name": "Abra",
+      "number": "43/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-45": {
+      "character": "caterpie",
+      "tier": "common",
+      "name": "Caterpie",
+      "number": "45/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-47": {
+      "character": "diglett",
+      "tier": "common",
+      "name": "Diglett",
+      "number": "47/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-48": {
+      "character": "doduo",
+      "tier": "common",
+      "name": "Doduo",
+      "number": "48/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-49": {
+      "character": "drowzee",
+      "tier": "common",
+      "name": "Drowzee",
+      "number": "49/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-5": {
+      "character": "clefairy",
+      "tier": "rare-holo",
+      "name": "Clefairy",
+      "number": "5/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-5.json#rare-holo"
+    },
+    "base1-50": {
+      "character": "gastly",
+      "tier": "common",
+      "name": "Gastly",
+      "number": "50/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-51": {
+      "character": "koffing",
+      "tier": "common",
+      "name": "Koffing",
+      "number": "51/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-52": {
+      "character": "machop",
+      "tier": "common",
+      "name": "Machop",
+      "number": "52/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-53": {
+      "character": "magnemite",
+      "tier": "common",
+      "name": "Magnemite",
+      "number": "53/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-54": {
+      "character": "metapod",
+      "tier": "common",
+      "name": "Metapod",
+      "number": "54/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-55": {
+      "character": "nidoran-m",
+      "tier": "common",
+      "name": "Nidoran ♂",
+      "number": "55/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-56": {
+      "character": "onix",
+      "tier": "common",
+      "name": "Onix",
+      "number": "56/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-57": {
+      "character": "pidgey",
+      "tier": "common",
+      "name": "Pidgey",
+      "number": "57/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-59": {
+      "character": "poliwag",
+      "tier": "common",
+      "name": "Poliwag",
+      "number": "59/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite:flip"
+    },
+    "base1-6": {
+      "character": "gyarados",
+      "tier": "rare-holo",
+      "name": "Gyarados",
+      "number": "6/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-6.json#rare-holo"
+    },
+    "base1-60": {
+      "character": "ponyta",
+      "tier": "common",
+      "name": "Ponyta",
+      "number": "60/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-61": {
+      "character": "rattata",
+      "tier": "common",
+      "name": "Rattata",
+      "number": "61/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-62": {
+      "character": "sandshrew",
+      "tier": "common",
+      "name": "Sandshrew",
+      "number": "62/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-64": {
+      "character": "starmie",
+      "tier": "common",
+      "name": "Starmie",
+      "number": "64/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-65": {
+      "character": "staryu",
+      "tier": "common",
+      "name": "Staryu",
+      "number": "65/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-66": {
+      "character": "tangela",
+      "tier": "common",
+      "name": "Tangela",
+      "number": "66/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-67": {
+      "character": "voltorb",
+      "tier": "common",
+      "name": "Voltorb",
+      "number": "67/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-68": {
+      "character": "vulpix",
+      "tier": "common",
+      "name": "Vulpix",
+      "number": "68/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-69": {
+      "character": "weedle",
+      "tier": "common",
+      "name": "Weedle",
+      "number": "69/102",
+      "rarity": "Common",
+      "set": "Base",
+      "source": "base:sprite"
+    },
+    "base1-7": {
+      "character": "hitmonchan",
+      "tier": "rare-holo",
+      "name": "Hitmonchan",
+      "number": "7/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-7.json#rare-holo"
+    },
+    "base1-8": {
+      "character": "machamp",
+      "tier": "rare-holo",
+      "name": "Machamp",
+      "number": "8/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-8.json#rare-holo"
+    },
+    "base1-9": {
+      "character": "magneton",
+      "tier": "rare-holo",
+      "name": "Magneton",
+      "number": "9/102",
+      "rarity": "Rare Holo",
+      "set": "Base",
+      "source": "base:base1-9.json#rare-holo"
     }
   },
   "retired": {
