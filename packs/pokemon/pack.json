@@ -7051,6 +7051,1581 @@
       "rarity": "Rare Holo",
       "set": "Base",
       "source": "base:base1-9.json#rare-holo"
+    },
+    "swsh9-1": {
+      "character": "exeggcute",
+      "tier": "common",
+      "name": "Exeggcute",
+      "number": "1/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-10": {
+      "character": "wormadam",
+      "tier": "rare",
+      "name": "Wormadam",
+      "number": "10/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-10.json#rare"
+    },
+    "swsh9-100": {
+      "character": "heatran",
+      "tier": "rare",
+      "name": "Heatran",
+      "number": "100/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-100.json#rare"
+    },
+    "swsh9-101": {
+      "character": "escavalier",
+      "tier": "rare",
+      "name": "Escavalier",
+      "number": "101/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-101.json#rare"
+    },
+    "swsh9-102": {
+      "character": "klink",
+      "tier": "common",
+      "name": "Klink",
+      "number": "102/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-103": {
+      "character": "klang",
+      "tier": "uncommon",
+      "name": "Klang",
+      "number": "103/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-103.json#uncommon"
+    },
+    "swsh9-104": {
+      "character": "klinklang",
+      "tier": "rare",
+      "name": "Klinklang",
+      "number": "104/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-104.json#rare"
+    },
+    "swsh9-105": {
+      "character": "zamazenta-crowned",
+      "tier": "rare-holo-v",
+      "name": "Zamazenta V",
+      "number": "105/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-105.json#rare-holo-v"
+    },
+    "swsh9-106": {
+      "character": "flygon",
+      "tier": "rare-holo-v",
+      "name": "Flygon V",
+      "number": "106/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-106.json#rare-holo-v"
+    },
+    "swsh9-107": {
+      "character": "gible",
+      "tier": "common",
+      "name": "Gible",
+      "number": "107/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-108": {
+      "character": "gabite",
+      "tier": "uncommon",
+      "name": "Gabite",
+      "number": "108/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-108.json#uncommon"
+    },
+    "swsh9-109": {
+      "character": "garchomp",
+      "tier": "rare-holo",
+      "name": "Garchomp",
+      "number": "109/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-109.json#rare-holo"
+    },
+    "swsh9-11": {
+      "character": "mothim",
+      "tier": "rare",
+      "name": "Mothim",
+      "number": "11/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-11.json#rare"
+    },
+    "swsh9-110": {
+      "character": "axew",
+      "tier": "common",
+      "name": "Axew",
+      "number": "110/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-111": {
+      "character": "fraxure",
+      "tier": "uncommon",
+      "name": "Fraxure",
+      "number": "111/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-111.json#uncommon"
+    },
+    "swsh9-112": {
+      "character": "haxorus",
+      "tier": "rare",
+      "name": "Haxorus",
+      "number": "112/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-112.json#rare"
+    },
+    "swsh9-113": {
+      "character": "druddigon",
+      "tier": "rare",
+      "name": "Druddigon",
+      "number": "113/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-113.json#rare"
+    },
+    "swsh9-114": {
+      "character": "dracovish",
+      "tier": "rare-holo-v",
+      "name": "Dracovish V",
+      "number": "114/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-114.json#rare-holo-v"
+    },
+    "swsh9-115": {
+      "character": "farfetchd",
+      "tier": "common",
+      "name": "Farfetch'd",
+      "number": "115/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-116": {
+      "character": "castform",
+      "tier": "common",
+      "name": "Castform",
+      "number": "116/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-117": {
+      "character": "starly",
+      "tier": "common",
+      "name": "Starly",
+      "number": "117/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-118": {
+      "character": "staravia",
+      "tier": "uncommon",
+      "name": "Staravia",
+      "number": "118/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-118.json#uncommon"
+    },
+    "swsh9-119": {
+      "character": "staraptor",
+      "tier": "rare",
+      "name": "Staraptor",
+      "number": "119/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-119.json#rare"
+    },
+    "swsh9-12": {
+      "character": "cherubi",
+      "tier": "common",
+      "name": "Cherubi",
+      "number": "12/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-120": {
+      "character": "bidoof",
+      "tier": "common",
+      "name": "Bidoof",
+      "number": "120/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-121": {
+      "character": "bibarel",
+      "tier": "rare-holo",
+      "name": "Bibarel",
+      "number": "121/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-121.json#rare-holo"
+    },
+    "swsh9-122": {
+      "character": "arceus",
+      "tier": "rare-holo-v",
+      "name": "Arceus V",
+      "number": "122/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-122.json#rare-holo-v"
+    },
+    "swsh9-123": {
+      "character": "arceus",
+      "tier": "rare-holo-vstar",
+      "name": "Arceus VSTAR",
+      "number": "123/172",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-123.json#rare-holo-vstar"
+    },
+    "swsh9-124": {
+      "character": "minccino",
+      "tier": "common",
+      "name": "Minccino",
+      "number": "124/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-125": {
+      "character": "cinccino",
+      "tier": "uncommon",
+      "name": "Cinccino",
+      "number": "125/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-125.json#uncommon"
+    },
+    "swsh9-126": {
+      "character": "tornadus",
+      "tier": "rare",
+      "name": "Tornadus",
+      "number": "126/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-126.json#rare"
+    },
+    "swsh9-127": {
+      "character": "hawlucha",
+      "tier": "common",
+      "name": "Hawlucha",
+      "number": "127/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-128": {
+      "character": "drampa",
+      "tier": "rare-holo-v",
+      "name": "Drampa V",
+      "number": "128/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-128.json#rare-holo-v"
+    },
+    "swsh9-13": {
+      "character": "shaymin-sky",
+      "tier": "rare-holo-v",
+      "name": "Shaymin V",
+      "number": "13/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-13.json#rare-holo-v"
+    },
+    "swsh9-14": {
+      "character": "shaymin-sky",
+      "tier": "rare-holo-vstar",
+      "name": "Shaymin VSTAR",
+      "number": "14/172",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-14.json#rare-holo-vstar"
+    },
+    "swsh9-15": {
+      "character": "karrablast",
+      "tier": "common",
+      "name": "Karrablast",
+      "number": "15/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-152": {
+      "character": "shaymin-sky",
+      "tier": "rare-ultra",
+      "name": "Shaymin V",
+      "number": "152/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-152.json#rare-ultra"
+    },
+    "swsh9-153": {
+      "character": "charizard",
+      "tier": "rare-ultra",
+      "name": "Charizard V",
+      "number": "153/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-153.json#rare-ultra"
+    },
+    "swsh9-154": {
+      "character": "charizard",
+      "tier": "rare-ultra",
+      "name": "Charizard V",
+      "number": "154/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-154.json#rare-ultra-alt"
+    },
+    "swsh9-155": {
+      "character": "lumineon",
+      "tier": "rare-ultra",
+      "name": "Lumineon V",
+      "number": "155/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-155.json#rare-ultra"
+    },
+    "swsh9-156": {
+      "character": "lumineon",
+      "tier": "rare-ultra",
+      "name": "Lumineon V",
+      "number": "156/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-156.json#rare-ultra-alt"
+    },
+    "swsh9-157": {
+      "character": "pikachu",
+      "tier": "rare-ultra",
+      "name": "Pikachu V",
+      "number": "157/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-157.json#rare-ultra"
+    },
+    "swsh9-158": {
+      "character": "raichu",
+      "tier": "rare-ultra",
+      "name": "Raichu V",
+      "number": "158/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-158.json#rare-ultra"
+    },
+    "swsh9-159": {
+      "character": "granbull",
+      "tier": "rare-ultra",
+      "name": "Granbull V",
+      "number": "159/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-159.json#rare-ultra"
+    },
+    "swsh9-16": {
+      "character": "zarude",
+      "tier": "rare-holo-v",
+      "name": "Zarude V",
+      "number": "16/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-16.json#rare-holo-v"
+    },
+    "swsh9-160": {
+      "character": "whimsicott",
+      "tier": "rare-ultra",
+      "name": "Whimsicott V",
+      "number": "160/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-160.json#rare-ultra"
+    },
+    "swsh9-161": {
+      "character": "honchkrow",
+      "tier": "rare-ultra",
+      "name": "Honchkrow V",
+      "number": "161/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-161.json#rare-ultra"
+    },
+    "swsh9-162": {
+      "character": "honchkrow",
+      "tier": "rare-ultra",
+      "name": "Honchkrow V",
+      "number": "162/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-162.json#rare-ultra-alt"
+    },
+    "swsh9-163": {
+      "character": "zamazenta-crowned",
+      "tier": "rare-ultra",
+      "name": "Zamazenta V",
+      "number": "163/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-163.json#rare-ultra"
+    },
+    "swsh9-164": {
+      "character": "flygon",
+      "tier": "rare-ultra",
+      "name": "Flygon V",
+      "number": "164/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-164.json#rare-ultra"
+    },
+    "swsh9-165": {
+      "character": "arceus",
+      "tier": "rare-ultra",
+      "name": "Arceus V",
+      "number": "165/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-165.json#rare-ultra"
+    },
+    "swsh9-166": {
+      "character": "arceus",
+      "tier": "rare-ultra",
+      "name": "Arceus V",
+      "number": "166/172",
+      "rarity": "Rare Ultra",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-166.json#rare-ultra-alt"
+    },
+    "swsh9-17": {
+      "character": "charizard",
+      "tier": "rare-holo-v",
+      "name": "Charizard V",
+      "number": "17/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-17.json#rare-holo-v"
+    },
+    "swsh9-173": {
+      "character": "shaymin-sky",
+      "tier": "rare-rainbow",
+      "name": "Shaymin VSTAR",
+      "number": "173/172",
+      "rarity": "Rare Rainbow",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-173.json#rare-rainbow"
+    },
+    "swsh9-174": {
+      "character": "charizard",
+      "tier": "rare-rainbow",
+      "name": "Charizard VSTAR",
+      "number": "174/172",
+      "rarity": "Rare Rainbow",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-174.json#rare-rainbow"
+    },
+    "swsh9-175": {
+      "character": "whimsicott",
+      "tier": "rare-rainbow",
+      "name": "Whimsicott VSTAR",
+      "number": "175/172",
+      "rarity": "Rare Rainbow",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-175.json#rare-rainbow"
+    },
+    "swsh9-176": {
+      "character": "arceus",
+      "tier": "rare-rainbow",
+      "name": "Arceus VSTAR",
+      "number": "176/172",
+      "rarity": "Rare Rainbow",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-176.json#rare-rainbow"
+    },
+    "swsh9-18": {
+      "character": "charizard",
+      "tier": "rare-holo-vstar",
+      "name": "Charizard VSTAR",
+      "number": "18/172",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-18.json#rare-holo-vstar"
+    },
+    "swsh9-181": {
+      "character": "articuno-galar",
+      "tier": "rare-secret",
+      "name": "Galarian Articuno V",
+      "number": "181/172",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-181.json#rare-secret"
+    },
+    "swsh9-182": {
+      "character": "zapdos-galar",
+      "tier": "rare-secret",
+      "name": "Galarian Zapdos V",
+      "number": "182/172",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-182.json#rare-secret"
+    },
+    "swsh9-183": {
+      "character": "moltres-galar",
+      "tier": "rare-secret",
+      "name": "Galarian Moltres V",
+      "number": "183/172",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-183.json#rare-secret"
+    },
+    "swsh9-184": {
+      "character": "arceus",
+      "tier": "rare-secret",
+      "name": "Arceus VSTAR",
+      "number": "184/172",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-184.json#rare-secret"
+    },
+    "swsh9-19": {
+      "character": "magmar",
+      "tier": "common",
+      "name": "Magmar",
+      "number": "19/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-2": {
+      "character": "exeggutor",
+      "tier": "uncommon",
+      "name": "Exeggutor",
+      "number": "2/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-2.json#uncommon"
+    },
+    "swsh9-20": {
+      "character": "magmortar",
+      "tier": "rare",
+      "name": "Magmortar",
+      "number": "20/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-20.json#rare"
+    },
+    "swsh9-21": {
+      "character": "moltres",
+      "tier": "rare-holo",
+      "name": "Moltres",
+      "number": "21/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-21.json#rare-holo"
+    },
+    "swsh9-22": {
+      "character": "entei",
+      "tier": "rare-holo-v",
+      "name": "Entei V",
+      "number": "22/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-22.json#rare-holo-v"
+    },
+    "swsh9-23": {
+      "character": "torkoal",
+      "tier": "uncommon",
+      "name": "Torkoal",
+      "number": "23/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-23.json#uncommon"
+    },
+    "swsh9-24": {
+      "character": "chimchar",
+      "tier": "common",
+      "name": "Chimchar",
+      "number": "24/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-25": {
+      "character": "monferno",
+      "tier": "uncommon",
+      "name": "Monferno",
+      "number": "25/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-25.json#uncommon"
+    },
+    "swsh9-26": {
+      "character": "infernape",
+      "tier": "rare-holo",
+      "name": "Infernape",
+      "number": "26/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-26.json#rare-holo"
+    },
+    "swsh9-27": {
+      "character": "simisear",
+      "tier": "rare-holo-v",
+      "name": "Simisear V",
+      "number": "27/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-27.json#rare-holo-v"
+    },
+    "swsh9-28": {
+      "character": "kingler",
+      "tier": "rare-holo-v",
+      "name": "Kingler V",
+      "number": "28/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-28.json#rare-holo-v"
+    },
+    "swsh9-29": {
+      "character": "kingler-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Kingler VMAX",
+      "number": "29/172",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-29.json#rare-holo-vmax"
+    },
+    "swsh9-3": {
+      "character": "shroomish",
+      "tier": "common",
+      "name": "Shroomish",
+      "number": "3/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-30": {
+      "character": "staryu",
+      "tier": "common",
+      "name": "Staryu",
+      "number": "30/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-31": {
+      "character": "lapras",
+      "tier": "rare",
+      "name": "Lapras",
+      "number": "31/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-31.json#rare"
+    },
+    "swsh9-32": {
+      "character": "corphish",
+      "tier": "common",
+      "name": "Corphish",
+      "number": "32/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-33": {
+      "character": "crawdaunt",
+      "tier": "uncommon",
+      "name": "Crawdaunt",
+      "number": "33/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-33.json#uncommon"
+    },
+    "swsh9-34": {
+      "character": "snorunt",
+      "tier": "common",
+      "name": "Snorunt",
+      "number": "34/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-35": {
+      "character": "piplup",
+      "tier": "common",
+      "name": "Piplup",
+      "number": "35/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-36": {
+      "character": "prinplup",
+      "tier": "uncommon",
+      "name": "Prinplup",
+      "number": "36/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-36.json#uncommon"
+    },
+    "swsh9-37": {
+      "character": "empoleon",
+      "tier": "rare-holo",
+      "name": "Empoleon",
+      "number": "37/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-37.json#rare-holo"
+    },
+    "swsh9-38": {
+      "character": "buizel",
+      "tier": "common",
+      "name": "Buizel",
+      "number": "38/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-39": {
+      "character": "floatzel",
+      "tier": "uncommon",
+      "name": "Floatzel",
+      "number": "39/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-39.json#uncommon"
+    },
+    "swsh9-4": {
+      "character": "breloom",
+      "tier": "rare",
+      "name": "Breloom",
+      "number": "4/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-4.json#rare"
+    },
+    "swsh9-40": {
+      "character": "lumineon",
+      "tier": "rare-holo-v",
+      "name": "Lumineon V",
+      "number": "40/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-40.json#rare-holo-v"
+    },
+    "swsh9-41": {
+      "character": "manaphy",
+      "tier": "rare",
+      "name": "Manaphy",
+      "number": "41/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-41.json#rare"
+    },
+    "swsh9-42": {
+      "character": "cubchoo",
+      "tier": "common",
+      "name": "Cubchoo",
+      "number": "42/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-43": {
+      "character": "beartic",
+      "tier": "uncommon",
+      "name": "Beartic",
+      "number": "43/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-43.json#uncommon"
+    },
+    "swsh9-44": {
+      "character": "eiscue-noice",
+      "tier": "rare",
+      "name": "Eiscue",
+      "number": "44/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-44.json#rare"
+    },
+    "swsh9-45": {
+      "character": "raichu",
+      "tier": "rare-holo-v",
+      "name": "Raichu V",
+      "number": "45/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-45.json#rare-holo-v"
+    },
+    "swsh9-46": {
+      "character": "electabuzz",
+      "tier": "common",
+      "name": "Electabuzz",
+      "number": "46/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-47": {
+      "character": "electivire",
+      "tier": "rare",
+      "name": "Electivire",
+      "number": "47/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-47.json#rare"
+    },
+    "swsh9-48": {
+      "character": "raikou",
+      "tier": "rare-holo-v",
+      "name": "Raikou V",
+      "number": "48/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-48.json#rare-holo-v"
+    },
+    "swsh9-49": {
+      "character": "shinx",
+      "tier": "common",
+      "name": "Shinx",
+      "number": "49/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-5": {
+      "character": "tropius",
+      "tier": "uncommon",
+      "name": "Tropius",
+      "number": "5/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-5.json#uncommon"
+    },
+    "swsh9-50": {
+      "character": "luxio",
+      "tier": "uncommon",
+      "name": "Luxio",
+      "number": "50/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-50.json#uncommon"
+    },
+    "swsh9-51": {
+      "character": "luxray",
+      "tier": "rare",
+      "name": "Luxray",
+      "number": "51/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-51.json#rare"
+    },
+    "swsh9-52": {
+      "character": "pachirisu",
+      "tier": "uncommon",
+      "name": "Pachirisu",
+      "number": "52/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-52.json#uncommon"
+    },
+    "swsh9-53": {
+      "character": "clefairy",
+      "tier": "common",
+      "name": "Clefairy",
+      "number": "53/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-54": {
+      "character": "clefable",
+      "tier": "rare",
+      "name": "Clefable",
+      "number": "54/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-54.json#rare"
+    },
+    "swsh9-55": {
+      "character": "starmie",
+      "tier": "uncommon",
+      "name": "Starmie",
+      "number": "55/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-55.json#uncommon"
+    },
+    "swsh9-56": {
+      "character": "mewtwo",
+      "tier": "rare",
+      "name": "Mewtwo",
+      "number": "56/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-56.json#rare"
+    },
+    "swsh9-57": {
+      "character": "granbull",
+      "tier": "rare-holo-v",
+      "name": "Granbull V",
+      "number": "57/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-57.json#rare-holo-v"
+    },
+    "swsh9-58": {
+      "character": "baltoy",
+      "tier": "common",
+      "name": "Baltoy",
+      "number": "58/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-59": {
+      "character": "claydol",
+      "tier": "uncommon",
+      "name": "Claydol",
+      "number": "59/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-59.json#uncommon"
+    },
+    "swsh9-6": {
+      "character": "turtwig",
+      "tier": "common",
+      "name": "Turtwig",
+      "number": "6/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-60": {
+      "character": "duskull",
+      "tier": "common",
+      "name": "Duskull",
+      "number": "60/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-61": {
+      "character": "dusclops",
+      "tier": "uncommon",
+      "name": "Dusclops",
+      "number": "61/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-61.json#uncommon"
+    },
+    "swsh9-62": {
+      "character": "dusknoir",
+      "tier": "rare-holo",
+      "name": "Dusknoir",
+      "number": "62/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-62.json#rare-holo"
+    },
+    "swsh9-63": {
+      "character": "chimecho",
+      "tier": "common",
+      "name": "Chimecho",
+      "number": "63/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-64": {
+      "character": "whimsicott",
+      "tier": "rare-holo-v",
+      "name": "Whimsicott V",
+      "number": "64/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-64.json#rare-holo-v"
+    },
+    "swsh9-65": {
+      "character": "whimsicott",
+      "tier": "rare-holo-vstar",
+      "name": "Whimsicott VSTAR",
+      "number": "65/172",
+      "rarity": "Rare Holo VSTAR",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-65.json#rare-holo-vstar"
+    },
+    "swsh9-66": {
+      "character": "sigilyph",
+      "tier": "uncommon",
+      "name": "Sigilyph",
+      "number": "66/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-66.json#uncommon"
+    },
+    "swsh9-67": {
+      "character": "dedenne",
+      "tier": "common",
+      "name": "Dedenne",
+      "number": "67/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-68": {
+      "character": "mimikyu",
+      "tier": "rare-holo-v",
+      "name": "Mimikyu V",
+      "number": "68/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-68.json#rare-holo-v"
+    },
+    "swsh9-69": {
+      "character": "mimikyu",
+      "tier": "rare-holo-vmax",
+      "name": "Mimikyu VMAX",
+      "number": "69/172",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-69.json#rare-holo-vmax"
+    },
+    "swsh9-7": {
+      "character": "grotle",
+      "tier": "uncommon",
+      "name": "Grotle",
+      "number": "7/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-7.json#uncommon"
+    },
+    "swsh9-70": {
+      "character": "milcery",
+      "tier": "common",
+      "name": "Milcery",
+      "number": "70/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-71": {
+      "character": "alcremie",
+      "tier": "rare",
+      "name": "Alcremie",
+      "number": "71/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-71.json#rare"
+    },
+    "swsh9-72": {
+      "character": "hitmontop",
+      "tier": "uncommon",
+      "name": "Hitmontop",
+      "number": "72/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-72.json#uncommon"
+    },
+    "swsh9-73": {
+      "character": "nosepass",
+      "tier": "common",
+      "name": "Nosepass",
+      "number": "73/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-74": {
+      "character": "trapinch",
+      "tier": "common",
+      "name": "Trapinch",
+      "number": "74/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-75": {
+      "character": "vibrava",
+      "tier": "uncommon",
+      "name": "Vibrava",
+      "number": "75/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-75.json#uncommon"
+    },
+    "swsh9-76": {
+      "character": "flygon",
+      "tier": "rare",
+      "name": "Flygon",
+      "number": "76/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-76.json#rare"
+    },
+    "swsh9-77": {
+      "character": "wormadam-sandy",
+      "tier": "rare",
+      "name": "Wormadam",
+      "number": "77/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-77.json#rare"
+    },
+    "swsh9-78": {
+      "character": "riolu",
+      "tier": "common",
+      "name": "Riolu",
+      "number": "78/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-79": {
+      "character": "lucario",
+      "tier": "rare-holo",
+      "name": "Lucario",
+      "number": "79/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-79.json#rare-holo"
+    },
+    "swsh9-8": {
+      "character": "torterra",
+      "tier": "rare-holo",
+      "name": "Torterra",
+      "number": "8/172",
+      "rarity": "Rare Holo",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-8.json#rare-holo"
+    },
+    "swsh9-80": {
+      "character": "throh",
+      "tier": "common",
+      "name": "Throh",
+      "number": "80/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-81": {
+      "character": "sawk",
+      "tier": "common",
+      "name": "Sawk",
+      "number": "81/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-82": {
+      "character": "golett",
+      "tier": "common",
+      "name": "Golett",
+      "number": "82/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-83": {
+      "character": "golurk",
+      "tier": "rare",
+      "name": "Golurk",
+      "number": "83/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-83.json#rare"
+    },
+    "swsh9-84": {
+      "character": "grimer",
+      "tier": "common",
+      "name": "Grimer",
+      "number": "84/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-85": {
+      "character": "muk",
+      "tier": "rare",
+      "name": "Muk",
+      "number": "85/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-85.json#rare"
+    },
+    "swsh9-86": {
+      "character": "sneasel",
+      "tier": "common",
+      "name": "Sneasel",
+      "number": "86/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-87": {
+      "character": "weavile",
+      "tier": "uncommon",
+      "name": "Weavile",
+      "number": "87/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-87.json#uncommon"
+    },
+    "swsh9-88": {
+      "character": "honchkrow",
+      "tier": "rare-holo-v",
+      "name": "Honchkrow V",
+      "number": "88/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-88.json#rare-holo-v"
+    },
+    "swsh9-89": {
+      "character": "spiritomb",
+      "tier": "common",
+      "name": "Spiritomb",
+      "number": "89/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-9": {
+      "character": "burmy",
+      "tier": "common",
+      "name": "Burmy",
+      "number": "9/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite"
+    },
+    "swsh9-90": {
+      "character": "purrloin",
+      "tier": "common",
+      "name": "Purrloin",
+      "number": "90/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-91": {
+      "character": "liepard",
+      "tier": "rare",
+      "name": "Liepard",
+      "number": "91/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-91.json#rare"
+    },
+    "swsh9-92": {
+      "character": "impidimp",
+      "tier": "common",
+      "name": "Impidimp",
+      "number": "92/172",
+      "rarity": "Common",
+      "set": "Brilliant Stars",
+      "source": "brs:sprite:flip"
+    },
+    "swsh9-93": {
+      "character": "morgrem",
+      "tier": "uncommon",
+      "name": "Morgrem",
+      "number": "93/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-93.json#uncommon"
+    },
+    "swsh9-94": {
+      "character": "grimmsnarl",
+      "tier": "rare",
+      "name": "Grimmsnarl",
+      "number": "94/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-94.json#rare"
+    },
+    "swsh9-95": {
+      "character": "morpeko-hangry",
+      "tier": "rare-holo-v",
+      "name": "Morpeko V",
+      "number": "95/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-95.json#rare-holo-v"
+    },
+    "swsh9-96": {
+      "character": "aggron",
+      "tier": "rare-holo-v",
+      "name": "Aggron V",
+      "number": "96/172",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-96.json#rare-holo-v"
+    },
+    "swsh9-97": {
+      "character": "aggron",
+      "tier": "rare-holo-vmax",
+      "name": "Aggron VMAX",
+      "number": "97/172",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-97.json#rare-holo-vmax"
+    },
+    "swsh9-98": {
+      "character": "wormadam-trash",
+      "tier": "rare",
+      "name": "Wormadam",
+      "number": "98/172",
+      "rarity": "Rare",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-98.json#rare"
+    },
+    "swsh9-99": {
+      "character": "probopass",
+      "tier": "uncommon",
+      "name": "Probopass",
+      "number": "99/172",
+      "rarity": "Uncommon",
+      "set": "Brilliant Stars",
+      "source": "brs:swsh9-99.json#uncommon"
+    },
+    "swsh9tg-TG01": {
+      "character": "flareon",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Flareon",
+      "number": "TG01/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG01.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG02": {
+      "character": "vaporeon",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Vaporeon",
+      "number": "TG02/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG02.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG03": {
+      "character": "octillery",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Octillery",
+      "number": "TG03/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG03.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG04": {
+      "character": "jolteon",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Jolteon",
+      "number": "TG04/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG04.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG05": {
+      "character": "zekrom",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Zekrom",
+      "number": "TG05/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG05.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG06": {
+      "character": "dusknoir",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Dusknoir",
+      "number": "TG06/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG06.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG07": {
+      "character": "dedenne",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Dedenne",
+      "number": "TG07/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG07.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG08": {
+      "character": "alcremie",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Alcremie",
+      "number": "TG08/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG08.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG09": {
+      "character": "ariados",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Ariados",
+      "number": "TG09/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG09.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG10": {
+      "character": "houndoom",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Houndoom",
+      "number": "TG10/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG10.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG11": {
+      "character": "eevee",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Eevee",
+      "number": "TG11/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG11.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG12": {
+      "character": "oranguru",
+      "tier": "trainer-gallery-rare-holo",
+      "name": "Oranguru",
+      "number": "TG12/TG30",
+      "rarity": "Trainer Gallery Rare Holo",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG12.json#trainer-gallery-rare-holo"
+    },
+    "swsh9tg-TG13": {
+      "character": "boltund",
+      "tier": "rare-holo-v",
+      "name": "Boltund V",
+      "number": "TG13/TG30",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG13.json#rare-holo-v-alt"
+    },
+    "swsh9tg-TG14": {
+      "character": "sylveon",
+      "tier": "rare-holo-v",
+      "name": "Sylveon V",
+      "number": "TG14/TG30",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG14.json#rare-holo-v-alt"
+    },
+    "swsh9tg-TG15": {
+      "character": "sylveon",
+      "tier": "rare-holo-vmax",
+      "name": "Sylveon VMAX",
+      "number": "TG15/TG30",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG15.json#rare-holo-vmax-alt"
+    },
+    "swsh9tg-TG16": {
+      "character": "mimikyu",
+      "tier": "rare-holo-v",
+      "name": "Mimikyu V",
+      "number": "TG16/TG30",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG16.json#rare-holo-v-alt"
+    },
+    "swsh9tg-TG17": {
+      "character": "mimikyu",
+      "tier": "rare-holo-vmax",
+      "name": "Mimikyu VMAX",
+      "number": "TG17/TG30",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG17.json#rare-holo-vmax-alt"
+    },
+    "swsh9tg-TG18": {
+      "character": "urshifu",
+      "tier": "rare-holo-v",
+      "name": "Single Strike Urshifu V",
+      "number": "TG18/TG30",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG18.json#rare-holo-v-alt"
+    },
+    "swsh9tg-TG19": {
+      "character": "urshifu-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Single Strike Urshifu VMAX",
+      "number": "TG19/TG30",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG19.json#rare-holo-vmax-alt"
+    },
+    "swsh9tg-TG21": {
+      "character": "urshifu-rapid-strike-gmax",
+      "tier": "rare-holo-vmax",
+      "name": "Rapid Strike Urshifu VMAX",
+      "number": "TG21/TG30",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG21.json#rare-holo-vmax-alt"
+    },
+    "swsh9tg-TG22": {
+      "character": "umbreon",
+      "tier": "rare-holo-v",
+      "name": "Umbreon V",
+      "number": "TG22/TG30",
+      "rarity": "Rare Holo V",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG22.json#rare-holo-v-alt"
+    },
+    "swsh9tg-TG23": {
+      "character": "umbreon",
+      "tier": "rare-holo-vmax",
+      "name": "Umbreon VMAX",
+      "number": "TG23/TG30",
+      "rarity": "Rare Holo VMAX",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG23.json#rare-holo-vmax-alt"
+    },
+    "swsh9tg-TG29": {
+      "character": "urshifu-gmax",
+      "tier": "rare-secret",
+      "name": "Single Strike Urshifu VMAX",
+      "number": "TG29/TG30",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG29.json#rare-secret"
+    },
+    "swsh9tg-TG30": {
+      "character": "urshifu-rapid-strike-gmax",
+      "tier": "rare-secret",
+      "name": "Rapid Strike Urshifu VMAX",
+      "number": "TG30/TG30",
+      "rarity": "Rare Secret",
+      "set": "Brilliant Stars Trainer Gallery",
+      "source": "brs:swsh9tg-TG30.json#rare-secret"
     }
   },
   "retired": {
