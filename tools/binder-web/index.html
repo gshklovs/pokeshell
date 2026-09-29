@@ -705,6 +705,21 @@ button.seen:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px
     linear-gradient(115deg, #4a2e74, #28407f 50%, #4a2e74);
   opacity: .55;
 }
+.skin-vstar-crest .card__shine {
+  background:
+    repeating-conic-gradient(from 0deg at 50% 45%, rgba(255,214,110,.55) 0deg .7deg, transparent .9deg 15deg),
+    linear-gradient(135deg, transparent 35%, hsl(0 100% 72%) 40%, hsl(55 100% 70%) 44%, hsl(150 90% 68%) 48%, hsl(200 100% 70%) 52%, hsl(275 100% 76%) 57%, transparent 64%) var(--pos) / 250% 250%,
+    linear-gradient(115deg, #d8dce4, #a09576 40%, #ecdca2 70%, #766b55);
+  opacity: .6;
+}
+.skin-gallery .card__shine {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.14) 0 .25cqi, transparent .25cqi .5cqi),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.1) 0 .25cqi, transparent .25cqi .5cqi),
+    linear-gradient(100deg, transparent 30%, hsl(330 90% 88%) 40%, hsl(200 90% 86%) 50%, hsl(150 80% 86%) 58%, transparent 68%) var(--pos) / 300% 100%,
+    linear-gradient(115deg, #f4b6d6, #c8e6f4 50%, #f4b6d6);
+  opacity: .45;
+}
 .skin-liquid-chrome .card__shine {
   background:
     linear-gradient(135deg, transparent 49.2%, #fff 50%, transparent 50.8%) var(--pos) / 250% 250%,

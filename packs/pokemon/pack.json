@@ -76,8 +76,9 @@
       "family": "holo",
       "weight": 600,
       "skins": {
-        "sheen": 5,
-        "crosshatch": 5
+        "gallery": 10,
+        "sheen": 4,
+        "illustration-rare": 2
       },
       "frame": "holo"
     },
@@ -209,7 +210,9 @@
       "family": "ultra",
       "weight": 700,
       "skins": {
-        "sunpillar": 10
+        "vstar-crest": 10,
+        "vmax-lattice": 4,
+        "sunpillar": 2
       },
       "frame": "gold"
     },

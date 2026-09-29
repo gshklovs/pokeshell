@@ -61,6 +61,8 @@ BATCHES = {
     # 30th Celebration (me55): one ART_FORMAT file per card in art/ (commons too; the importer uses the plain sprite
     # for those anyway), card data in p30/cards/, effect loops in p30/anim/<id>[_shiny]/ as evs
     "p30": {"dir": "p30", "globs": ["art/*.json"], "skip_variants": []},
+    # Crown Zenith (swsh12pt5 + its Galarian Gallery swsh12pt5gg, one data folder): as p30
+    "cz": {"dir": "cz", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
@@ -94,7 +96,7 @@ def name_matches(character, name):
     fold = lambda s: "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))  # Flabébé -> Flabebe  # noqa: E731
     squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
     # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
-    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|red|orange|yellow|green|blue|indigo|violet)$", "", character)
+    base = re.sub(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet)$", "", character)
     return squash(character) in squash(name) or squash(base) in squash(name)
 
 
@@ -197,8 +199,19 @@ def load_sprite(vendor, character, shiny=False):
     return [r[min(cols):max(cols) + 1] for r in g]
 
 
-def sprite_rows(vendor, character):
-    """the plain sprite at grid resolution (2x2 grid px per sprite px): rows, palette, shiny palette"""
+def set_flip_commons(batch):
+    """the Commons a set's plain sprite is mirrored for, so it faces the way the real card does: artlab/sets/<set>/set.json
+    "flip_commons": [card ids] (the batch name is the set folder, or the BATCHES entry's "set")"""
+    name = BATCHES.get(batch, {}).get("set", batch)
+    f = ROOT / "artlab" / "sets" / name / "set.json"
+    if not f.is_file():
+        return set()
+    return set(json.loads(f.read_text(encoding="utf-8")).get("flip_commons") or [])
+
+
+def sprite_rows(vendor, character, flip=False):
+    """the plain sprite at grid resolution (2x2 grid px per sprite px): rows, palette, shiny palette. flip mirrors it
+    (normal and shiny alike: they share the rows)"""
     n, s = load_sprite(vendor, character), load_sprite(vendor, character, True)
     if len(n) != len(s) or len(n[0]) != len(s[0]):
         raise SystemExit(f"{character}: regular and shiny sprites differ in size")
@@ -216,6 +229,8 @@ def sprite_rows(vendor, character):
                 pairs[(cn, cs)] = k
                 pal[k], sh[k] = "#%02x%02x%02x" % cn, "#%02x%02x%02x" % cs
             row += pairs[(cn, cs)] * 2
+        if flip:
+            row = row[::-1]
         rows += [row, row]
     return rows, pal, sh
 
@@ -376,6 +391,7 @@ def import_batch(batch, opts, pj, rarities, effects):
         ids = [c for c in ids if c in opts.only]
     print(f"batch {batch} ({folder}): {len(by_id)} real card variants, {len(listed)} listed cards -> {len(ids)} cards")
     cards_dir = ROOT / "packs" / opts.pack / "cards"
+    flips = set_flip_commons(batch)
     done, skipped = [], []
     for cid in ids:
         card = fetch_cards.fetch(cid, pj, cards_dir, from_dir=batch_cards if batch_cards.is_dir() else None, quiet=True) \
@@ -390,8 +406,8 @@ def import_batch(batch, opts, pj, rarities, effects):
             if not (opts.vendor / "pokemon-colorscripts" / "colorscripts" / "large" / "regular" / ch).exists():
                 skipped.append(f"{cid} ({card['name']}, {card.get('rarity')}): no colorscripts sprite '{ch}'")
                 continue
-            rows, pal, sh = sprite_rows(opts.vendor, ch)
-            src = f"{batch}:sprite"
+            rows, pal, sh = sprite_rows(opts.vendor, ch, flip=cid in flips)
+            src = f"{batch}:sprite" + (":flip" if cid in flips else "")
             art = card_art(ch, cid, card["name"], rows, pal, sh, src)
             anims = {}   # commons have no effect loop
         elif cid in by_id:

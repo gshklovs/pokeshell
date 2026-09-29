@@ -118,7 +118,9 @@ if (-not $builtCards) {
   for ($i = 0; $i -lt $n; $i++) {
     Clear-Markers
     [IO.File]::Delete((Join-Path $rs 'spawn-gate.txt'))
-    $r = [Pokeshell.Core]::Roll($RepoRoot, $rs, $PlainGuid, @('powershell.exe'), $t0 + $i * 50000000L, 1000 + $i, -1, 'x', 'C:\', 'C:\')
+    # scrambled seeds: System.Random's first draws are nearly linear in consecutive seeds, so 1000 + $i left runs
+    # of a big tier's cards unreachable in this sample (it bit once Crown Zenith grew the rare tier)
+    $r = [Pokeshell.Core]::Roll($RepoRoot, $rs, $PlainGuid, @('powershell.exe'), $t0 + $i * 50000000L, [int](((1000L + $i) * 48271L) % 2147483647L), -1, 'x', 'C:\', 'C:\')
     $byCard[$r.Art]++; $byTier[$r.TierId]++; if ($r.Shiny) { $shinyN++ }; if ($r.Action -eq 'foil') { $foils++ }
     $c = $pk.cardIndex[$r.Art]
     if (-not $c -or $c.character -ne $r.Character -or $c.tierId -ne $r.TierId -or -not (Test-PokeshellCardBuilt $RepoRoot 'pokemon' $c)) { $bad += "$($r.Character)/$($r.TierId)/$($r.Art)" }
