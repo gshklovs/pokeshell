@@ -220,8 +220,9 @@
       "family": "holo",
       "weight": 10000,
       "skins": {
-        "starlight": 10,
-        "cosmos": 5
+        "fireworks": 10,
+        "starlight": 4,
+        "cosmos": 2
       },
       "frame": [
         "#fff3b0",
@@ -427,8 +428,9 @@
       "family": "secret",
       "weight": 120,
       "skins": {
-        "sheen": 10,
-        "sunpillar": 5
+        "liquid-chrome": 10,
+        "sheen": 4,
+        "sunpillar": 2
       },
       "frame": "silver"
     }
