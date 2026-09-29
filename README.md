@@ -33,12 +33,16 @@ It's a fan project, not affiliated with the owners of the characters (see [Discl
 
 ![A card's page in the web binder](docs/media/binder-web-card.png)
 
-> **The Pokemon card art is built locally and is not in this repository.** It embeds the
-> [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites (Nintendo artwork), and the
-> card text is copyrighted, so `tools/build_realcards.py` assembles it on your machine and git ignores the output.
-> A plain clone (or the Gallery module) has the `pokemon` pack's odds, tiers, card list and shaders, but no card
-> art: until it is built, the pack has nothing to pull and new tabs print nothing. How the public version will get
-> its cards (built at install, or a local-only pack) is still open.
+> **The card art is downloaded at install from the
+> [gshklovs/pokeshell-art](https://github.com/gshklovs/pokeshell-art/releases) releases**, not kept in this
+> repository. It embeds the [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites
+> (Nintendo artwork) over backgrounds painted from the real card scenes, so it lives in a separate art repo: the
+> code stays here either way. `install.ps1` / `pokeshell install` fetches the release that [`art.json`](art.json)
+> pins (about 4 MB of cards plus an optional 60 MB of card animations), checks its sha256 and unpacks it into
+> `dist/pokemon/`. Offline, the code still installs and the pack just has nothing to pull until the art is there.
+> The art belongs to its owners; this is a free, non-commercial fan project, and the art will be taken down on
+> request (see [Disclaimer](#disclaimer)). Maintainers can also build it locally with `tools/build_realcards.py`
+> (`tools/README.md`); the design of the art releases is in [docs/ART_RELEASES.md](docs/ART_RELEASES.md).
 
 ## Packs and odds
 
@@ -73,6 +77,7 @@ tab first pick a pack at random.
 - **Windows PowerShell 5.1** (built in) or **PowerShell 7**
 - Nothing else. No Python, no other modules. The startup code is compiled once at install time with the C# compiler
   that ships with Windows / PowerShell. (Python is only needed to rebuild the art, see `tools/README.md`.)
+- An internet connection at install, for the card art (a GitHub release download, see the note at the top).
 
 ## Install
 
@@ -87,17 +92,21 @@ pokeshell install
 
 `pokeshell install`:
 
-1. copies what new tabs need (the profile hook, the startup core's source, the packs' shaders and art) into
+1. downloads the card art: the [pokeshell-art](https://github.com/gshklovs/pokeshell-art/releases) release that
+   `art.json` pins, verified against its sha256, unpacked into the module's (or the checkout's) `dist\` folder. It
+   is skipped when the art there already matches `art.json`, and the zip is cached in
+   `%LOCALAPPDATA%\pokeshell\art-cache`, so a module update re-installs it without downloading again,
+2. copies what new tabs need (the profile hook, the startup core's source, the packs' shaders and art) into
    `%LOCALAPPDATA%\pokeshell\current`, a folder that stays put when the module is updated,
-2. backs up Windows Terminal's `settings.json` to `%LOCALAPPDATA%\pokeshell\backups\`,
-3. adds one **hidden** profile per shader of every pack (`pokeshell: pokemon/cosmos`, ...) to `settings.json`,
+3. backs up Windows Terminal's `settings.json` to `%LOCALAPPDATA%\pokeshell\backups\`,
+4. adds one **hidden** profile per shader of every pack (`pokeshell: pokemon/cosmos`, ...) to `settings.json`,
    pointing at the shaders in that folder. It edits only that list, as text, so your comments, formatting and
    every other setting stay byte-for-byte intact; it verifies the result (it parses, every skin is there, and
    removing them again gives back exactly the other settings) before writing anything. Windows Terminal reloads
    the file live. (Profiles go into `settings.json` rather than a settings fragment because fragments only load
    when Windows Terminal restarts.)
-4. compiles the startup core, and
-5. prints the one line to add to your PowerShell profile. It does not edit `$PROFILE` for you:
+5. compiles the startup core, and
+6. prints the one line to add to your PowerShell profile. It does not edit `$PROFILE` for you:
 
 ```powershell
 notepad $PROFILE     # add the printed line:
@@ -111,6 +120,19 @@ The line runs a small script, not the module: importing a module costs 50-100 ms
 
 Options: `pokeshell install -SettingsPath <file>` for a specific `settings.json` (the default finds the Store,
 Preview or unpackaged install), `-Shell pwsh` to run the skinned tabs with PowerShell 7. Safe to re-run.
+
+The art options (the same for `.\install.ps1`):
+
+| option | |
+|---|---|
+| `-Art auto` | (default) download the art if it is missing or older than the release `art.json` pins. A local build (`tools/build_realcards.py` output, or files changed after the download) is kept |
+| `-Art download` | download even over a local build (same-named files are replaced, other local files stay) |
+| `-Art local` | never download: use whatever is built in `dist\` |
+| `-Art skip` | leave the art alone |
+| `-ArtStillOnly` | skip the optional card animations (`.anim`, 60 MB); the cards themselves are about 4 MB |
+
+If the download fails (offline, GitHub unreachable) the install still finishes and says so; cards without art simply
+don't roll, and re-running install later fetches them. A download whose sha256 doesn't match `art.json` is refused.
 
 Note: `Install-Module` from PowerShell 7 installs into `Documents\PowerShell\Modules`, which Windows PowerShell
 doesn't search (and vice versa). Tabs don't care (they run from `%LOCALAPPDATA%\pokeshell\current`, and the
@@ -138,7 +160,8 @@ pokeshell update          # Update-Module pokeshell, then pokeshell install from
 or by hand: `Update-Module pokeshell`, then `pokeshell install`. Until you re-run install, new tabs keep using
 the previous version's copy in `%LOCALAPPDATA%\pokeshell\current` (and `pokeshell` reminds you). Your `$PROFILE`
 line and the Windows Terminal profiles don't change, and old module versions can be removed at any time
-(`Uninstall-Module pokeshell -RequiredVersion <old>`). From source: `git pull`, then `.\install.ps1`.
+(`Uninstall-Module pokeshell -RequiredVersion <old>`). From source: `git pull`, then `.\install.ps1`. Either
+way, install fetches the art again only when the new `art.json` pins a newer art release.
 `pokeshell version` shows which version is running and which one new tabs use.
 
 ## Uninstall
@@ -289,9 +312,11 @@ A pack is a folder `packs/<id>/`:
 - `shaders/<skin>.hlsl`: Windows Terminal pixel shaders, one per foil skin (spec: `docs/SHADER_SPEC.md`)
 
 `tools/build_art.py` renders the art to `dist/<pack>/<character>-<variant>[-shiny].ans` (24-bit color, two
-pixels per character cell with half blocks). `dist/` is committed, so users never need Python, except for the
-real-card `pokemon` pack: its `art/<card id>.json`, `cards/<card id>.json` (the card text) and `dist/pokemon/` are
-built locally by `tools/build_realcards.py` and never committed (see the note at the top).
+pixels per character cell with half blocks). Users never need Python: the real-card `pokemon` pack's built art
+(`dist/pokemon/`) is a release of [pokeshell-art](https://github.com/gshklovs/pokeshell-art/releases) that install
+downloads (see the note at the top), and its sources (`art/<card id>.json`, and `cards/<card id>.json`, the card
+text) are built locally by `tools/build_realcards.py` and never committed. The card text is not in the art
+release: the binder's `v` text half needs `tools/fetch_cards.py --all`.
 
 ### Adding a pack
 
@@ -323,6 +348,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 | `errors.log` | anything that went wrong at startup (the hook never throws into your profile) |
 | `current/` | module installs only: the runtime new tabs use (hook, core source, shaders, art), refreshed by `pokeshell install` |
 | `pokeshell-core-*.dll` | the compiled startup core |
+| `art-cache/` | the verified art release zips `art.json` pins (older ones are pruned) |
 
 ## Tests
 
@@ -334,7 +360,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests\run-all.ps1
 uninstall round trips on copies of `settings.json`, including comments, trailing commas, BOM and the legacy
 profiles format), `test-cli`, `test-cards`, `test-earned` (pull ids, the first-command hook in child processes,
 expiry, NEW, the binder app's `--pull` / `--card` / `--set` / `--search`, `binder --web`, the hotkey on settings copies,
-the URL handler as a dry run), `test-module` (stages the Gallery module, imports it, installs, simulates an
+the URL handler as a dry run), `test-art` (the art releases: archives and manifests, download, re-run, a newer
+release, local builds kept, `-Art` modes, checksum mismatch, offline, hostile zips, and `pokeshell install` end to
+end, all from `file://` fixture releases into temp folders; `-Online` also downloads the real release into a temp
+folder), `test-module` (stages the Gallery module, imports it, installs, simulates an
 `Update-Module` and the removal of the old version, with a temp `LOCALAPPDATA`), and `measure-startup`
 (`-HookRoot <folder>` measures a deployed copy such as `%LOCALAPPDATA%\pokeshell\current`). They never touch your
 real Windows Terminal settings, `$PROFILE`, or `%LOCALAPPDATA%\pokeshell`, and never open a tab.
@@ -347,18 +376,32 @@ $env:PSGALLERY_API_KEY = '<key>'
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish.ps1 -Publish   # really publish
 ```
 
-`tools\publish.ps1` stages exactly what the module ships (manifest, `scripts\`, `packs\` json + shaders, `dist\`
-art, docs, README, LICENSE; files git ignores never ship) into a temp folder. Bump `ModuleVersion` in
+`tools\publish.ps1` stages exactly what the module ships (manifest, `scripts\`, `packs\` json + shaders, `art.json`,
+docs, README, LICENSE; files git ignores never ship, so no Pokemon art) into a temp folder. Bump `ModuleVersion` in
 `pokeshell.psd1` before each release.
+
+**The card art** is released separately, to [gshklovs/pokeshell-art](https://github.com/gshklovs/pokeshell-art):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish_art.ps1            # dry run: build + check the zips
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish_art.ps1 -Publish   # gh release create art-<date>, pin it in art.json
+git commit art.json -m "art: pin art-<date>"                                          # installs fetch what art.json pins
+```
+
+It zips `dist\pokemon\*.ans` and `*.anim` (two assets, so the animations stay optional) with a manifest, checks
+that each zip holds only that art and the manifest, uploads them as a new release and rewrites `art.json`
+(`-Source <checkout>` when the art was built in another checkout). Details: [docs/ART_RELEASES.md](docs/ART_RELEASES.md).
 
 ## Disclaimer
 
 pokeshell is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by, or sponsored by
 Nintendo, Game Freak, Creatures Inc., or The Pokemon Company. Pokemon character names and related marks belong to their respective owners and are
 used here only to identify the characters. This repository contains no game sprites, official artwork or card
-text: the `pokemon` pack's cards are assembled on the user's own machine by `tools/build_realcards.py` from the
-[pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites and the pokemontcg.io API, and
-are never committed. If you are a rights holder and want something changed or removed, please open an issue.
+text. The `pokemon` pack's built card art (the [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts)
+sprites over backgrounds painted from the real card scenes) is published separately in
+[gshklovs/pokeshell-art](https://github.com/gshklovs/pokeshell-art) and downloaded at install. That art belongs to
+its owners; pokeshell is free and non-commercial, and the art will be taken down on request. If you are a rights
+holder and want something changed or removed, please open an issue.
 
 ## License
 

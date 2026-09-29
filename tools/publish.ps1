@@ -6,7 +6,7 @@ Dry run by default: stages, runs Test-ModuleManifest, then Publish-Module -WhatI
   $env:PSGALLERY_API_KEY = '<key>'; powershell -NoProfile -File tools\publish.ps1 -Publish
   tools\publish.ps1 -StageOnly -OutDir <dir>\pokeshell\0.1.0 [-Version 0.2.0]         # stage only (the tests use this)
 
-What ships: pokeshell.psd1/.psm1, LICENSE, README.md, docs\*.md, scripts\** , packs\<id>\pack.json + art\*.json +
+What ships: pokeshell.psd1/.psm1, LICENSE, README.md, art.json (which art release install downloads), docs\*.md, scripts\** , packs\<id>\pack.json + art\*.json +
 shaders\*.hlsl, dist\<id>\*.ans, plus a generated packaged.txt (it tells the CLI it runs from an installed module,
 so `pokeshell install` copies the runtime into %LOCALAPPDATA%\pokeshell\current). Not shipped: tests, tools, .venv,
 previews. Files come from git: tracked files once the repo has a commit (before the first commit: every file git
@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path $PSScriptRoot
 
 # ---- which files
-$include = '^(pokeshell\.psd1|pokeshell\.psm1|LICENSE|README\.md|docs/[^/]+\.md|scripts/.+|' +
+$include = '^(pokeshell\.psd1|pokeshell\.psm1|LICENSE|README\.md|art\.json|docs/[^/]+\.md|scripts/.+|' +
            'packs/[^/]+/pack\.json|packs/[^/]+/art/[^/]+\.json|packs/[^/]+/shaders/[^/]+\.hlsl|dist/[^/]+/[^/]+\.(ans|anim))$'
 $git = Get-Command git -ErrorAction SilentlyContinue
 if ($git -and (Test-Path (Join-Path $Root '.git'))) {

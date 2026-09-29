@@ -26,7 +26,7 @@ $Command = ''; $Pos = @(); $Flags = @{}; $Opts = @{}
 $argList = @($args)
 for ($i = 0; $i -lt $argList.Count; $i++) {
   $a = [string]$argList[$i]
-  if ($a -match '^--?(settingspath|shell|pull|card|keys)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1].ToLower()] = [string]$argList[++$i] }
+  if ($a -match '^--?(settingspath|shell|pull|card|keys|art)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1].ToLower()] = [string]$argList[++$i] }
   elseif ($a -match '^--?[a-z]') { $Flags[$a.TrimStart('-').ToLower()] = $true }
   elseif (-not $Command) { $Command = $a.ToLower() }
   else { $Pos += $a }
@@ -59,8 +59,9 @@ pokeshell - every new Windows Terminal tab is a pack pull
   pokeshell color <name|#hex|reset>       tint this tab (pokeshell color: list names)
   pokeshell colorwatch [on|off]           tint the tab to match Claude Code's /color (new tabs)
   pokeshell on | off                      enable / disable startup pulls (kill switch)
-  pokeshell install [-SettingsPath <p>] [-Shell pwsh|powershell]
+  pokeshell install [-SettingsPath <p>] [-Shell pwsh|powershell] [-Art auto|download|local|skip] [-ArtStillOnly]
                                           add the skin profiles to Windows Terminal (re-run after Update-Module)
+                                          and download the card art release art.json pins (auto: if missing)
   pokeshell update                        update the module from the PowerShell Gallery and re-install
   pokeshell version                       which pokeshell is running, and where new tabs run from
   pokeshell uninstall [-SettingsPath <p>] [-Purge]
@@ -83,11 +84,28 @@ function Get-ProfileLine {
 }
 
 # ---------------------------------------------------------------- install / uninstall
+# The card art is not in the repo or the module: it is a release of the art repo art.json names, downloaded into
+# $Root\dist\<pack> (lib\cardart.ps1, docs\ART_RELEASES.md). A failed download never fails the install.
+function Get-ArtMode {
+  $m = if ($Opts.art) { $Opts.art } elseif ($env:POKESHELL_ART) { $env:POKESHELL_ART } else { 'auto' }
+  $m = $m.ToLower()
+  if ($m -notin 'auto', 'download', 'local', 'skip') { throw "-Art is auto, download, local or skip, not '$m'" }
+  $m
+}
+
+function Invoke-ArtInstall([string]$Mode) {
+  . (Join-Path $PSScriptRoot 'lib\cardart.ps1')
+  $cfgPath = if ($env:POKESHELL_ART_JSON) { $env:POKESHELL_ART_JSON } else { Join-Path $Root 'art.json' }
+  try { $null = Install-CardArt -Root $Root -ConfigPath $cfgPath -Mode $Mode -CacheDir (Join-Path $State 'art-cache') -StillOnly:(Has 'artstillonly') -Prefix 'pokeshell' }
+  catch { Write-Host "pokeshell: card art not installed: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
 function Invoke-Install {
   . (Join-Path $PSScriptRoot 'lib\wtsettings.ps1')
   $path = if ($Opts.settingspath) { $Opts.settingspath } else { Get-PokeshellWtSettingsPath }
   if (-not $path -or -not (Test-Path $path)) { throw "Windows Terminal settings.json not found (pass -SettingsPath <path>)" }
   $path = (Resolve-Path $path).ProviderPath
+  Invoke-ArtInstall (Get-ArtMode)   # before the runtime sync, so a module install copies the art into current
   if ($Packaged) { $script:RuntimeRoot = Sync-PokeshellRuntime $Root $State $Version }   # refresh <state>\current from this module version
   $skins = @(Get-PokeshellSkins $RuntimeRoot | Where-Object { Test-Path $_.shader })
   if (-not $skins) { throw "no shaders found under $RuntimeRoot\packs\*\shaders" }
@@ -720,6 +738,13 @@ function Invoke-Version {
   if ($Packaged -and $cv) { Write-Host "new tabs run from $Current ($cv)" }
   elseif ($Packaged) { Write-Host "not installed yet: run pokeshell install" -ForegroundColor Yellow }
   else { Write-Host "running from a source checkout: new tabs run from $Root" }
+  foreach ($id in Get-PokeshellPackIds $Root) {
+    $rec = Join-Path $Root "dist\$id\.cardart.json"
+    if ([IO.File]::Exists($rec)) {
+      $r = [IO.File]::ReadAllText($rec) | ConvertFrom-Json
+      Write-Host "card art ${id}: $($r.repo) release $($r.tag) ($(@($r.parts.PSObject.Properties | ForEach-Object Name) -join ', '))"
+    }
+  }
 }
 
 # re-run install with the same -SettingsPath / -Shell, in a fresh process of this edition, from $Base
@@ -728,6 +753,8 @@ function Invoke-InstallFrom([string]$Base) {
   $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $Base 'scripts\pokeshell.ps1'), 'install')
   if ($Opts.settingspath) { $a += '-SettingsPath', $Opts.settingspath }
   if ($Opts.shell) { $a += '-Shell', $Opts.shell }
+  if ($Opts.art) { $a += '-Art', $Opts.art }
+  if (Has 'artstillonly') { $a += '-ArtStillOnly' }
   & $exe @a
   if ($LASTEXITCODE) { throw "install from $Base failed" }
 }

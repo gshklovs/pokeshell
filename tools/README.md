@@ -2,7 +2,8 @@
 
 ## build_art.py: rebuild the card art
 
-The runtime never needs Python: it prints the prebuilt ANSI files committed in `dist/`.
+The runtime never needs Python: it prints the prebuilt ANSI files in `dist/` (for the `pokemon` pack, downloaded at
+install from the art release `art.json` pins: see `publish_art.ps1` below).
 You only need this when you add or change art in `packs/<pack>/art/*.json` (the real-card pokemon pack: see below).
 
 ```powershell
@@ -14,7 +15,7 @@ py -3 -m venv .venv
 
 Outputs:
 
-- `dist/<pack>/<id>-<variant>.ans` and `...-shiny.ans`: truecolor half-block art, two pixels per text row. **Commit these** (not `dist/pokemon`, which is local-only).
+- `dist/<pack>/<id>-<variant>.ans` and `...-shiny.ans`: truecolor half-block art, two pixels per text row. **Commit these** (not `dist/pokemon`: it is published as an art release, `publish_art.ps1`).
 - `previews/<pack>/<id>-<variant>[-shiny].png`: 12x upscaled PNGs for eyeballing (git-ignored).
 
 The art format and size limits are in `docs/ART_FORMAT.md`. After rebuilding, check the result in a terminal:
@@ -30,7 +31,11 @@ New tabs pick up changed art on their own (the roll cache stamps the `art/` fold
 `packs/pokemon` is a pack of real printed cards keyed by pokemontcg.io id (format: `docs/PACK_FORMAT.md`, "Real-card
 packs"). Only `pack.json` is committed. The art (the pokemon-colorscripts sprite over each card's scene) and the
 card text are Nintendo's / copyrighted, so they are built locally and git-ignored:
-`packs/pokemon/art/`, `packs/pokemon/cards/`, `dist/pokemon/`.
+`packs/pokemon/art/`, `packs/pokemon/cards/`, `dist/pokemon/`. Users get `dist/pokemon/` from the
+[pokeshell-art](https://github.com/gshklovs/pokeshell-art/releases) release that `art.json` pins (install downloads
+it); after building new cards, publish them with `publish_art.ps1` (below). Install never overwrites a local build
+unless asked (`install.ps1 -Art download`): a `dist/pokemon/` without the download's record (`.cardart.json`), or
+with files newer than it, counts as local.
 
 ```powershell
 .venv\Scripts\python -m pip install pillow
@@ -77,6 +82,25 @@ Renders `hero.png` (every built card), `tiers.png` (Pikachu's cards with their o
 built real cards: the card text comes from the real engine (`[Pokeshell.Core]::PullText`), drawn at terminal
 proportions by `tools/render_ansi.py`. It writes to `previews/media` because the images show Nintendo sprites;
 `--out docs/media` once it's settled that the README may show them.
+
+## publish_art.ps1: publish the card art as a release of the art repo
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish_art.ps1                          # dry run
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish_art.ps1 -Publish                 # release + pin
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\publish_art.ps1 -Source ..\pokeshell -Publish   # art built in another checkout
+```
+
+For every pack and part `art.json` lists (`pokemon`: `still` = `dist/pokemon/*.ans`, `anim` = `dist/pokemon/*.anim`,
+optional), it writes `<pack>-<part>-<tag>.zip` with a `manifest.json` (pack, part, version = the tag, the source
+commit, card count, each file's sha256 and size), then checks that every zip holds only `manifest.json` and that
+pack's files of that extension (the rule install enforces too). The dry run stops there and prints the sizes.
+`-Publish` runs `gh release create <tag>` on the art repo (`gshklovs/pokeshell-art`) with the zips and rewrites
+`art.json` to pin the new tag, names, sizes and sha256s: commit `art.json` and push, and every install / update
+fetches it. Tags default to `art-<yyyy-MM-dd>` (`-2`, `-3`... when taken; `-Tag` to choose); a release is never
+replaced. It warns when `packs/` has uncommitted changes, since the art should match a committed `pack.json`.
+It needs the GitHub CLI logged in (`gh auth login`). The format and the install side are in `docs/ART_RELEASES.md`;
+`tests\test-art.ps1` covers both.
 
 ## publish.ps1: publish the PowerShell Gallery module
 

@@ -9,6 +9,8 @@ $PlainGuid = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
 # child processes the tests start inherit this environment: drop a real tab's pull markers (run from a tab that
 # already rolled, the hook probes would otherwise skip)
 foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'CARDSHELL_ROLLED', 'OPSHELL_PULL', 'OPSHELL_ROLLED') { [Environment]::SetEnvironmentVariable($k, $null) }
+# install never downloads the card art release in tests (child processes inherit this); test-art.ps1 turns it back on
+$env:POKESHELL_ART = 'skip'
 $script:Failures = 0
 
 function New-TestState([string]$Name) {

@@ -1,10 +1,12 @@
-# dist/ is committed on purpose: the prebuilt .ans art, so users don't need Python
+# dist/<pack>/ of a pack drawn for this repo may be committed (prebuilt .ans art, so users don't need Python)
 .venv/
 previews/
 __pycache__/
 .gstack/
 # the real-card pokemon pack is built locally by tools/build_realcards.py and never committed: its art embeds
 # the pokemon-colorscripts sprites (Nintendo artwork) and its card text is copyrighted (pack.json stays tracked)
+# users get dist/pokemon/ from the gshklovs/pokeshell-art release art.json pins (install downloads it;
+# tools/publish_art.ps1 publishes it, docs/ART_RELEASES.md)
 packs/pokemon/art/
 packs/pokemon/cards/
 dist/pokemon/
