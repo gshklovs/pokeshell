@@ -2,10 +2,12 @@
 
 Every new Windows Terminal PowerShell tab is a trading-card pack pull.
 
-[![pokeshell: every new tab is a pack (32 s video)](docs/media/promo-poster.png)](docs/media/promo.mp4)
+[![pokeshell: every new tab is a pack](docs/media/readme.gif)](docs/media/promo.mp4)
 
-*Click for the 32 s video: real Windows Terminal pulls from Evolving Skies, the foil shaders, the card animations,
-the earn line and both binders.*
+*Click for the 32 s video with sound: real Windows Terminal pulls from Evolving Skies, the foil shaders, the card
+animations, the earn line and both binders. Music: "Stormwind" by Hotham, from the
+[Free Music Archive](https://freemusicarchive.org/music/hotham/single/stormwind/), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Excerpted, faded and loudness-normalised.*
 
 Every pull is a **real printed card**: the Pokemon's pixel sprite over that card's scene, framed like a card with
 its name, printed number and rarity. Most tabs pull a common, which prints right there. Rarer cards (rare holo,
@@ -16,6 +18,20 @@ card prints at once, the effect loops at 12 fps until you type (at most 30 s), a
 character at the prompt. Every pull goes into your binder (`pokeshell binder`).
 
 It's a fan project, not affiliated with the owners of the characters (see [Disclaimer](#disclaimer)).
+
+**Real card vs pokeshell**, from Common to Gold (Evolving Skies). Each pair is the printed card, then the pull:
+
+![Evolving Skies cards next to their pokeshell pulls](docs/media/evs-side-by-side.png)
+
+**The binder app** (`binder`): your cards, the selected card, completion per rarity, activity and best pulls:
+
+![The binder app in Windows Terminal](docs/media/binder-tui.png)
+
+**The web binder** (`binder --web`): a set's pages, and a card's page with its text half, tags and odds:
+
+![The web binder open on Evolving Skies](docs/media/binder-web.png)
+
+![A card's page in the web binder](docs/media/binder-web-card.png)
 
 > **The Pokemon card art is built locally and is not in this repository.** It embeds the
 > [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) sprites (Nintendo artwork), and the
