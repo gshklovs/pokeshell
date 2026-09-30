@@ -15,7 +15,8 @@ rare ultra, illustration rare, rare secret, hyper rare, ...) reopen the tab (sam
 holofoil pixel-shader skin that matches the rarity (cosmos, sunpillar, illustration rare, gold, ...). A card with an
 approved effect animation (its `.anim`, built with the card) then plays it over its art while the tab is idle: the
 card prints at once, the effect loops at 12 fps until you type (at most 30 s), and the key you pressed is the first
-character at the prompt. Every pull goes into your binder (`pokeshell binder`).
+character at the prompt. Every pull goes into your binder (`pokeshell binder`), and `clip` copies the card your tab
+pulled to the clipboard, as coloured text with its newlines.
 
 It's a fan project, not affiliated with the owners of the characters (see [Disclaimer](#disclaimer)).
 
@@ -225,6 +226,8 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 | `pokeshell hotkey [on\|off] [-Keys ctrl+shift+b]` | the Windows Terminal key (default `Ctrl+Shift+B`) that opens the binder in a split pane next to your work, on your newest pull. `pokeshell install` adds it to `settings.json` (backed up first, unless the keys are taken); `off` removes it and keeps later installs from adding it back; `pokeshell uninstall` removes it |
 | `pokeshell urlhandler [on\|off] [-DryRun]` | the card's Ctrl+click link: `pokeshell://` under `HKCU\Software\Classes` (it runs the windowless `binder-link.exe`) plus `"safeUriSchemes": ["pokeshell"]` in `settings.json`. `pokeshell install` sets it up; `off` removes both and keeps later installs from adding them; `-DryRun` only lists the registry changes |
 | `pokeshell show <pack>/<character> [variant] [-shiny] [-picture\|-card]` | print a card (`pokeshell show` lists everything built); `-picture` / `-card` override the display setting |
+| `pokeshell clip [-Plain] [-Pull <id>\|latest] [-Card <pack>/<card id>] [-shiny] [-picture\|-card]` | copy this tab's pulled card to the clipboard exactly as it printed (the same card or picture display, frame and shiny form; an animated card's resting frame): 24-bit colour text with its newlines (CRLF), ready to paste into anything that renders ANSI colour. `-Plain` strips the colour codes and keeps the half-block pixels; `-Pull` copies another pull (`latest`: your newest), `-Card` any card (as `show` names it). A tab with no pull says so and exits 1 |
+| `clip` | short for `pokeshell clip`, defined by the `$PROFILE` hook and the module. Only `clip` on its own is the card: anything piped (`"x" \| clip`, `Get-Content f \| clip`) or any argument goes straight to Windows' `clip.exe`, unchanged. `pokeshell clip alias off` makes `clip` alone `clip.exe` again (`config.txt` `clip_alias`) |
 | `pokeshell display [card\|picture]` | how pulls print: `card` (default) is the full card (a framed card for packs with tier frames, otherwise the art plus the `label : name` line); `picture` is just the art. Saved in `config.txt`; `$env:POKESHELL_DISPLAY = 'picture'` overrides it for one shell (and the foil tabs it opens) |
 | `pokeshell holo [<skin>\|plain] [-s] [-r]` | open a skinned tab here; `-s` splits a pane instead; `-r` moves the Claude Code session running in this tab into the new one (`claude --resume`), e.g. from inside Claude Code: `! pokeshell holo -r cosmos` |
 | `pokeshell color <name\|#hex\|reset>` | tint this tab (35 named colors; other CSS color names work too and are logged to `color-misses.log`) |
@@ -458,7 +461,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 
 | file | |
 |---|---|
-| `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), `earn` (`first-command`, `minutes:N` or `off`), `anim` (`untilkey`, the default: a card's effect loops until you type, at most 30 s; `intro`: one loop; `off`: the static card only; `$env:POKESHELL_NO_ANIM = 1` turns it off for one shell), `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.), and `best_since` (where the binders' best pulls start: a local date or time like `2026-09-29` or `2026-09-29T00:40`, or `all`; default: your first pull of a real card, so older pulls don't crowd them out) |
+| `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), `earn` (`first-command`, `minutes:N` or `off`), `anim` (`untilkey`, the default: a card's effect loops until you type, at most 30 s; `intro`: one loop; `off`: the static card only; `$env:POKESHELL_NO_ANIM = 1` turns it off for one shell), `clip_alias` (`on`, the default, or `off`: whether `clip` on its own copies the tab's card), `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.), and `best_since` (where the binders' best pulls start: a local date or time like `2026-09-29` or `2026-09-29T00:40`, or `all`; default: your first pull of a real card, so older pulls don't crowd them out) |
 | `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, flags (`pending`, notes), `id=<ulid>`, `boot=<n>` (for a real card, tier is its rarity tier and art its card id); plus `earned:<id>` / `expired:<id>` lines. Append-only: older lines without an id count as earned, and pulls of art that no longer exists stay in it (the binders hide them: `retired` in `docs/PACK_FORMAT.md`) |
 | `viewed.txt` | pull ids the binder has shown (no more NEW sticker) |
 | `tokens.log` | the pack-token ledger: one `time delta reason id=...` line per grant (+n) or opened pack (-1); the balance is the sum (docs/BOOSTERS.md) |
@@ -483,7 +486,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests\run-all.ps1
 
 `test-no-loop` (the loop-safety layers, in simulation and with real processes), `test-install` (install /
 uninstall round trips on copies of `settings.json`, including comments, trailing commas, BOM and the legacy
-profiles format), `test-cli`, `test-cards`, `test-json` (the JSON commands: their shapes, caught vs seen checked
+profiles format), `test-cli`, `test-clip` (`clip`: the exact bytes `show` prints, `-Plain`, no pull, the `clip` shortcut against a fake `clip.exe`, and its startup cost; never the real clipboard), `test-cards`, `test-json` (the JSON commands: their shapes, caught vs seen checked
 against the web export, a Base Set Charizard's gameplay data, `carddata.json` coverage and the tool's gap report, and
 1000 pulls in under 1.5 s), `test-earned` (pull ids, the first-command hook in child processes,
 expiry, NEW, the binder app's `--pull` / `--card` / `--set` / `--search`, `binder --web`, the hotkey on settings copies,

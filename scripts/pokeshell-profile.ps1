@@ -1,10 +1,20 @@
 # pokeshell $PROFILE hook:  . "<repo>\scripts\pokeshell-profile.ps1"   (pokeshell install prints the line)
-# Defines `pokeshell` (and `binder`) and rolls the startup pull on fresh plain tabs. Kept tiny because it runs on every
+# Defines `pokeshell` (and `binder`, `clip`) and rolls the startup pull on fresh plain tabs. Kept tiny because it runs on every
 # new shell: a common pull is one call into the compiled core (lib\Pokeshell.cs) and one write. Foils,
 # a stale roll cache and the first compile go through lib\roll.ps1. Never throws into your profile;
 # errors go to %LOCALAPPDATA%\pokeshell\errors.log.
 function global:pokeshell { & "$PSScriptRoot\pokeshell.ps1" @args }
 function global:binder { & "$PSScriptRoot\pokeshell.ps1" binder @args }   # the binder app (pokeshell binder)
+# clip:begin  `clip` alone copies this tab's card (pokeshell clip); piped input or any argument goes to Windows' clip.exe
+# unchanged. No work at load: the body runs only when called (the same function is in pokeshell.psm1).
+function global:clip {
+  $exe = if ($env:POKESHELL_CLIP_EXE) { $env:POKESHELL_CLIP_EXE } else { "$env:SystemRoot\System32\clip.exe" }   # (the variable: tests only)
+  if ($MyInvocation.ExpectingInput) { $input | & $exe @args; return }
+  $d = if ($env:POKESHELL_HOME) { $env:POKESHELL_HOME } else { "$env:LOCALAPPDATA\pokeshell" }
+  if ($args.Count -or ([IO.File]::Exists("$d\config.txt") -and [IO.File]::ReadAllText("$d\config.txt") -match '(?m)^\s*clip_alias\s*=\s*off\s*$')) { & $exe @args; return }
+  pokeshell clip
+}
+# clip:end
 & {
   $a = [Environment]::GetCommandLineArgs()
   $d = $env:POKESHELL_HOME; if (-not $d) { $d = "$env:LOCALAPPDATA\pokeshell" }

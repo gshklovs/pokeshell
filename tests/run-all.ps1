@@ -5,7 +5,7 @@ foil pulls are dry runs (no tab is opened).
   powershell -NoProfile -ExecutionPolicy Bypass -File tests\run-all.ps1
 #>
 $failed = @()
-foreach ($t in 'test-no-loop.ps1', 'test-install.ps1', 'test-cli.ps1', 'test-cards.ps1', 'test-earned.ps1', 'test-json.ps1', 'test-boosters.ps1', 'test-anim.ps1', 'test-art.ps1', 'test-module.ps1', 'measure-startup.ps1') {
+foreach ($t in 'test-no-loop.ps1', 'test-install.ps1', 'test-cli.ps1', 'test-cards.ps1', 'test-earned.ps1', 'test-json.ps1', 'test-boosters.ps1', 'test-anim.ps1', 'test-art.ps1', 'test-module.ps1', 'test-clip.ps1', 'measure-startup.ps1') {
   Write-Host "`n=== $t ===" -ForegroundColor Magenta
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $t)
   if ($LASTEXITCODE -ne 0) { $failed += $t }

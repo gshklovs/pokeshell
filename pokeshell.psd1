@@ -8,7 +8,7 @@
   Description          = 'Every new Windows Terminal PowerShell tab is a trading-card pack pull: pixel art for common pulls, animated holofoil pixel-shader skins for foils, and a binder of everything you pulled. Run "pokeshell install" after installing the module.'
   PowerShellVersion    = '5.1'
   CompatiblePSEditions = @('Desktop', 'Core')
-  FunctionsToExport    = @('pokeshell')
+  FunctionsToExport    = @('pokeshell', 'clip')
   CmdletsToExport      = @()
   VariablesToExport    = @()
   AliasesToExport      = @()

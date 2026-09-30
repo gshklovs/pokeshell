@@ -71,6 +71,11 @@ pokeshell - every new Windows Terminal tab is a pack pull
   pokeshell urlhandler [on|off] [-DryRun] the card's Ctrl+click "binder" link (pokeshell://; install adds it)
   pokeshell show <pack>/<character> [variant|card id|tier] [-shiny] [-picture|-card]
                                           print a card (pokeshell show: list what's available; also pokemon/<card id>)
+  pokeshell clip [-Plain] [-Pull <id>|latest] [-Card <pack>/<card id>] [-shiny] [-picture|-card]
+                                          copy this tab's pulled card to the clipboard as it printed: coloured
+                                          text with its newlines (-Plain: no colour codes). `clip` on its own does
+                                          the same; piped (`"x" | clip`) or with arguments it is Windows' clip.exe
+  pokeshell clip alias [on|off]           whether `clip` on its own copies the card (on, the default)
   pokeshell display [card|picture]        how pulls print: the full card (default) or just the picture
                                           (POKESHELL_DISPLAY=picture overrides it for one shell)
   pokeshell holo [<skin>|plain] [-s] [-r] open a skinned tab here (-s: split pane instead;
@@ -598,13 +603,14 @@ function Invoke-Collection {
 }
 
 # Real-card packs: `show pokemon/pikachu` (the character's lowest-tier card), `show pokemon/pikachu <card id | tier>`,
-# `show pokemon/<card id>` or `show <card id>`. Returns $false when the reference isn't in a real-card pack.
-function Show-Card {
-  $ref = $Pos[0]; $want = if ($Pos.Count -gt 1) { $Pos[1] } else { '' }
+# `show pokemon/<card id>` or `show <card id>`. Returns Show-PokeshellPull's parameters, or $null when the reference
+# isn't in a real-card pack. ($Refs: the positionals, `show`'s or `clip -Card`'s)
+function Get-CardSpec([string[]]$Refs) {
+  $ref = $Refs[0]; $want = if ($Refs.Count -gt 1) { $Refs[1] } else { '' }
   $packIds = @(Get-PokeshellPackIds $Root); $name = $ref
   if ($ref -match '^([^/\\]+)[/\\]([^/\\]+)$') { $packIds = @($Matches[1].ToLower()); $name = $Matches[2] }
   foreach ($id in $packIds) {
-    if (-not (Test-Path (Join-Path $Root "packs\$id\pack.json"))) { return $false }
+    if (-not (Test-Path (Join-Path $Root "packs\$id\pack.json"))) { return $null }
     $p = Read-PokeshellPack $Root $id
     if (-not $p.isCardPack) { continue }
     $card = @($p.cardList | Where-Object { $_.id -eq $name })[0]
@@ -624,12 +630,14 @@ function Show-Card {
     # no -shiny.ans: the regular art is shown (Core.PullText falls back the same way)
     $file = Join-Path $Root "dist\$id\$($card.character)-$($card.id).ans"
     if (-not (Test-Path $file)) { throw "$id/$($card.id) has no art built (tools\build_realcards.py; see tools\README.md)" }
-    $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
-    Show-PokeshellPull -Root $Root -Pack $id -Character $card.character -Name $card.name -Art $card.id -Label $t.label -Tier $card.tier -Shiny:$shiny -Frame $p.frames[$card.tier] -Tag $card.tag -Picture:$picture
-    return $true
+    return @{ Root = $Root; Pack = $id; Character = $card.character; Name = $card.name; Art = $card.id; Label = $t.label; Tier = $card.tier
+              Shiny = [bool]$shiny; Frame = $p.frames[$card.tier]; Tag = $card.tag; Picture = (Get-ShowPicture) }
   }
-  $false
+  $null
 }
+
+# -Picture / -Card override the display setting (config `display`, or POKESHELL_DISPLAY for this shell)
+function Get-ShowPicture { if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' } }
 
 function Invoke-Show {
   if (-not $Pos) {
@@ -660,8 +668,15 @@ function Invoke-Show {
     Write-Host "`nusage: pokeshell show <pack>/<character> [variant] [-shiny]   (real-card packs: <pack>/<character> [card id|tier], or <pack>/<card id>)"
     return
   }
-  if (Show-Card) { return }
-  $ref = $Pos[0].ToLower()
+  $s = Get-ShowSpec $Pos
+  Show-PokeshellPull @s
+}
+
+# what `show <ref> [variant]` prints, as Show-PokeshellPull's parameters (throws if there's no such card or art)
+function Get-ShowSpec([string[]]$Refs) {
+  $s = Get-CardSpec $Refs
+  if ($s) { return $s }
+  $ref = $Refs[0].ToLower()
   if ($ref -notmatch '^([^/\\]+)[/\\]([^/\\]+)$') {   # bare character: search the packs
     $hits = @(Get-PokeshellPackIds $Root | Where-Object { @((Read-PokeshellPack $Root $_).characters) -contains $ref })
     if (-not $hits) { throw "no character '$ref' (try: pokeshell show)" }
@@ -674,7 +689,7 @@ function Invoke-Show {
     throw "pack '$packId' has no character '$char' (has: $(($has | Select-Object -First 12) -join ', ')$more)"
   }
   $tiers = @($p.tiers)
-  $variant = if ($Pos.Count -gt 1) { $Pos[1].ToLower() } else { $tiers[0].art }
+  $variant = if ($Refs.Count -gt 1) { $Refs[1].ToLower() } else { $tiers[0].art }
   $shiny = Has @('shiny')
   # the variant names an art variant, or a tier (by id, label, or frame preset: `show pokedex/pikachu gold`)
   $ti = -1
@@ -691,9 +706,68 @@ function Invoke-Show {
   if ($ti -lt 0) { $ti = 0; for ($i = $tiers.Count - 1; $i -ge 0; $i--) { if ($tiers[$i].art -eq $variant) { $ti = $i } } }
   $label = if (@($tiers | Where-Object art -eq $art)) { $tiers[$ti].label } else { $variant }
   $frame = if ($tiers[$ti].art -eq $art) { $p.frames[$ti] } else { '' }
-  # -Picture / -Card override the display setting (config `display`, or POKESHELL_DISPLAY for this shell)
-  $picture = if (Has @('card')) { $false } elseif (Has @('picture')) { $true } else { [Pokeshell.Core]::Display($Cfg) -eq 'picture' }
-  Show-PokeshellPull -Root $Root -Pack $packId -Character $char -Name $p.names[$char] -Art $art -Label $label -Tier $ti -Shiny:$shiny -Frame $frame -Tag $p.tags[$char] -Picture:$picture -Poster $p.posterNames[$char] -Bounty $p.bounties[$char]
+  @{ Root = $Root; Pack = $packId; Character = $char; Name = $p.names[$char]; Art = $art; Label = $label; Tier = $ti; Shiny = [bool]$shiny
+     Frame = $frame; Tag = $p.tags[$char]; Picture = (Get-ShowPicture); Poster = $p.posterNames[$char]; Bounty = $p.bounties[$char] }
+}
+
+# ---------------------------------------------------------------- clip
+# The card a pulls.log record printed, as Show-PokeshellPull's parameters: the same art, frame, label and shiny form
+# Core.Roll printed it with (a real card resolves as the binders do: Resolve-PokeshellPull).
+function Get-PullSpec($Rec) {
+  $p = Read-PokeshellPack $Root $Rec.pack
+  if ($p.isCardPack) {
+    $c = Resolve-PokeshellPull $p $Rec.character $Rec.tier $Rec.art
+    if (-not $c) { throw "pull $($Rec.id) is a card that is retired or not built here ($($Rec.pack)/$($Rec.art))" }
+    $t = $p.tiers[$c.tier]
+    return @{ Root = $Root; Pack = $p.id; Character = $c.character; Name = $c.name; Art = $c.id; Label = $t.label; Tier = $c.tier
+              Shiny = ([bool]$Rec.shiny -and $t.shiny -ne 'printed'); Frame = $p.frames[$c.tier]; Tag = $c.tag; Picture = (Get-ShowPicture) }
+  }
+  $ti = $p.tierIndex[[string]$Rec.tier]
+  if ($null -eq $ti) { throw "pull $($Rec.id): pack $($Rec.pack) has no tier '$($Rec.tier)' any more" }
+  @{ Root = $Root; Pack = $p.id; Character = $Rec.character; Name = $p.names[$Rec.character]; Art = $Rec.art; Label = $p.tiers[$ti].label; Tier = $ti
+     Shiny = [bool]$Rec.shiny; Frame = $p.frames[$ti]; Tag = $p.tags[$Rec.character]; Picture = (Get-ShowPicture)
+     Poster = $p.posterNames[$Rec.character]; Bounty = $p.bounties[$Rec.character] }
+}
+
+# the card as clipboard text: what `show` prints for it (no binder footer; an animated card's resting frame, which is
+# its .ans), without the blank line before it, ending in one CRLF. -Plain: every escape sequence stripped, the
+# half-block glyphs kept.
+function Get-ClipText($Spec, [switch]$Plain) {
+  $t = [Pokeshell.Core]::PullText($Spec.Root, $Spec.Pack, $Spec.Character, $Spec.Name, $Spec.Art, $Spec.Label, [int]$Spec.Tier, [bool]$Spec.Shiny,
+                                  [string]$Spec.Frame, [string]$Spec.Tag, [bool]$Spec.Picture, [string]$Spec.Poster, [string]$Spec.Bounty)
+  $t = $t.Replace("`r`n", "`n").Replace("`n", "`r`n").Trim([char[]]"`r`n") + "`r`n"
+  if ($Plain) { $t = $t -replace "$esc\][^$esc\a]*($esc\\|\a)", '' -replace "$esc\[[0-?]*[ -/]*[@-~]", '' -replace "$esc[@-_]", '' }
+  $t
+}
+
+# `pokeshell clip` (and `clip` on its own): this tab's pulled card onto the clipboard, as it printed here
+function Invoke-Clip {
+  if ($Pos -and $Pos[0].ToLower() -eq 'alias') {   # the `clip` shortcut on or off (config clip_alias; read when clip runs)
+    if ($Pos.Count -lt 2) { Write-Host "clip alias: $(if ($Cfg['clip_alias'] -eq 'off') { 'off' } else { 'on' })  (pokeshell clip alias on|off: whether ``clip`` alone copies this tab's card; piped ``clip`` is always Windows' clip.exe)"; return }
+    $want = $Pos[1].ToLower()
+    if ($want -notin 'on', 'off') { throw "clip alias is on or off, not '$want'" }
+    Set-PokeshellConfigValue $State 'clip_alias' $want
+    Update-PokeshellRollCache -Root $RuntimeRoot -StateDir $State   # config.txt is in the cache stamp
+    Write-Host "pokeshell: ``clip`` alone now $(if ($want -eq 'on') { "copies this tab's card" } else { 'runs Windows'' clip.exe, as before' })"
+    return
+  }
+  $card = $Opts.card
+  if ($card -and $card.StartsWith('-')) { $Flags[$card.TrimStart('-').ToLower()] = $true; $Flags['card'] = $true; $card = $null }   # `-Card -Plain`: -Card was the flag
+  if ($card) {
+    $spec = Get-ShowSpec (@($card) + @($Pos))
+  } else {
+    $id = if ($Opts.pull) { $Opts.pull } else { $env:POKESHELL_PULL }
+    if (-not $id) { throw "no card was pulled in this tab (pokeshell clip -Card <pack>/<card id> copies any card)" }
+    $recs = @(Read-Pulls -All)   # a tab's pull is pending until the tab is used: every status counts here
+    $rec = if ($id -eq 'latest') { $recs | Select-Object -Last 1 } else { @($recs | Where-Object id -eq $id) | Select-Object -Last 1 }
+    if (-not $rec) { throw "pull $id isn't in pulls.log$(if (-not $Opts.pull) { ' (this tab''s POKESHELL_PULL)' })" }
+    $spec = Get-PullSpec $rec
+  }
+  $text = Get-ClipText $spec -Plain:(Has @('plain'))
+  if ($env:POKESHELL_CLIP_SINK) { [IO.File]::WriteAllText($env:POKESHELL_CLIP_SINK, $text, [Text.UTF8Encoding]::new($false)) }   # tests: never the real clipboard
+  else { Set-Clipboard -Value $text }
+  $shiny = if ($spec.Shiny) { ', shiny' } else { '' }
+  Write-Host "copied $($spec.Name) ($($spec.Label)$shiny) to the clipboard$(if (Has @('plain')) { ' (plain text)' })"
 }
 
 # ---------------------------------------------------------------- binder / earn / hotkey / urlhandler
@@ -1101,6 +1175,7 @@ switch ($Command) {
   'hotkey'     { Invoke-Hotkey }
   'urlhandler' { Invoke-UrlHandler }
   'show'       { Invoke-Show }
+  'clip'       { Invoke-Clip }
   'display'    { Invoke-Display }
   'holo'       { Invoke-Holo }
   'color'      { Invoke-Color }
