@@ -1,0 +1,132 @@
+{
+ "name": "Lost Origin",
+ "set_id": "swsh11",
+ "subsets": [
+  {
+   "set_id": "swsh11tg",
+   "name": "Lost Origin Trainer Gallery",
+   "group_prefix": "tg_"
+  }
+ ],
+ "prefix": "swsh11",
+ "printed_total": "196",
+ "groups": {
+  "Common": "commons",
+  "Uncommon": "uncommon",
+  "Rare": "rare",
+  "Rare Holo": "holo",
+  "Rare Holo V": "v",
+  "Rare Holo VMAX": "v",
+  "Rare Holo VSTAR": "vstar",
+  "Radiant Rare": "radiant",
+  "Rare Ultra": "ultra",
+  "Rare Rainbow": "rainbow",
+  "Rare Secret": "secret"
+ },
+ "tg_groups": {
+  "Trainer Gallery Rare Holo": "tg",
+  "Rare Holo V": "tg_v",
+  "Rare Holo VMAX": "tg_v",
+  "Rare Secret": "secret"
+ },
+ "lookbook": {
+  "section_prefix": "lorset_",
+  "anchor": "lor",
+  "place": "after"
+ },
+ "split": {
+  "commons": [
+   "commons_a",
+   "commons_b"
+  ],
+  "uncommon": [
+   "uncommon_a",
+   "uncommon_b"
+  ],
+  "rare": [
+   "rare_a",
+   "rare_b"
+  ]
+ },
+ "labels": {
+  "commons_a": "Common (1/2)",
+  "commons_b": "Common (2/2)",
+  "uncommon_a": "Uncommon (1/2)",
+  "uncommon_b": "Uncommon (2/2)",
+  "rare_a": "Rare (1/2)",
+  "rare_b": "Rare (2/2)",
+  "holo": "Rare Holo",
+  "v": "Rare Holo V + VMAX",
+  "vstar": "Rare Holo VSTAR",
+  "radiant": "Radiant Rare (shiny sprite)",
+  "ultra": "Rare Ultra (full art + alt-art painting)",
+  "rainbow": "Rare Rainbow",
+  "secret": "Rare Secret (gold)",
+  "tg": "Trainer Gallery: Trainer Gallery Rare Holo",
+  "tg_v": "Trainer Gallery: Rare Holo V + VMAX (alt-art painting)"
+ },
+ "ladder": [
+  "swsh11-52",
+  "swsh11-2",
+  "swsh11-53",
+  "swsh11-66",
+  "swsh11-130",
+  "swsh11-49",
+  "swsh11-131",
+  "swsh11-69",
+  "swsh11-185",
+  "swsh11-186",
+  "swsh11-201",
+  "swsh11-212",
+  "swsh11tg-TG03",
+  "swsh11tg-TG16",
+  "swsh11tg-TG17",
+  "swsh11tg-TG30"
+ ],
+ "forms": {
+  "swsh11-130": "giratina-origin",
+  "swsh11-131": "giratina-origin",
+  "swsh11-185": "giratina-origin",
+  "swsh11-186": "giratina-origin",
+  "swsh11-201": "giratina-origin",
+  "swsh11-212": "giratina-origin",
+  "swsh11-39": "shellos-east",
+  "swsh11-44": "basculin-white-striped",
+  "swsh11-82": "enamorus",
+  "swsh11-178": "enamorus",
+  "swsh11-105": "landorus",
+  "swsh11-122": "hoopa-unbound",
+  "swsh11-123": "sneasler",
+  "swsh11-129": "perrserker",
+  "swsh11-183": "perrserker",
+  "swsh11-184": "perrserker",
+  "swsh11tg-TG22": "eternatus-eternamax",
+  "swsh11-49": "kyurem",
+  "swsh11-197": "kyurem",
+  "swsh11tg-TG30": "mew",
+  "swsh11-45": "basculegion",
+  "swsh11-69": "gardevoir",
+  "swsh11-124": "steelix"
+ },
+ "flip_commons": [
+  "swsh11-6",
+  "swsh11-28",
+  "swsh11-39",
+  "swsh11-83",
+  "swsh11-109",
+  "swsh11-112",
+  "swsh11-138",
+  "swsh11-150"
+ ],
+ "notes": {
+  "swsh11-177": "alt-art painting (Umbreon 215 treatment)",
+  "swsh11-180": "alt-art painting",
+  "swsh11-184": "alt-art painting",
+  "swsh11-186": "alt-art painting",
+  "swsh11-39": "the card shows two Shellos, East (blue, left) and West (pink): the sprite takes the East one",
+  "swsh11-102": "the card shows both Gastrodon forms, West (brown, left) and East (green): the sprite takes the West one (vendor gastrodon)"
+ },
+ "skip": {
+  "swsh11tg-TG22": "Eternatus VMAX is Eternamax on the card: the eternatus-eternamax sprite is 56 sprite rows = 112 grid px, over the 110 grid-px cap, and it can only be served pixel-exact; the plain eternatus sprite would be the wrong form"
+ }
+}

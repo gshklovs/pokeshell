@@ -1,0 +1,1580 @@
+{
+ "holo": [
+  {
+   "id": "swsh11-3",
+   "name": "Vileplume",
+   "number": "3",
+   "rarity": "Rare Holo",
+   "sprite": "vileplume"
+  },
+  {
+   "id": "swsh11-8",
+   "name": "Beautifly",
+   "number": "8",
+   "rarity": "Rare Holo",
+   "sprite": "beautifly"
+  },
+  {
+   "id": "swsh11-13",
+   "name": "Shiftry",
+   "number": "13",
+   "rarity": "Rare Holo",
+   "sprite": "shiftry"
+  },
+  {
+   "id": "swsh11-17",
+   "name": "Trevenant",
+   "number": "17",
+   "rarity": "Rare Holo",
+   "sprite": "trevenant"
+  },
+  {
+   "id": "swsh11-20",
+   "name": "Orbeetle",
+   "number": "20",
+   "rarity": "Rare Holo",
+   "sprite": "orbeetle"
+  },
+  {
+   "id": "swsh11-26",
+   "name": "Chandelure",
+   "number": "26",
+   "rarity": "Rare Holo",
+   "sprite": "chandelure"
+  },
+  {
+   "id": "swsh11-29",
+   "name": "Pyroar",
+   "number": "29",
+   "rarity": "Rare Holo",
+   "sprite": "pyroar"
+  },
+  {
+   "id": "swsh11-37",
+   "name": "Kingdra",
+   "number": "37",
+   "rarity": "Rare Holo",
+   "sprite": "kingdra"
+  },
+  {
+   "id": "swsh11-45",
+   "name": "Hisuian Basculegion",
+   "number": "45",
+   "rarity": "Rare Holo",
+   "sprite": "basculegion"
+  },
+  {
+   "id": "swsh11-51",
+   "name": "Glastrier",
+   "number": "51",
+   "rarity": "Rare Holo",
+   "sprite": "glastrier"
+  },
+  {
+   "id": "swsh11-70",
+   "name": "Sableye",
+   "number": "70",
+   "rarity": "Rare Holo",
+   "sprite": "sableye"
+  },
+  {
+   "id": "swsh11-74",
+   "name": "Cresselia",
+   "number": "74",
+   "rarity": "Rare Holo",
+   "sprite": "cresselia"
+  },
+  {
+   "id": "swsh11-76",
+   "name": "Hisuian Zoroark",
+   "number": "76",
+   "rarity": "Rare Holo",
+   "sprite": "zoroark-hisui"
+  },
+  {
+   "id": "swsh11-81",
+   "name": "Spectrier",
+   "number": "81",
+   "rarity": "Rare Holo",
+   "sprite": "spectrier"
+  },
+  {
+   "id": "swsh11-84",
+   "name": "Hisuian Arcanine",
+   "number": "84",
+   "rarity": "Rare Holo",
+   "sprite": "arcanine-hisui"
+  },
+  {
+   "id": "swsh11-88",
+   "name": "Machamp",
+   "number": "88",
+   "rarity": "Rare Holo",
+   "sprite": "machamp"
+  },
+  {
+   "id": "swsh11-107",
+   "name": "Barbaracle",
+   "number": "107",
+   "rarity": "Rare Holo",
+   "sprite": "barbaracle"
+  },
+  {
+   "id": "swsh11-120",
+   "name": "Darkrai",
+   "number": "120",
+   "rarity": "Rare Holo",
+   "sprite": "darkrai"
+  },
+  {
+   "id": "swsh11-134",
+   "name": "Hisuian Goodra",
+   "number": "134",
+   "rarity": "Rare Holo",
+   "sprite": "goodra-hisui"
+  },
+  {
+   "id": "swsh11-143",
+   "name": "Snorlax",
+   "number": "143",
+   "rarity": "Rare Holo",
+   "sprite": "snorlax"
+  }
+ ],
+ "v": [
+  {
+   "id": "swsh11-27",
+   "name": "Delphox V",
+   "number": "27",
+   "rarity": "Rare Holo V",
+   "sprite": "delphox"
+  },
+  {
+   "id": "swsh11-48",
+   "name": "Kyurem V",
+   "number": "48",
+   "rarity": "Rare Holo V",
+   "sprite": "kyurem"
+  },
+  {
+   "id": "swsh11-56",
+   "name": "Magnezone V",
+   "number": "56",
+   "rarity": "Rare Holo V",
+   "sprite": "magnezone"
+  },
+  {
+   "id": "swsh11-58",
+   "name": "Rotom V",
+   "number": "58",
+   "rarity": "Rare Holo V",
+   "sprite": "rotom"
+  },
+  {
+   "id": "swsh11-82",
+   "name": "Enamorus V",
+   "number": "82",
+   "rarity": "Rare Holo V",
+   "sprite": "enamorus"
+  },
+  {
+   "id": "swsh11-92",
+   "name": "Aerodactyl V",
+   "number": "92",
+   "rarity": "Rare Holo V",
+   "sprite": "aerodactyl"
+  },
+  {
+   "id": "swsh11-118",
+   "name": "Drapion V",
+   "number": "118",
+   "rarity": "Rare Holo V",
+   "sprite": "drapion"
+  },
+  {
+   "id": "swsh11-129",
+   "name": "Galarian Perrserker V",
+   "number": "129",
+   "rarity": "Rare Holo V",
+   "sprite": "perrserker"
+  },
+  {
+   "id": "swsh11-135",
+   "name": "Hisuian Goodra V",
+   "number": "135",
+   "rarity": "Rare Holo V",
+   "sprite": "goodra-hisui"
+  },
+  {
+   "id": "swsh11-137",
+   "name": "Pidgeot V",
+   "number": "137",
+   "rarity": "Rare Holo V",
+   "sprite": "pidgeot"
+  },
+  {
+   "id": "swsh11-146",
+   "name": "Hisuian Zoroark V",
+   "number": "146",
+   "rarity": "Rare Holo V",
+   "sprite": "zoroark-hisui"
+  }
+ ],
+ "vstar": [
+  {
+   "id": "swsh11-57",
+   "name": "Magnezone VSTAR",
+   "number": "57",
+   "rarity": "Rare Holo VSTAR",
+   "sprite": "magnezone"
+  },
+  {
+   "id": "swsh11-93",
+   "name": "Aerodactyl VSTAR",
+   "number": "93",
+   "rarity": "Rare Holo VSTAR",
+   "sprite": "aerodactyl"
+  },
+  {
+   "id": "swsh11-119",
+   "name": "Drapion VSTAR",
+   "number": "119",
+   "rarity": "Rare Holo VSTAR",
+   "sprite": "drapion"
+  },
+  {
+   "id": "swsh11-136",
+   "name": "Hisuian Goodra VSTAR",
+   "number": "136",
+   "rarity": "Rare Holo VSTAR",
+   "sprite": "goodra-hisui"
+  },
+  {
+   "id": "swsh11-147",
+   "name": "Hisuian Zoroark VSTAR",
+   "number": "147",
+   "rarity": "Rare Holo VSTAR",
+   "sprite": "zoroark-hisui"
+  }
+ ],
+ "radiant": [
+  {
+   "id": "swsh11-123",
+   "name": "Radiant Hisuian Sneasler",
+   "number": "123",
+   "rarity": "Radiant Rare",
+   "sprite": "sneasler"
+  },
+  {
+   "id": "swsh11-124",
+   "name": "Radiant Steelix",
+   "number": "124",
+   "rarity": "Radiant Rare",
+   "sprite": "steelix"
+  }
+ ],
+ "ultra": [
+  {
+   "id": "swsh11-172",
+   "name": "Hisuian Electrode V",
+   "number": "172",
+   "rarity": "Rare Ultra",
+   "sprite": "electrode-hisui"
+  },
+  {
+   "id": "swsh11-173",
+   "name": "Delphox V",
+   "number": "173",
+   "rarity": "Rare Ultra",
+   "sprite": "delphox"
+  },
+  {
+   "id": "swsh11-174",
+   "name": "Kyurem V",
+   "number": "174",
+   "rarity": "Rare Ultra",
+   "sprite": "kyurem"
+  },
+  {
+   "id": "swsh11-175",
+   "name": "Magnezone V",
+   "number": "175",
+   "rarity": "Rare Ultra",
+   "sprite": "magnezone"
+  },
+  {
+   "id": "swsh11-176",
+   "name": "Rotom V",
+   "number": "176",
+   "rarity": "Rare Ultra",
+   "sprite": "rotom"
+  },
+  {
+   "id": "swsh11-177",
+   "name": "Rotom V",
+   "number": "177",
+   "rarity": "Rare Ultra",
+   "sprite": "rotom",
+   "note": "alt-art painting (Umbreon 215 treatment)"
+  },
+  {
+   "id": "swsh11-178",
+   "name": "Enamorus V",
+   "number": "178",
+   "rarity": "Rare Ultra",
+   "sprite": "enamorus"
+  },
+  {
+   "id": "swsh11-179",
+   "name": "Aerodactyl V",
+   "number": "179",
+   "rarity": "Rare Ultra",
+   "sprite": "aerodactyl"
+  },
+  {
+   "id": "swsh11-180",
+   "name": "Aerodactyl V",
+   "number": "180",
+   "rarity": "Rare Ultra",
+   "sprite": "aerodactyl",
+   "note": "alt-art painting"
+  },
+  {
+   "id": "swsh11-181",
+   "name": "Gallade V",
+   "number": "181",
+   "rarity": "Rare Ultra",
+   "sprite": "gallade"
+  },
+  {
+   "id": "swsh11-182",
+   "name": "Drapion V",
+   "number": "182",
+   "rarity": "Rare Ultra",
+   "sprite": "drapion"
+  },
+  {
+   "id": "swsh11-183",
+   "name": "Galarian Perrserker V",
+   "number": "183",
+   "rarity": "Rare Ultra",
+   "sprite": "perrserker"
+  },
+  {
+   "id": "swsh11-184",
+   "name": "Galarian Perrserker V",
+   "number": "184",
+   "rarity": "Rare Ultra",
+   "sprite": "perrserker",
+   "note": "alt-art painting"
+  },
+  {
+   "id": "swsh11-187",
+   "name": "Hisuian Goodra V",
+   "number": "187",
+   "rarity": "Rare Ultra",
+   "sprite": "goodra-hisui"
+  },
+  {
+   "id": "swsh11-188",
+   "name": "Pidgeot V",
+   "number": "188",
+   "rarity": "Rare Ultra",
+   "sprite": "pidgeot"
+  }
+ ],
+ "rainbow": [
+  {
+   "id": "swsh11-197",
+   "name": "Kyurem VMAX",
+   "number": "197",
+   "rarity": "Rare Rainbow",
+   "sprite": "kyurem"
+  },
+  {
+   "id": "swsh11-198",
+   "name": "Magnezone VSTAR",
+   "number": "198",
+   "rarity": "Rare Rainbow",
+   "sprite": "magnezone"
+  },
+  {
+   "id": "swsh11-199",
+   "name": "Aerodactyl VSTAR",
+   "number": "199",
+   "rarity": "Rare Rainbow",
+   "sprite": "aerodactyl"
+  },
+  {
+   "id": "swsh11-200",
+   "name": "Drapion VSTAR",
+   "number": "200",
+   "rarity": "Rare Rainbow",
+   "sprite": "drapion"
+  },
+  {
+   "id": "swsh11-202",
+   "name": "Hisuian Goodra VSTAR",
+   "number": "202",
+   "rarity": "Rare Rainbow",
+   "sprite": "goodra-hisui"
+  },
+  {
+   "id": "swsh11-203",
+   "name": "Hisuian Zoroark VSTAR",
+   "number": "203",
+   "rarity": "Rare Rainbow",
+   "sprite": "zoroark-hisui"
+  }
+ ],
+ "secret": [
+  {
+   "id": "swsh11-213",
+   "name": "Hisuian Zoroark VSTAR",
+   "number": "213",
+   "rarity": "Rare Secret",
+   "sprite": "zoroark-hisui"
+  },
+  {
+   "id": "swsh11tg-TG29",
+   "name": "Pikachu VMAX",
+   "number": "TG29",
+   "rarity": "Rare Secret",
+   "sprite": "pikachu-gmax"
+  }
+ ],
+ "tg": [
+  {
+   "id": "swsh11tg-TG01",
+   "name": "Parasect",
+   "number": "TG01",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "parasect"
+  },
+  {
+   "id": "swsh11tg-TG02",
+   "name": "Roserade",
+   "number": "TG02",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "roserade"
+  },
+  {
+   "id": "swsh11tg-TG04",
+   "name": "Chandelure",
+   "number": "TG04",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "chandelure"
+  },
+  {
+   "id": "swsh11tg-TG05",
+   "name": "Pikachu",
+   "number": "TG05",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "pikachu"
+  },
+  {
+   "id": "swsh11tg-TG06",
+   "name": "Gengar",
+   "number": "TG06",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "gengar"
+  },
+  {
+   "id": "swsh11tg-TG07",
+   "name": "Banette",
+   "number": "TG07",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "banette"
+  },
+  {
+   "id": "swsh11tg-TG08",
+   "name": "Hisuian Arcanine",
+   "number": "TG08",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "arcanine-hisui"
+  },
+  {
+   "id": "swsh11tg-TG09",
+   "name": "Spiritomb",
+   "number": "TG09",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "spiritomb"
+  },
+  {
+   "id": "swsh11tg-TG10",
+   "name": "Snorlax",
+   "number": "TG10",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "snorlax"
+  },
+  {
+   "id": "swsh11tg-TG11",
+   "name": "Castform",
+   "number": "TG11",
+   "rarity": "Trainer Gallery Rare Holo",
+   "sprite": "castform"
+  }
+ ],
+ "tg_v": [
+  {
+   "id": "swsh11tg-TG12",
+   "name": "Orbeetle V",
+   "number": "TG12",
+   "rarity": "Rare Holo V",
+   "sprite": "orbeetle"
+  },
+  {
+   "id": "swsh11tg-TG13",
+   "name": "Orbeetle VMAX",
+   "number": "TG13",
+   "rarity": "Rare Holo VMAX",
+   "sprite": "orbeetle-gmax"
+  },
+  {
+   "id": "swsh11tg-TG14",
+   "name": "Centiskorch V",
+   "number": "TG14",
+   "rarity": "Rare Holo V",
+   "sprite": "centiskorch"
+  },
+  {
+   "id": "swsh11tg-TG15",
+   "name": "Centiskorch VMAX",
+   "number": "TG15",
+   "rarity": "Rare Holo VMAX",
+   "sprite": "centiskorch-gmax"
+  },
+  {
+   "id": "swsh11tg-TG18",
+   "name": "Enamorus V",
+   "number": "TG18",
+   "rarity": "Rare Holo V",
+   "sprite": "enamorus"
+  },
+  {
+   "id": "swsh11tg-TG19",
+   "name": "Gallade V",
+   "number": "TG19",
+   "rarity": "Rare Holo V",
+   "sprite": "gallade"
+  },
+  {
+   "id": "swsh11tg-TG20",
+   "name": "Crobat V",
+   "number": "TG20",
+   "rarity": "Rare Holo V",
+   "sprite": "crobat"
+  },
+  {
+   "id": "swsh11tg-TG21",
+   "name": "Eternatus V",
+   "number": "TG21",
+   "rarity": "Rare Holo V",
+   "sprite": "eternatus"
+  }
+ ],
+ "commons_a": [
+  {
+   "id": "swsh11-1",
+   "name": "Oddish",
+   "number": "1",
+   "rarity": "Common",
+   "sprite": "oddish"
+  },
+  {
+   "id": "swsh11-4",
+   "name": "Paras",
+   "number": "4",
+   "rarity": "Common",
+   "sprite": "paras"
+  },
+  {
+   "id": "swsh11-6",
+   "name": "Wurmple",
+   "number": "6",
+   "rarity": "Common",
+   "sprite": "wurmple"
+  },
+  {
+   "id": "swsh11-11",
+   "name": "Seedot",
+   "number": "11",
+   "rarity": "Common",
+   "sprite": "seedot"
+  },
+  {
+   "id": "swsh11-14",
+   "name": "Roselia",
+   "number": "14",
+   "rarity": "Common",
+   "sprite": "roselia"
+  },
+  {
+   "id": "swsh11-16",
+   "name": "Phantump",
+   "number": "16",
+   "rarity": "Common",
+   "sprite": "phantump"
+  },
+  {
+   "id": "swsh11-18",
+   "name": "Blipbug",
+   "number": "18",
+   "rarity": "Common",
+   "sprite": "blipbug"
+  },
+  {
+   "id": "swsh11-21",
+   "name": "Slugma",
+   "number": "21",
+   "rarity": "Common",
+   "sprite": "slugma"
+  },
+  {
+   "id": "swsh11-24",
+   "name": "Litwick",
+   "number": "24",
+   "rarity": "Common",
+   "sprite": "litwick"
+  },
+  {
+   "id": "swsh11-28",
+   "name": "Litleo",
+   "number": "28",
+   "rarity": "Common",
+   "sprite": "litleo"
+  },
+  {
+   "id": "swsh11-30",
+   "name": "Poliwag",
+   "number": "30",
+   "rarity": "Common",
+   "sprite": "poliwag"
+  },
+  {
+   "id": "swsh11-33",
+   "name": "Seel",
+   "number": "33",
+   "rarity": "Common",
+   "sprite": "seel"
+  },
+  {
+   "id": "swsh11-35",
+   "name": "Horsea",
+   "number": "35",
+   "rarity": "Common",
+   "sprite": "horsea"
+  },
+  {
+   "id": "swsh11-38",
+   "name": "Luvdisc",
+   "number": "38",
+   "rarity": "Common",
+   "sprite": "luvdisc"
+  },
+  {
+   "id": "swsh11-39",
+   "name": "Shellos",
+   "number": "39",
+   "rarity": "Common",
+   "sprite": "shellos-east",
+   "note": "the card shows two Shellos, East (blue, left) and West (pink): the sprite takes the East one"
+  },
+  {
+   "id": "swsh11-40",
+   "name": "Finneon",
+   "number": "40",
+   "rarity": "Common",
+   "sprite": "finneon"
+  },
+  {
+   "id": "swsh11-42",
+   "name": "Snover",
+   "number": "42",
+   "rarity": "Common",
+   "sprite": "snover"
+  },
+  {
+   "id": "swsh11-44",
+   "name": "Hisuian Basculin",
+   "number": "44",
+   "rarity": "Common",
+   "sprite": "basculin-white-striped"
+  },
+  {
+   "id": "swsh11-46",
+   "name": "Ducklett",
+   "number": "46",
+   "rarity": "Common",
+   "sprite": "ducklett"
+  },
+  {
+   "id": "swsh11-54",
+   "name": "Electrike",
+   "number": "54",
+   "rarity": "Common",
+   "sprite": "electrike"
+  },
+  {
+   "id": "swsh11-59",
+   "name": "Tynamo",
+   "number": "59",
+   "rarity": "Common",
+   "sprite": "tynamo"
+  },
+  {
+   "id": "swsh11-62",
+   "name": "Clefairy",
+   "number": "62",
+   "rarity": "Common",
+   "sprite": "clefairy"
+  },
+  {
+   "id": "swsh11-64",
+   "name": "Gastly",
+   "number": "64",
+   "rarity": "Common",
+   "sprite": "gastly"
+  },
+  {
+   "id": "swsh11-68",
+   "name": "Jynx",
+   "number": "68",
+   "rarity": "Common",
+   "sprite": "jynx"
+  }
+ ],
+ "commons_b": [
+  {
+   "id": "swsh11-71",
+   "name": "Mawile",
+   "number": "71",
+   "rarity": "Common",
+   "sprite": "mawile"
+  },
+  {
+   "id": "swsh11-72",
+   "name": "Shuppet",
+   "number": "72",
+   "rarity": "Common",
+   "sprite": "shuppet"
+  },
+  {
+   "id": "swsh11-75",
+   "name": "Hisuian Zorua",
+   "number": "75",
+   "rarity": "Common",
+   "sprite": "zorua-hisui"
+  },
+  {
+   "id": "swsh11-77",
+   "name": "Inkay",
+   "number": "77",
+   "rarity": "Common",
+   "sprite": "inkay"
+  },
+  {
+   "id": "swsh11-83",
+   "name": "Hisuian Growlithe",
+   "number": "83",
+   "rarity": "Common",
+   "sprite": "growlithe-hisui"
+  },
+  {
+   "id": "swsh11-86",
+   "name": "Machop",
+   "number": "86",
+   "rarity": "Common",
+   "sprite": "machop"
+  },
+  {
+   "id": "swsh11-89",
+   "name": "Rhyhorn",
+   "number": "89",
+   "rarity": "Common",
+   "sprite": "rhyhorn"
+  },
+  {
+   "id": "swsh11-94",
+   "name": "Sudowoodo",
+   "number": "94",
+   "rarity": "Common",
+   "sprite": "sudowoodo"
+  },
+  {
+   "id": "swsh11-95",
+   "name": "Gligar",
+   "number": "95",
+   "rarity": "Common",
+   "sprite": "gligar"
+  },
+  {
+   "id": "swsh11-97",
+   "name": "Makuhita",
+   "number": "97",
+   "rarity": "Common",
+   "sprite": "makuhita"
+  },
+  {
+   "id": "swsh11-99",
+   "name": "Meditite",
+   "number": "99",
+   "rarity": "Common",
+   "sprite": "meditite"
+  },
+  {
+   "id": "swsh11-103",
+   "name": "Mienfoo",
+   "number": "103",
+   "rarity": "Common",
+   "sprite": "mienfoo"
+  },
+  {
+   "id": "swsh11-106",
+   "name": "Binacle",
+   "number": "106",
+   "rarity": "Common",
+   "sprite": "binacle"
+  },
+  {
+   "id": "swsh11-109",
+   "name": "Rockruff",
+   "number": "109",
+   "rarity": "Common",
+   "sprite": "rockruff"
+  },
+  {
+   "id": "swsh11-110",
+   "name": "Falinks",
+   "number": "110",
+   "rarity": "Common",
+   "sprite": "falinks"
+  },
+  {
+   "id": "swsh11-112",
+   "name": "Spinarak",
+   "number": "112",
+   "rarity": "Common",
+   "sprite": "spinarak"
+  },
+  {
+   "id": "swsh11-114",
+   "name": "Murkrow",
+   "number": "114",
+   "rarity": "Common",
+   "sprite": "murkrow"
+  },
+  {
+   "id": "swsh11-121",
+   "name": "Inkay",
+   "number": "121",
+   "rarity": "Common",
+   "sprite": "inkay"
+  },
+  {
+   "id": "swsh11-125",
+   "name": "Bronzor",
+   "number": "125",
+   "rarity": "Common",
+   "sprite": "bronzor"
+  },
+  {
+   "id": "swsh11-132",
+   "name": "Goomy",
+   "number": "132",
+   "rarity": "Common",
+   "sprite": "goomy"
+  },
+  {
+   "id": "swsh11-138",
+   "name": "Lickitung",
+   "number": "138",
+   "rarity": "Common",
+   "sprite": "lickitung"
+  },
+  {
+   "id": "swsh11-140",
+   "name": "Porygon",
+   "number": "140",
+   "rarity": "Common",
+   "sprite": "porygon"
+  },
+  {
+   "id": "swsh11-144",
+   "name": "Aipom",
+   "number": "144",
+   "rarity": "Common",
+   "sprite": "aipom"
+  },
+  {
+   "id": "swsh11-150",
+   "name": "Skwovet",
+   "number": "150",
+   "rarity": "Common",
+   "sprite": "skwovet"
+  }
+ ],
+ "uncommon_a": [
+  {
+   "id": "swsh11-7",
+   "name": "Silcoon",
+   "number": "7",
+   "rarity": "Uncommon",
+   "sprite": "silcoon"
+  },
+  {
+   "id": "swsh11-9",
+   "name": "Cascoon",
+   "number": "9",
+   "rarity": "Uncommon",
+   "sprite": "cascoon"
+  },
+  {
+   "id": "swsh11-12",
+   "name": "Nuzleaf",
+   "number": "12",
+   "rarity": "Uncommon",
+   "sprite": "nuzleaf"
+  },
+  {
+   "id": "swsh11-15",
+   "name": "Roserade",
+   "number": "15",
+   "rarity": "Uncommon",
+   "sprite": "roserade"
+  },
+  {
+   "id": "swsh11-19",
+   "name": "Dottler",
+   "number": "19",
+   "rarity": "Uncommon",
+   "sprite": "dottler"
+  },
+  {
+   "id": "swsh11-23",
+   "name": "Torkoal",
+   "number": "23",
+   "rarity": "Uncommon",
+   "sprite": "torkoal"
+  },
+  {
+   "id": "swsh11-25",
+   "name": "Lampent",
+   "number": "25",
+   "rarity": "Uncommon",
+   "sprite": "lampent"
+  },
+  {
+   "id": "swsh11-31",
+   "name": "Poliwhirl",
+   "number": "31",
+   "rarity": "Uncommon",
+   "sprite": "poliwhirl"
+  },
+  {
+   "id": "swsh11-36",
+   "name": "Seadra",
+   "number": "36",
+   "rarity": "Uncommon",
+   "sprite": "seadra"
+  },
+  {
+   "id": "swsh11-41",
+   "name": "Lumineon",
+   "number": "41",
+   "rarity": "Uncommon",
+   "sprite": "lumineon"
+  },
+  {
+   "id": "swsh11-43",
+   "name": "Abomasnow",
+   "number": "43",
+   "rarity": "Uncommon",
+   "sprite": "abomasnow"
+  },
+  {
+   "id": "swsh11-47",
+   "name": "Swanna",
+   "number": "47",
+   "rarity": "Uncommon",
+   "sprite": "swanna"
+  },
+  {
+   "id": "swsh11-60",
+   "name": "Eelektrik",
+   "number": "60",
+   "rarity": "Uncommon",
+   "sprite": "eelektrik"
+  },
+  {
+   "id": "swsh11-65",
+   "name": "Haunter",
+   "number": "65",
+   "rarity": "Uncommon",
+   "sprite": "haunter"
+  },
+  {
+   "id": "swsh11-87",
+   "name": "Machoke",
+   "number": "87",
+   "rarity": "Uncommon",
+   "sprite": "machoke"
+  }
+ ],
+ "uncommon_b": [
+  {
+   "id": "swsh11-90",
+   "name": "Rhydon",
+   "number": "90",
+   "rarity": "Uncommon",
+   "sprite": "rhydon"
+  },
+  {
+   "id": "swsh11-98",
+   "name": "Hariyama",
+   "number": "98",
+   "rarity": "Uncommon",
+   "sprite": "hariyama"
+  },
+  {
+   "id": "swsh11-100",
+   "name": "Medicham",
+   "number": "100",
+   "rarity": "Uncommon",
+   "sprite": "medicham"
+  },
+  {
+   "id": "swsh11-101",
+   "name": "Relicanth",
+   "number": "101",
+   "rarity": "Uncommon",
+   "sprite": "relicanth"
+  },
+  {
+   "id": "swsh11-102",
+   "name": "Gastrodon",
+   "number": "102",
+   "rarity": "Uncommon",
+   "sprite": "gastrodon",
+   "note": "the card shows both Gastrodon forms, West (brown, left) and East (green): the sprite takes the West one (vendor gastrodon)"
+  },
+  {
+   "id": "swsh11-104",
+   "name": "Mienshao",
+   "number": "104",
+   "rarity": "Uncommon",
+   "sprite": "mienshao"
+  },
+  {
+   "id": "swsh11-108",
+   "name": "Carbink",
+   "number": "108",
+   "rarity": "Uncommon",
+   "sprite": "carbink"
+  },
+  {
+   "id": "swsh11-116",
+   "name": "Seviper",
+   "number": "116",
+   "rarity": "Uncommon",
+   "sprite": "seviper"
+  },
+  {
+   "id": "swsh11-126",
+   "name": "Bronzong",
+   "number": "126",
+   "rarity": "Uncommon",
+   "sprite": "bronzong"
+  },
+  {
+   "id": "swsh11-127",
+   "name": "Galarian Stunfisk",
+   "number": "127",
+   "rarity": "Uncommon",
+   "sprite": "stunfisk-galar"
+  },
+  {
+   "id": "swsh11-133",
+   "name": "Hisuian Sliggoo",
+   "number": "133",
+   "rarity": "Uncommon",
+   "sprite": "sliggoo-hisui"
+  },
+  {
+   "id": "swsh11-139",
+   "name": "Lickilicky",
+   "number": "139",
+   "rarity": "Uncommon",
+   "sprite": "lickilicky"
+  },
+  {
+   "id": "swsh11-141",
+   "name": "Porygon2",
+   "number": "141",
+   "rarity": "Uncommon",
+   "sprite": "porygon2"
+  },
+  {
+   "id": "swsh11-145",
+   "name": "Ambipom",
+   "number": "145",
+   "rarity": "Uncommon",
+   "sprite": "ambipom"
+  },
+  {
+   "id": "swsh11-149",
+   "name": "Komala",
+   "number": "149",
+   "rarity": "Uncommon",
+   "sprite": "komala"
+  }
+ ],
+ "rare_a": [
+  {
+   "id": "swsh11-5",
+   "name": "Parasect",
+   "number": "5",
+   "rarity": "Rare",
+   "sprite": "parasect"
+  },
+  {
+   "id": "swsh11-10",
+   "name": "Dustox",
+   "number": "10",
+   "rarity": "Rare",
+   "sprite": "dustox"
+  },
+  {
+   "id": "swsh11-22",
+   "name": "Magcargo",
+   "number": "22",
+   "rarity": "Rare",
+   "sprite": "magcargo"
+  },
+  {
+   "id": "swsh11-32",
+   "name": "Politoed",
+   "number": "32",
+   "rarity": "Rare",
+   "sprite": "politoed"
+  },
+  {
+   "id": "swsh11-34",
+   "name": "Dewgong",
+   "number": "34",
+   "rarity": "Rare",
+   "sprite": "dewgong"
+  },
+  {
+   "id": "swsh11-50",
+   "name": "Cramorant",
+   "number": "50",
+   "rarity": "Rare",
+   "sprite": "cramorant"
+  },
+  {
+   "id": "swsh11-55",
+   "name": "Manectric",
+   "number": "55",
+   "rarity": "Rare",
+   "sprite": "manectric"
+  },
+  {
+   "id": "swsh11-61",
+   "name": "Eelektross",
+   "number": "61",
+   "rarity": "Rare",
+   "sprite": "eelektross"
+  },
+  {
+   "id": "swsh11-63",
+   "name": "Clefable",
+   "number": "63",
+   "rarity": "Rare",
+   "sprite": "clefable"
+  },
+  {
+   "id": "swsh11-67",
+   "name": "Mr. Mime",
+   "number": "67",
+   "rarity": "Rare",
+   "sprite": "mr-mime"
+  },
+  {
+   "id": "swsh11-73",
+   "name": "Banette",
+   "number": "73",
+   "rarity": "Rare",
+   "sprite": "banette"
+  },
+  {
+   "id": "swsh11-78",
+   "name": "Malamar",
+   "number": "78",
+   "rarity": "Rare",
+   "sprite": "malamar"
+  },
+  {
+   "id": "swsh11-79",
+   "name": "Comfey",
+   "number": "79",
+   "rarity": "Rare",
+   "sprite": "comfey"
+  },
+  {
+   "id": "swsh11-80",
+   "name": "Mimikyu",
+   "number": "80",
+   "rarity": "Rare",
+   "sprite": "mimikyu"
+  }
+ ],
+ "rare_b": [
+  {
+   "id": "swsh11-85",
+   "name": "Poliwrath",
+   "number": "85",
+   "rarity": "Rare",
+   "sprite": "poliwrath"
+  },
+  {
+   "id": "swsh11-91",
+   "name": "Rhyperior",
+   "number": "91",
+   "rarity": "Rare",
+   "sprite": "rhyperior"
+  },
+  {
+   "id": "swsh11-96",
+   "name": "Gliscor",
+   "number": "96",
+   "rarity": "Rare",
+   "sprite": "gliscor"
+  },
+  {
+   "id": "swsh11-105",
+   "name": "Landorus",
+   "number": "105",
+   "rarity": "Rare",
+   "sprite": "landorus"
+  },
+  {
+   "id": "swsh11-111",
+   "name": "Stonjourner",
+   "number": "111",
+   "rarity": "Rare",
+   "sprite": "stonjourner"
+  },
+  {
+   "id": "swsh11-113",
+   "name": "Ariados",
+   "number": "113",
+   "rarity": "Rare",
+   "sprite": "ariados"
+  },
+  {
+   "id": "swsh11-115",
+   "name": "Honchkrow",
+   "number": "115",
+   "rarity": "Rare",
+   "sprite": "honchkrow"
+  },
+  {
+   "id": "swsh11-117",
+   "name": "Spiritomb",
+   "number": "117",
+   "rarity": "Rare",
+   "sprite": "spiritomb"
+  },
+  {
+   "id": "swsh11-122",
+   "name": "Hoopa",
+   "number": "122",
+   "rarity": "Rare",
+   "sprite": "hoopa-unbound"
+  },
+  {
+   "id": "swsh11-128",
+   "name": "Magearna",
+   "number": "128",
+   "rarity": "Rare",
+   "sprite": "magearna"
+  },
+  {
+   "id": "swsh11-142",
+   "name": "Porygon-Z",
+   "number": "142",
+   "rarity": "Rare",
+   "sprite": "porygon-z"
+  },
+  {
+   "id": "swsh11-148",
+   "name": "Bouffalant",
+   "number": "148",
+   "rarity": "Rare",
+   "sprite": "bouffalant"
+  },
+  {
+   "id": "swsh11-151",
+   "name": "Greedent",
+   "number": "151",
+   "rarity": "Rare",
+   "sprite": "greedent"
+  }
+ ],
+ "_skipped": [
+  {
+   "id": "swsh11-152",
+   "name": "Arc Phone",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-153",
+   "name": "Arezu",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-154",
+   "name": "Box of Disaster",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-155",
+   "name": "Colress's Experiment",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-156",
+   "name": "Damage Pump",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-157",
+   "name": "Fantina",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-158",
+   "name": "Iscan",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-159",
+   "name": "Lady",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-160",
+   "name": "Lake Acuity",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-161",
+   "name": "Lost City",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-162",
+   "name": "Lost Vacuum",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-163",
+   "name": "Mirage Gate",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-164",
+   "name": "Miss Fortune Sisters",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-165",
+   "name": "Panic Mask",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-166",
+   "name": "Riley",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-167",
+   "name": "Thorton",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-168",
+   "name": "Tool Box",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-169",
+   "name": "Volo",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-170",
+   "name": "Windup Arm",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-171",
+   "name": "Gift Energy",
+   "reason": "Energy (no Pokemon)"
+  },
+  {
+   "id": "swsh11-189",
+   "name": "Arezu",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-190",
+   "name": "Colress's Experiment",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-191",
+   "name": "Fantina",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-192",
+   "name": "Iscan",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-193",
+   "name": "Lady",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-194",
+   "name": "Miss Fortune Sisters",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-195",
+   "name": "Thorton",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-196",
+   "name": "Volo",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-204",
+   "name": "Arezu",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-205",
+   "name": "Colress's Experiment",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-206",
+   "name": "Fantina",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-207",
+   "name": "Iscan",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-208",
+   "name": "Lady",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-209",
+   "name": "Miss Fortune Sisters",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-210",
+   "name": "Thorton",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-211",
+   "name": "Volo",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-214",
+   "name": "Box of Disaster",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-215",
+   "name": "Collapsed Stadium",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-216",
+   "name": "Dark Patch",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11-217",
+   "name": "Lost Vacuum",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG22",
+   "name": "Eternatus VMAX",
+   "reason": "Eternatus VMAX is Eternamax on the card: the eternatus-eternamax sprite is 56 sprite rows = 112 grid px, over the 110 grid-px cap, and it can only be served pixel-exact; the plain eternatus sprite would be the wrong form"
+  },
+  {
+   "id": "swsh11tg-TG23",
+   "name": "Adventurer's Discovery",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG24",
+   "name": "Boss's Orders",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG25",
+   "name": "Cook",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG26",
+   "name": "Kabu",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG27",
+   "name": "Nessa",
+   "reason": "Trainer (no Pokemon)"
+  },
+  {
+   "id": "swsh11tg-TG28",
+   "name": "Opal",
+   "reason": "Trainer (no Pokemon)"
+  }
+ ],
+ "_ladder_done": [
+  "swsh11-130",
+  "swsh11-131",
+  "swsh11-185",
+  "swsh11-186",
+  "swsh11-2",
+  "swsh11-201",
+  "swsh11-212",
+  "swsh11-49",
+  "swsh11-52",
+  "swsh11-53",
+  "swsh11-66",
+  "swsh11-69",
+  "swsh11tg-TG03",
+  "swsh11tg-TG16",
+  "swsh11tg-TG17",
+  "swsh11tg-TG30"
+ ]
+}

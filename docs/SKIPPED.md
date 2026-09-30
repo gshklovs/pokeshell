@@ -12,8 +12,10 @@ they're counted per set and listed at the bottom of each set; Pokémon cards are
 | Hidden Fates + Shiny Vault | 163 | 133 | 3 | 27 |
 | Base Set | 102 | 69 | 0 | 33 |
 | Brilliant Stars + Trainer Gallery | 216 | 175 | 1 | 40 |
+| Neo Genesis | 111 | 81 | 0 | 30 |
+| Lost Origin + Trainer Gallery | 247 | 200 | 1 | 46 |
 
-In all: 13 Pokémon cards and 194 Trainer / Energy cards skipped.
+In all: 14 Pokémon cards and 270 Trainer / Energy cards skipped.
 
 ## Evolving Skies (swsh7)
 
@@ -66,3 +68,17 @@ Trainer and Energy (33): Clefairy Doll 70, Computer Search 71, Devolution Spray 
 | Rapid Strike Urshifu V | swsh9tg-TG20 | Rare Holo V | no dotfiles sprite for Rapid Strike Urshifu (only its Gigantamax form), and the Single Strike sprite would be the wrong form |
 
 Trainer and Energy (40): Acerola's Premonition 129, Barry 130, Blunder Policy 131, Boss's Orders 132, Café Master 133, Cheren's Care 134, Choice Belt 135, Cleansing Gloves 136, Collapsed Stadium 137, Cynthia's Ambition 138, Fresh Water Set 139, Friends in Galar 140, Gloria 141, Hunting Gloves 142, Kindler 143, Magma Basin 144, Marnie's Pride 145, Pot Helmet 146, Professor's Research 147, Roseanne's Backup 148, Team Yell's Cheer 149, Ultra Ball 150, Barry 167, Cheren's Care 168, Cynthia's Ambition 169, Kindler 170, Marnie's Pride 171, Roseanne's Backup 172, Cheren's Care 177, Cynthia's Ambition 178, Kindler 179, Roseanne's Backup 180, Magma Basin 185, Ultra Ball 186, Acerola's Premonition TG24, Café Master TG25, Gloria TG26, Rapid Strike Style Mustard TG27, Single Strike Style Mustard TG28, Double Turbo Energy 151.
+
+## Neo Genesis (neo1)
+
+Every Pokémon card is served.
+
+Trainer and Energy (30): Arcade Game 83, Ecogym 84, Energy Charge 85, Focus Band 86, Mary 87, PokéGear 88, Super Energy Retrieval 89, Time Capsule 90, Bill's Teleporter 91, Card-Flip Game 92, Gold Berry 93, Miracle Berry 94, New Pokédex 95, Professor Elm 96, Sprout Tower 97, Super Scoop Up 98, Berry 99, Double Gust 100, Moo-Moo Milk 101, Pokémon March 102, Super Rod 103, Metal Energy 19, Darkness Energy 104, Recycle Energy 105, Fighting Energy 106, Fire Energy 107, Grass Energy 108, Lightning Energy 109, Psychic Energy 110, Water Energy 111.
+
+## Lost Origin + Trainer Gallery (swsh11, swsh11tg)
+
+| Card | Number | Rarity | Why |
+|---|---|---|---|
+| Eternatus VMAX | swsh11tg-TG22 | Rare Holo VMAX | the card is Eternamax Eternatus: its dotfiles sprite is 56 rows (112 grid px), over the 110 cap, and the plain Eternatus sprite would be the wrong form |
+
+Trainer and Energy (46): Arc Phone 152, Arezu 153, Box of Disaster 154, Colress's Experiment 155, Damage Pump 156, Fantina 157, Iscan 158, Lady 159, Lake Acuity 160, Lost City 161, Lost Vacuum 162, Mirage Gate 163, Miss Fortune Sisters 164, Panic Mask 165, Riley 166, Thorton 167, Tool Box 168, Volo 169, Windup Arm 170, Arezu 189, Colress's Experiment 190, Fantina 191, Iscan 192, Lady 193, Miss Fortune Sisters 194, Thorton 195, Volo 196, Arezu 204, Colress's Experiment 205, Fantina 206, Iscan 207, Lady 208, Miss Fortune Sisters 209, Thorton 210, Volo 211, Box of Disaster 214, Collapsed Stadium 215, Dark Patch 216, Lost Vacuum 217, Adventurer's Discovery TG23, Boss's Orders TG24, Cook TG25, Kabu TG26, Nessa TG27, Opal TG28, Gift Energy 171.
