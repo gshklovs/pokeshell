@@ -262,7 +262,16 @@ is a plain `binder ⏎` (type it: the text binder). In the app: arrows / `hjkl` 
 `1`-`9` switch packs, `S` opens the set picker (each set's completion; type to filter, Enter opens that set's whole
 checklist, with empty pockets for the cards you haven't pulled), `#17` jumps to a printed number, `/` searches, `o` /
 `m` show only the cards you caught / haven't caught, `v` shows a caught card's text half (HP, attacks, weakness) under the art when
-`packs/<pack>/cards/<card id>.json` exists (cards you haven't caught keep it hidden until you catch them), `d` toggles one-slot-per-character, `?` lists the rest.
+`packs/<pack>/cards/<card id>.json` exists (cards you haven't caught keep it hidden until you catch them), `p` shows
+the real printed card beside ours (caught cards only, like `v`), `d` toggles one-slot-per-character, `?` lists the rest.
+
+**The printed card** (`p`, in the app and on the web page): pokemontcg.io's scan of the card, as tall as ours and
+beside it (our card shrinks a little to make room; in a narrow pane the printed card takes its place). Scans are not
+part of pokeshell or its art release: the app downloads one the first time you look at it (in the background, so it
+never holds up the binder) and keeps it in `%LOCALAPPDATA%\pokeshell\cache\realcards`; the web page links it and your
+browser loads it. Offline, or a card with no scan online, shows a short note instead. In Windows Terminal 1.22+ the app
+draws it as a sixel image (a crisp picture); elsewhere in half blocks, like our art. It asks the terminal (DA1) the
+first time; `POKESHELL_SIXEL=off` (or `sixel=off` in `config.txt`) forces half blocks, `on` forces sixel.
 
 **Tags and search** (the app and the web page): every card is tagged with its set (id and name), printed rarity and
 tier, subtypes (V, VMAX...), types (Grass, Water...), character, artist and pack, plus `caught`, `seen`, `missing`,

@@ -68,6 +68,11 @@ pub struct Hits {
     /// the help overlay and how many rows it can scroll
     pub help: Rect,
     pub help_more: usize,
+    /// the printed card (p): its rect, whether it is shown in ours' place (nothing of ours to animate), and the
+    /// sixel image to write over it after the frame (its rect and URL)
+    pub real: Rect,
+    pub real_swap: bool,
+    pub sixel: Option<(Rect, String)>,
 }
 
 /// Where the binder opens: the last card you caught (default; never a seen one), a pull id (--pull, the card's link)
@@ -257,6 +262,9 @@ pub struct App {
     pub text_scroll: usize,
     text_for: Option<SlotKey>,
     text_cache: HashMap<PathBuf, Option<Rc<Value>>>,
+    /// `p`: the printed card (the real scan, real.rs) beside ours, caught cards only; like `v`, it stays on as you move
+    pub show_real: bool,
+    pub real: crate::real::RealCards,
     viewed: HashSet<String>,
     /// the slot whose NEW pulls were last shown in the card panel (they lose the sticker once you move on), and those
     /// pulls' ids (a reload keeps their sticker until then)
@@ -282,6 +290,7 @@ impl App {
         let coll = Collection::build(pulls, packs);
         let views = coll.packs.iter().map(|p| if p.is_big() { View::Dex } else { View::Set }).collect();
         let n = coll.packs.len();
+        let real = Self::real_cards(&opts);
         let mut app = App {
             log_mtime: mtime(&opts.log),
             opts,
@@ -324,6 +333,8 @@ impl App {
             text_scroll: 0,
             text_for: None,
             text_cache: HashMap::new(),
+            show_real: false,
+            real,
             viewed,
             seen_slot: None,
             sticky: HashSet::new(),
@@ -443,6 +454,25 @@ impl App {
         let newest = self.coll.slot_pulls(k).last().copied();
         self.jump_to(k, newest);
         true
+    }
+
+    /// The printed cards' store: scans cached under <state>/cache/realcards, fetched only by an interactive binder
+    /// (headless runs never touch the network); sixel or half blocks per POKESHELL_SIXEL / config.txt `sixel`.
+    fn real_cards(opts: &Opts) -> crate::real::RealCards {
+        use crate::real;
+        let state = opts.log.parent().map(|d| d.to_path_buf()).unwrap_or_default();
+        let env = std::env::var("POKESHELL_SIXEL").ok();
+        let setting = real::setting(env.as_deref(), crate::data::read_config(&state, "sixel").as_deref());
+        let cell = real::cell_px(std::env::var("POKESHELL_CELL_PX").ok().as_deref());
+        real::RealCards::new(state.join("cache").join("realcards"), !opts.readonly, setting, cell)
+    }
+
+    /// The printed card's scan URLs (hires, small) for a slot: its card data's images.large, else pokemontcg.io's
+    /// from the card id. None for a slot without a real card.
+    pub fn real_urls(&mut self, k: SlotKey) -> Option<(String, String)> {
+        let id = self.coll.packs[k.pack].card_at(k.card)?.id.clone();
+        let large = self.card_text(k).and_then(|v| v.get("images")?.get("large")?.as_str().map(String::from));
+        crate::real::urls(&id, large.as_deref())
     }
 
     /// The card-data JSON for a slot (cached; None when the pack has no card text for it).
@@ -1318,7 +1348,7 @@ impl App {
 
     /// Should the selected card be shimmering right now (visible foil that you own)?
     pub fn animating(&mut self) -> bool {
-        if self.help || self.picker.is_some() || self.hits.card_art.width == 0 {
+        if self.help || self.picker.is_some() || self.hits.card_art.width == 0 || self.hits.real_swap {
             return false;
         }
         let Some(k) = self.selected() else { return false };
@@ -1430,6 +1460,12 @@ impl App {
             KeyCode::Char('o') => self.keeping_selection(|a| a.own = if a.own == Own::Caught { Own::All } else { Own::Caught }),
             KeyCode::Char('m') => self.keeping_selection(|a| a.own = if a.own == Own::Missing { Own::All } else { Own::Missing }),
             KeyCode::Char('v') => self.show_text = !self.show_text,
+            KeyCode::Char('p') => {
+                self.show_real = !self.show_real;
+                if self.show_real {
+                    self.real.retry(); // a scan that failed to download is tried again
+                }
+            }
             KeyCode::Char('S') => self.open_picker(),
             KeyCode::Char('d') => {
                 if self.coll.packs.is_empty() {
@@ -2284,6 +2320,81 @@ mod tests {
         }
         let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
         t.draw(|f| crate::ui::render(&mut a, f.buffer_mut())).unwrap();
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn printed_card_beside_ours_caught_only() {
+        // p: the printed card (the real scan) beside our card, as tall as it, for a caught card only; seen and empty
+        // cards show nothing extra. No network: the scan is a fixture PNG in the state folder's cache.
+        use crate::real;
+        let d = fixture_pack("printedcard");
+        seen_log(&d);
+        // a full-size art for the caught Lycanroc V (16 rows), so our card is card-sized
+        let row = format!("\x1b[38;2;90;60;30;48;2;200;120;40m{}\x1b[0m\n", "\u{2580}".repeat(24));
+        std::fs::write(d.join("dist/p/lycanroc-swsh7-91.ans"), row.repeat(16)).unwrap();
+        let cache = d.join("state/cache/realcards/swsh7");
+        std::fs::create_dir_all(&cache).unwrap();
+        std::fs::write(cache.join("91.png"), real::fixture_png(245, 342)).unwrap();
+        let draw = |a: &mut App, w: u16, h: u16| {
+            let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(w, h)).unwrap();
+            let buf = t.draw(|f| crate::ui::render(a, f.buffer_mut())).unwrap().buffer.clone();
+            (0..buf.area.height).map(|y| (0..buf.area.width).map(|x| buf[(x, y)].symbol().to_string()).collect::<String>() + "\n").collect::<String>()
+        };
+        let key = |c: char| Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
+        let mut a = app(&d, "", "", Start::Card("p/swsh7-91".into()));
+        assert_eq!(a.real.gfx(), real::Gfx::Blocks, "headless: half blocks, never a probe");
+        draw(&mut a, 160, 50);
+        assert_eq!(a.hits.real.width, 0, "off by default");
+        a.on_event(key('p'));
+        assert!(a.show_real);
+        let text = draw(&mut a, 160, 50);
+        let (ours, printed) = (a.hits.card_art, a.hits.real);
+        assert!(printed.width > 0 && !a.hits.real_swap, "beside ours at 160x50: {ours:?} {printed:?}\n{text}");
+        assert_eq!((printed.y, printed.height), (ours.y, ours.height), "as tall as our card, level with it");
+        assert_eq!(printed.x, ours.x + ours.width + real::GAP);
+        assert_eq!(printed.width, real::real_w(printed.height, (1, 2)));
+        assert!(a.hits.sixel.is_none());
+        // the scan is in the cells, as half blocks
+        let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 50)).unwrap();
+        let buf = t.draw(|f| crate::ui::render(&mut a, f.buffer_mut())).unwrap().buffer.clone();
+        let cells: Vec<&ratatui::buffer::Cell> = (printed.y..printed.y + printed.height).flat_map(|y| (printed.x..printed.x + printed.width).map(move |x| (x, y))).map(|p| &buf[p]).collect();
+        assert!(cells.iter().filter(|c| c.symbol() == "▀").count() > cells.len() * 3 / 4, "half blocks");
+        // sixel: the same place, left blank for the image written after the frame
+        a.real.gfx = Some(real::Gfx::Sixel);
+        a.real.insert("https://images.pokemontcg.io/swsh7/91_hires.png", real::fixture(367, 512));
+        draw(&mut a, 160, 50);
+        let (r, url) = a.hits.sixel.clone().expect("a sixel image to write");
+        assert_eq!(r, a.hits.real);
+        assert!(url.ends_with("/swsh7/91_hires.png"), "{url}");
+        a.help = true;
+        draw(&mut a, 160, 50);
+        assert!(a.hits.sixel.is_none(), "no image over the help overlay");
+        a.help = false;
+        // a scan that isn't there (not cached, and headless never fetches): a short message, no image
+        let mut b = app(&d, "", "", Start::Card("p/swsh7-91".into()));
+        b.real.gfx = Some(real::Gfx::Sixel);
+        b.on_event(key('p'));
+        let text = draw(&mut b, 160, 50);
+        assert!(text.contains("downloaded yet") && b.hits.sixel.is_none(), "{text}");
+        // narrow: the printed card takes our card's place (and nothing of ours animates under it)
+        a.real.gfx = Some(real::Gfx::Blocks);
+        let text = draw(&mut a, 64, 40);
+        assert!(a.hits.real_swap && a.hits.real.width > 0, "{:?}\n{text}", a.hits.real);
+        assert!(!a.animating());
+        // it stays on as you move (like v), and seen / empty cards show nothing extra
+        for (id, what) in [("me55-28", "seen"), ("swsh7-187", "empty")] {
+            assert!(a.select_card(&format!("p/{id}")));
+            let text = draw(&mut a, 160, 50);
+            assert!(a.show_real);
+            assert_eq!(a.hits.real.width, 0, "{what}: no printed card");
+            assert!(!text.contains("printed card"), "{what}: {text}");
+        }
+        // p again: off
+        assert!(a.select_card("p/swsh7-91"));
+        a.on_event(key('p'));
+        draw(&mut a, 160, 50);
+        assert!(!a.show_real && a.hits.real.width == 0);
         let _ = std::fs::remove_dir_all(&d);
     }
 }

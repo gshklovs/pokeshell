@@ -56,6 +56,7 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
   unless it has expired, then on the last card caught: a key can't know which tab it was pressed in (the new pane
   doesn't inherit that tab's `POKESHELL_PULL`), and the newest pull is almost always the tab just opened.
 - **Text half**: `v` in the app, from `packs/<pack>/cards/<card id>.json` (CARD_FORMAT); the view toggle moved to `d`.
+- **Printed card**: `p` in the app and on the web (`r` is reload): the real scan beside ours, caught cards only (below).
   Caught cards only ("Empty, seen, caught" below). `binder --card <id> --text --first-frame` renders it headless.
 
 ## Entry points (all four ship)
@@ -127,6 +128,18 @@ Every card slot is in one of three states, like a Pokédex:
   says "seen: catch it to read its text (v)", on an empty one "not caught yet: catch it to read its text (v)". On the
   web an uncaught card's text isn't even in `data.json` (`binder_web.py` leaves it out), and the page draws it for
   caught cards only as well.
+- **The printed card** (`p` in both binders, like `v` it stays on as you move; the web remembers it in the browser):
+  the real printed card, pokemontcg.io's scan (`images.large` in `packs/<pack>/cards/<id>.json`, else
+  `images.pokemontcg.io/<set>/<number>_hires.png` from the card id), beside ours and as tall as it, for **caught cards
+  only**; a seen or empty card shows nothing extra. Scans are never shipped (not in the repo, not in the art release):
+  the app downloads one the first time it is shown (curl on a background thread, 5 s to connect, 20 s at most) into
+  `<state>\cache\realcards\<set>\<file>.png`; the web page only carries the URL (`data.json` has it for caught cards
+  only) and the browser loads it. Offline or no scan: a short note in its place, never a wait. In the app our card
+  shrinks to make room (not below 12 rows); narrower than that, the printed card takes our card's place. It is drawn
+  as sixel (crisp) where the terminal does sixel, else in half blocks: `POKESHELL_SIXEL=on|off|auto`, or config.txt
+  `sixel=`, else auto: the first `p` asks the terminal (DA1, `ESC [ c`); sixel when the reply lists 4 (Windows Terminal
+  1.22+), half blocks otherwise or when no reply comes within 300 ms. Sixel sizes assume Windows Terminal's 10x20
+  virtual cell (`POKESHELL_CELL_PX=WxH` for other terminals).
 - **The web detail of an empty card** is its empty pocket, as in the app: the name, number, rarity hint and set, its
   tags and the pull odds (the app's panel shows those too), but no art and no text half. A `?card=` link to a card
   never pulled opens the same.

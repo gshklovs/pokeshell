@@ -201,6 +201,25 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
             app.on_event(key('v'));
             app.focus = crate::app::Focus::Card;
         }),
+        // p: the printed card beside ours (a fixture test pattern stands in for the scan: snapshots never fetch)
+        ("printed", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| {
+            app.on_event(key('p'));
+            printed_fixture(app);
+        }),
+        ("printed-text", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| {
+            app.on_event(key('p'));
+            app.on_event(key('v'));
+            printed_fixture(app);
+        }),
+        // sixel: the frame keeps the area blank; the image the terminal would get is written next to the frame
+        // (qa-printed-sixel-<size>.six: "x y w h" then the sixel data; tools/snap.py can paint it in)
+        ("printed-sixel", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| {
+            app.real.gfx = Some(crate::real::Gfx::Sixel);
+            app.on_event(key('p'));
+            printed_fixture(app);
+        }),
+        // no fixture: the scan from the state folder's cache when it's there, else the "not downloaded" message
+        ("printed-cache", Opts { start: crate::app::Start::Card("pokemon/swsh7-218".into()), ..opts.clone() }, |app| app.on_event(key('p'))),
         ("dex", opts.clone(), |app| app.on_event(key('d'))),
         ("url-lycanroc", Opts { start: crate::app::Start::Pull("01M3PVNCBPMN1R80FRY6ZMVD19".into()), ..opts.clone() }, |_| {}),
         ("missing", Opts { set: "evolving".into(), ..opts.clone() }, |app| app.on_event(key('m'))),
@@ -242,6 +261,11 @@ fn qa_scenes(opts: &Opts, theme: usize, dir: &Path) -> io::Result<()> {
                 }
             }
             save(dir, &format!("qa-{name}-{w}x{h}"), &frame(&mut app, w, h))?;
+            if let Some((r, url)) = app.hits.sixel.clone() {
+                if let Some(s) = app.real.sixel_for(&url, r.width, r.height) {
+                    std::fs::write(dir.join(format!("qa-{name}-{w}x{h}.six")), format!("{} {} {} {}\n{}", r.x, r.y, r.width, r.height, s))?;
+                }
+            }
         }
     }
     // small terminals: the binder as a list, the header and borders degrading
@@ -274,6 +298,18 @@ fn select_first_seen(app: &mut App) {
         if let Some(k) = best {
             app.jump_to(k, None);
             return;
+        }
+    }
+}
+
+/// The selected card's printed-card scan: the fixture test pattern (real.rs), in memory, unless the state folder's
+/// cache already has the real scan (snapshots never download it).
+fn printed_fixture(app: &mut App) {
+    if let Some((hi, small)) = app.selected().and_then(|k| app.real_urls(k)) {
+        for (u, w, h) in [(hi, 367, 512), (small, 245, 342)] {
+            if !crate::real::cache_path(&app.real.dir, &u).is_file() {
+                app.real.insert(&u, crate::real::fixture(w, h));
+            }
         }
     }
 }
@@ -377,7 +413,12 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
         key(KeyCode::Char('/')), key(KeyCode::Char('s')), key(KeyCode::Char('e')), key(KeyCode::Char('t')), key(KeyCode::Char(':')), key(KeyCode::Tab), key(KeyCode::Char('3')),
         key(KeyCode::Tab), key(KeyCode::Left), key(KeyCode::Left), key(KeyCode::Delete), key(KeyCode::Home), key(KeyCode::End), ctrl('w'), ctrl('u'), key(KeyCode::Enter),
         key(KeyCode::Char('v')), key(KeyCode::Tab), key(KeyCode::Down), key(KeyCode::Down), key(KeyCode::Up), key(KeyCode::Char('v')), ctrl('s'), ctrl('q'),
+        // the printed card (p): on (a message: nothing is downloaded headless), with a scan, with the text half, off
+        key(KeyCode::Char('L')), key(KeyCode::Char('p')), key(KeyCode::Right), key(KeyCode::Char('v')), key(KeyCode::Left), key(KeyCode::Char('v')), key(KeyCode::Char('p')),
+        key(KeyCode::Char('p')),
     ];
+    // one card's scan is a fixture, so the half-block path is drawn at every size too
+    printed_fixture(&mut app);
     // every picker row, both directions, at each size (the picker is re-rendered after each key)
     for _ in 0..4 {
         script.extend([shift('S'), key(KeyCode::Down), key(KeyCode::Enter), shift('S'), key(KeyCode::Up), key(KeyCode::Up), key(KeyCode::Enter)]);
@@ -395,7 +436,7 @@ pub fn selftest(opts: Opts, theme: usize) -> io::Result<()> {
         KeyCode::Enter, KeyCode::Char('s'), KeyCode::Char('o'), KeyCode::Char('m'), KeyCode::Char('v'), KeyCode::Char('d'), KeyCode::Char('S'), KeyCode::Char('S'),
         KeyCode::Char('1'), KeyCode::Char('2'), KeyCode::Char('3'), KeyCode::Char('/'), KeyCode::Char('#'), KeyCode::Char('a'), KeyCode::Char('e'), KeyCode::Char(':'),
         KeyCode::Backspace, KeyCode::Delete, KeyCode::Home, KeyCode::End, KeyCode::Esc, KeyCode::Char('?'), KeyCode::Char('g'), KeyCode::Char('G'),
-        KeyCode::Char(']'), KeyCode::Char('t'),
+        KeyCode::Char(']'), KeyCode::Char('t'), KeyCode::Char('p'),
     ];
     let mut steps = 0;
     for (si, &(w, h)) in sizes.iter().enumerate() {

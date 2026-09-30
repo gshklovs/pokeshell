@@ -8,6 +8,7 @@ use crate::color::{Rgb, darken, grad, lighten, mix, rgb};
 use crate::data::{self, SlotKey, SlotState};
 use crate::draw::{Seg, Titles, braille, fill, groups_w, meter, meter_segs, panel, panel_ex, put, puts, seg, segb, trunc, width};
 use crate::query;
+use crate::real;
 use crate::theme::{THEMES, Theme};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -69,8 +70,9 @@ pub fn layout(app: &App, a: Rect) -> Lay {
         let bw = (3 * slot_w + 2 + 2).min(w * 56 / 100);
         l.binder = rect(a.x, by, bw, bh);
         let (rx, rw) = (a.x + bw, w - bw);
-        if app.show_text {
-            // the text half (v) gets the whole column: moves, weakness, set and artist all show (V-03)
+        if app.show_text || app.show_real {
+            // the text half (v) gets the whole column: moves, weakness, set and artist all show (V-03); so does the
+            // printed card (p), to sit beside ours
             l.card = rect(rx, by, rw, bh);
             return l;
         }
@@ -226,6 +228,9 @@ pub fn render(app: &mut App, buf: &mut Buffer) {
     }
     if app.help {
         help(app, buf, area, &theme);
+    }
+    if app.picker.is_some() || app.help {
+        app.hits.sixel = None; // an overlay is on top: no image over it
     }
 }
 
@@ -808,6 +813,9 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     // caught (docs/BINDER_SPEC.md "Empty, seen, caught")
     let seen = state == SlotState::Seen;
     let text = if app.show_text && caught { app.card_text(k) } else { None };
+    // the printed card (p) is caught-only too: an empty or seen card shows nothing extra
+    let real_urls = if app.show_real && caught { app.real_urls(k) } else { None };
+    let cell = if app.real.gfx() == real::Gfx::Sixel { app.real.cell } else { (1, 2) };
     let scroll = app.text_scroll_for(k);
     let new = caught && app.coll.slot_new(k, app.shiny_only);
     let pack = &app.coll.packs[k.pack];
@@ -835,6 +843,7 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     let (mut fit, mut img, mut cw, mut ch) = place(0);
     let mut th = 0u16;
     let text_w = |cw: u16| cw.max(40).min(area.width);
+    let mut reserve = 0u16;
     if let Some(v) = text.as_deref() {
         // the text half's height depends on its width (the card's), which depends on the art's height: settle it
         for _ in 0..3 {
@@ -843,24 +852,73 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
                 break;
             }
             let min_art = (ph as u16 + 6).min(area.height);
-            let reserve = th.min(area.height.saturating_sub(min_art));
+            reserve = th.min(area.height.saturating_sub(min_art));
             (fit, img, cw, ch) = place(reserve);
         }
         th = th.min(area.height.saturating_sub(ch));
     } else if app.show_text && area.height > ch {
         th = 1; // "no card text" / "catch it to read it" note
     }
+    // the printed card (p): as tall as ours, beside it (ours shrinks to make room, down to MIN_BESIDE_ROWS), else in
+    // its place. `pair`: the width of what is centred (both cards, or the one shown)
+    let mut printed: Option<(real::Place, u16, u16)> = None; // (where, its width, its rows)
+    if real_urls.is_some() {
+        let (f0, i0, cw0, ch0) = (fit, img.clone(), cw, ch);
+        if real::place(area.width, cw, ch, cell) == real::Place::Beside {
+            printed = Some((real::Place::Beside, real::real_w(ch, cell), ch));
+        } else if ch > real::MIN_BESIDE_ROWS {
+            // our card's width is about proportional to its height: start near the height where both fit
+            let want = (ch as u32 * area.width.saturating_sub(real::GAP) as u32 / (cw as u32 + real::real_w(ch, cell) as u32).max(1)) as u16;
+            let mut extra = ch.saturating_sub(want + 1);
+            while ch > real::MIN_BESIDE_ROWS && extra <= area.height {
+                (fit, img, cw, ch) = place(reserve + extra);
+                if real::place(area.width, cw, ch, cell) == real::Place::Beside {
+                    printed = Some((real::Place::Beside, real::real_w(ch, cell), ch));
+                    break;
+                }
+                extra += 1;
+            }
+        }
+        if printed.is_none() || printed.is_some_and(|p| p.2 < real::MIN_BESIDE_ROWS && p.2 < ch0) {
+            // too narrow for both: the printed card in ours' place, as tall as ours was (narrower if it must be)
+            (fit, img, cw, ch) = (f0, i0, cw0, ch0);
+            let mut rows = ch;
+            while rows > 3 && real::real_w(rows, cell) > area.width {
+                rows -= 1;
+            }
+            printed = Some((real::Place::Swap, real::real_w(rows, cell).min(area.width), rows));
+        }
+    }
+    let swap = matches!(printed, Some((real::Place::Swap, ..)));
+    let (pair_w, card_h) = match printed {
+        Some((real::Place::Beside, rw, _)) => (cw + real::GAP + rw, ch),
+        Some((_, rw, rows)) => (rw, rows),
+        None => (cw, ch),
+    };
+    if let (Some(v), true) = (text.as_deref(), printed.is_some()) {
+        th = cardtext::height(v, text_w(pair_w), t).min(area.height.saturating_sub(card_h));
+    }
+    let ch = card_h;
     // center the card (and its text half) together with the info block under it
     let slack = (area.height + below).saturating_sub(ch + th + below);
     let cy = area.y + (slack / 2).min(area.height.saturating_sub(ch + th));
-    let cr = Rect::new(area.x + (area.width - cw) / 2, cy, cw, ch);
+    let x0 = area.x + (area.width - pair_w.min(area.width)) / 2;
+    let cr = Rect::new(x0, cy, if swap { pair_w } else { cw }, ch);
     // clear the region (animation repaints land here)
     fill(buf, area, t.bg);
-    card::draw(buf, cr, &c, img.as_deref(), t);
-    if caught && card::is_foil(pack, k.tier, shiny) {
-        let phase = app.anim_phase();
-        card::shimmer(buf, cr, &tier.frame, shiny, phase);
+    if !swap {
+        card::draw(buf, cr, &c, img.as_deref(), t);
+        if caught && card::is_foil(pack, k.tier, shiny) {
+            let phase = app.anim_phase();
+            card::shimmer(buf, cr, &tier.frame, shiny, phase);
+        }
     }
+    if let (Some((pl, rw, rows)), Some(u)) = (printed, real_urls.as_ref()) {
+        let rr = if pl == real::Place::Swap { cr } else { Rect::new(cr.x + cw + real::GAP, cy, rw, rows) };
+        draw_printed(&mut app.real, &mut app.hits, buf, rr, t, u);
+        app.hits.real_swap = swap;
+    }
+    let cw = pair_w;
     let mut hidden = 0;
     if let Some(v) = text.as_deref() {
         if th >= 3 {
@@ -887,10 +945,67 @@ fn big_card(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme, k: SlotKey, 
     (cr, ch + th)
 }
 
+/// The printed card (p) in `r`: the scan as half blocks, or a blank area the sixel image is written over after the
+/// frame (hits.sixel), or while it downloads / when it can't, a dim outline with a short message.
+fn draw_printed(rc: &mut real::RealCards, hits: &mut crate::app::Hits, buf: &mut Buffer, r: Rect, t: &Theme, urls: &(String, String)) {
+    hits.real = r;
+    let sixel = rc.gfx() == real::Gfx::Sixel;
+    let url = if sixel { &urls.0 } else { &urls.1 };
+    let msg = match rc.status(url) {
+        real::Status::Ready(s) => {
+            fill(buf, r, t.bg);
+            if sixel {
+                hits.sixel = Some((r, url.clone()));
+            } else {
+                let cells = rc.blocks_for(url, &s, r.width, r.height);
+                for (i, &(sym, fg, bg)) in cells.iter().enumerate() {
+                    let (x, y) = (r.x as i32 + (i % r.width as usize) as i32, r.y as i32 + (i / r.width as usize) as i32);
+                    put(buf, x, y, sym, fg.or(t.bg), bg, false);
+                }
+            }
+            return;
+        }
+        real::Status::Loading => "fetching the printed card…".to_string(),
+        real::Status::Failed(e) => format!("printed card: {e}"),
+    };
+    // the outline where the card will be, and the message wrapped inside it
+    let (x0, y0, x1, y1) = (r.x as i32, r.y as i32, r.x as i32 + r.width as i32 - 1, r.y as i32 + r.height as i32 - 1);
+    if r.width >= 2 && r.height >= 2 {
+        for x in x0 + 1..x1 {
+            put(buf, x, y0, "─", Some(t.faint), None, false);
+            put(buf, x, y1, "─", Some(t.faint), None, false);
+        }
+        for y in y0 + 1..y1 {
+            put(buf, x0, y, "│", Some(t.faint), None, false);
+            put(buf, x1, y, "│", Some(t.faint), None, false);
+        }
+        for (x, y, s) in [(x0, y0, "╭"), (x1, y0, "╮"), (x0, y1, "╰"), (x1, y1, "╯")] {
+            put(buf, x, y, s, Some(t.faint), None, false);
+        }
+    }
+    let room = r.width.saturating_sub(4).max(1) as usize;
+    let mut lines: Vec<String> = vec![];
+    for word in msg.split_whitespace() {
+        match lines.last_mut() {
+            Some(l) if width(l) + 1 + width(word) <= room => {
+                l.push(' ');
+                l.push_str(word);
+            }
+            _ => lines.push(trunc(word, room)),
+        }
+    }
+    let n = lines.len().min(r.height.saturating_sub(2) as usize);
+    let top = r.y as i32 + (r.height as i32 - n as i32) / 2;
+    for (i, l) in lines.iter().take(n).enumerate() {
+        puts(buf, r.x as i32 + (r.width as i32 - width(l) as i32).max(0) / 2, top + i as i32, l, t.dim, None, false, room);
+    }
+}
+
 /// Animation path: repaint only the big card.
 pub fn render_card(app: &mut App, buf: &mut Buffer) {
     let r = app.hits.card_art;
-    if r.width == 0 || app.coll.packs.is_empty() {
+    // (the printed card in ours' place: nothing of ours to animate)
+    if r.width == 0 || app.coll.packs.is_empty() || app.hits.real_swap {
         return;
     }
     let Some(k) = app.selected() else { return };
@@ -1437,6 +1552,7 @@ fn help(app: &mut App, buf: &mut Buffer, area: Rect, t: &Theme) {
         ("o   m", "caught only · missing only (not caught: empty or seen)"),
         ("s", "shiny-only binder"),
         ("v", "the card's text half (moves, HP, weakness) under the art"),
+        ("p", "the printed card: the real scan beside ours (caught cards; fetched once, then cached)"),
         ("d", "view: every card / one slot per character (dex)"),
         ("t", "cycle theme"),
         ("L", "jump to the last card you caught"),
