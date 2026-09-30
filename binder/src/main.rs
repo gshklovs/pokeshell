@@ -17,6 +17,9 @@
 //!   binder --text              with --first-frame / --bench: the text half (v) on
 //!   binder --selftest          fuzz keys/mouse/resizes through the event handler, rendering each
 //!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending (seen, not caught)
+//!
+//! In the app, `p` shows the real printed card beside ours (caught cards; the scan is downloaded once into
+//! <state>\cache\realcards). POKESHELL_SIXEL=on|off|auto: sixel or half blocks (auto asks the terminal, DA1).
 
 mod app;
 mod art;
@@ -27,6 +30,7 @@ mod data;
 mod draw;
 mod linkurl;
 mod query;
+mod real;
 mod snapshot;
 mod theme;
 mod ui;
@@ -38,6 +42,7 @@ use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_ra
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -249,15 +254,144 @@ fn run(app: &mut App) -> io::Result<()> {
     res
 }
 
+/// Ask the terminal whether it does sixel (DA1, real.rs): write `ESC [ c` and read its reply, which arrives as
+/// keystrokes, for up to real::PROBE_MS. Keys typed meanwhile are handed on; a reply that comes later is swallowed
+/// by the filter.
+fn probe_sixel<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>, filter: &mut real::ReplyFilter) -> io::Result<()> {
+    use crossterm::event::{Event, KeyCode, KeyEventKind};
+    if !cfg!(windows) {
+        // crossterm's Unix reader keeps DA1 replies to itself: there, sixel is POKESHELL_SIXEL / config.txt only
+        app.real.gfx = Some(real::Gfx::Blocks);
+        return Ok(());
+    }
+    term.backend_mut().write_all(b"\x1b[c")?;
+    term.backend_mut().flush()?;
+    let end = Instant::now() + Duration::from_millis(real::PROBE_MS);
+    let mut reply = String::new();
+    let mut other: Vec<Event> = vec![];
+    while let Some(left) = end.checked_duration_since(Instant::now()) {
+        if !event::poll(left)? {
+            break;
+        }
+        let ev = event::read()?;
+        let ch = match &ev {
+            Event::Key(k) if k.kind != KeyEventKind::Release => match k.code {
+                KeyCode::Esc => Some('\x1b'),
+                KeyCode::Char(c) => Some(c),
+                _ => None,
+            },
+            _ => None,
+        };
+        match ch {
+            // (the console host hands the reply over as keystrokes, and on Windows the ESC doesn't come through:
+            // it starts at "[?")
+            Some(c @ ('\x1b' | '[')) if reply.is_empty() => reply.push(c),
+            Some(c) if !reply.is_empty() => {
+                reply.push(c);
+                if c == 'c' || reply.len() > 96 {
+                    break;
+                }
+            }
+            _ => other.push(ev),
+        }
+    }
+    let got = real::da1_has_sixel(&reply);
+    app.real.gfx = Some(if got == Some(true) { real::Gfx::Sixel } else { real::Gfx::Blocks });
+    if got.is_none() {
+        filter.armed = true; // no reply yet: if one turns up late, it is not typed into the binder
+        // what was collected wasn't a reply after all: those were keys
+        for c in reply.chars() {
+            let code = if c == '\x1b' { KeyCode::Esc } else { KeyCode::Char(c) };
+            other.push(Event::Key(crossterm::event::KeyEvent::new(code, crossterm::event::KeyModifiers::NONE)));
+        }
+    }
+    for ev in other {
+        app.on_event(ev);
+    }
+    app.dirty = true;
+    Ok(())
+}
+
+/// A key event through the late-reply filter: what to hand the app.
+fn filtered(filter: &mut real::ReplyFilter, ev: event::Event) -> Vec<event::Event> {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+    if !filter.armed {
+        return vec![ev];
+    }
+    let ch = match &ev {
+        Event::Key(k) if k.kind != KeyEventKind::Release => match k.code {
+            KeyCode::Esc => Some('\x1b'),
+            KeyCode::Char(c) => Some(c),
+            _ => None,
+        },
+        Event::Key(_) => return vec![],
+        _ => return vec![ev],
+    };
+    let to_ev = |c: char| if c == '\x1b' { Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) } else { Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE)) };
+    match filter.feed(ch) {
+        real::Filtered::Pass(cs) => {
+            let mut out: Vec<Event> = cs.iter().take(cs.len().saturating_sub(ch.is_some() as usize)).map(|&c| to_ev(c)).collect();
+            out.push(ev); // the event itself, as it came (its modifiers intact)
+            out
+        }
+        _ => vec![],
+    }
+}
+
+/// The sixel image of the printed card, when the last full frame asked for one: written at its rect after the
+/// frame (the frame leaves those cells blank). A frame that drops or moves it clears the screen first, since text
+/// drawn by the diff alone would leave the old image's pixels behind.
+fn sixel_after_frame<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>, shown: &mut Option<(Rect, String)>, force: bool) -> io::Result<Option<Buffer>> {
+    let want = app.hits.sixel.clone();
+    if want == *shown && !(force && want.is_some()) {
+        return Ok(None);
+    }
+    let mut repainted = None;
+    if shown.is_some() {
+        // the old image goes first: gone, moved, or another card's (whose transparent corners would keep the old
+        // one's pixels); a resize has cleared the screen already
+        if !force {
+            term.clear()?;
+            let done = term.draw(|f| ui::render(app, f.buffer_mut()))?;
+            repainted = Some(done.buffer.clone());
+        }
+    }
+    let want = app.hits.sixel.clone();
+    if let Some((r, url)) = &want {
+        if let Some(img) = app.real.sixel_for(url, r.width, r.height) {
+            let b = term.backend_mut();
+            write!(b, "\x1b7\x1b[{};{}H", r.y + 1, r.x + 1)?;
+            b.write_all(img.as_bytes())?;
+            b.write_all(b"\x1b8")?;
+            b.flush()?;
+        }
+    }
+    *shown = want;
+    Ok(repainted)
+}
+
 fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>) -> io::Result<()> {
     // Last full frame: animation frames start from it and repaint only the card.
     let mut cached: Option<Buffer> = None;
     let mut anim_due = false;
     let mut minute = app.now / 60;
+    // the sixel image on screen (the printed card, p), and the late-DA1-reply filter
+    let mut sixel_shown: Option<(Rect, String)> = None;
+    let mut filter = real::ReplyFilter::default();
+    let mut filter_until = Instant::now();
     loop {
+        if app.show_real && app.real.gfx.is_none() {
+            probe_sixel(app, term, &mut filter)?;
+            filter_until = Instant::now() + Duration::from_secs(3);
+        }
         if app.dirty || cached.is_none() {
+            let before = cached.as_ref().map(|b| b.area);
             let done = term.draw(|f| ui::render(app, f.buffer_mut()))?;
+            let resized = before != Some(done.area);
             cached = Some(done.buffer.clone());
+            if let Some(b) = sixel_after_frame(app, term, &mut sixel_shown, resized)? {
+                cached = Some(b); // (redrawn after a clear)
+            }
             app.dirty = false;
             anim_due = false;
             // the card on screen: its NEW sticker is cleared for next time (only if the card panel showed it, D-15)
@@ -298,16 +432,33 @@ fn event_loop<W: Write>(app: &mut App, term: &mut Terminal<CrosstermBackend<W>>)
         };
         // an opened search result glows on its real page: redraw it as it fades
         let timeout = if app.flash.is_some() { timeout.min(Duration::from_millis(50)) } else { timeout };
+        // a printed card downloading: look for it often (it shows as soon as it lands); a held ESC: settle it soon
+        let timeout = if app.real.busy() || filter.armed { timeout.min(Duration::from_millis(100)) } else { timeout };
         if event::poll(timeout)? {
             // drain everything queued (wheel bursts, resize storms) before drawing once
             loop {
                 let ev = event::read()?;
-                app.on_event(ev);
+                for ev in filtered(&mut filter, ev) {
+                    app.on_event(ev);
+                }
                 if app.quit || !event::poll(Duration::ZERO)? {
                     break;
                 }
             }
+            if app.real.poll() {
+                app.dirty = true;
+            }
         } else {
+            for c in filter.flush() {
+                let code = if c == '\x1b' { crossterm::event::KeyCode::Esc } else { crossterm::event::KeyCode::Char(c) };
+                app.on_event(event::Event::Key(crossterm::event::KeyEvent::new(code, crossterm::event::KeyModifiers::NONE)));
+            }
+            if filter.armed && Instant::now() > filter_until {
+                filter.armed = false; // no late reply came
+            }
+            if app.real.poll() {
+                app.dirty = true;
+            }
             if app.flash_tick() {
                 app.dirty = true;
             }

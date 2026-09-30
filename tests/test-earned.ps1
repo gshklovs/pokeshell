@@ -441,9 +441,14 @@ console.log(JSON.stringify(out));
   $atk = @($c40.text.attacks)
   Assert ($c40.text.hp -eq '210' -and $atk.Count -eq 2 -and (@($atk[1].cost) -join ',') -eq 'Water,Colorless,Colorless' -and $atk[1].damage -eq '120' -and @($c40.text.abilities)[0].name -eq 'Test Ability' -and @($c40.text.weak)[0].type -eq 'Metal' -and $c40.text.retreat -eq 2 -and @($c40.text.rules).Count -eq 1 -and $c40.artist -eq '5ban Graphics') "the text half is exported: HP, ability, attacks with energy costs and damage, weakness, retreat, rules, artist"
   Assert (-not ($wpk.cards | Where-Object id -eq 'swsh7-41').text -and $o1 -match 'have no card text') "a card without cards\<id>.json exports no text half (the page shows a placeholder) and is warned about"
+  # p: the printed card's scan URL, for caught cards only (the browser loads it; nothing is downloaded or shipped)
+  $c175 = $wpk.cards | Where-Object id -eq 'swsh7-175'
+  Assert ($c40.scan -eq 'https://images.pokemontcg.io/swsh7/40_hires.png' -and ($wpk.cards | Where-Object id -eq 'swsh7-174').scan -and -not $c175.scan -and -not @($wpk.cards | Where-Object { $_.scan -and $_.id -notin 'swsh7-40', 'swsh7-174' })) "the printed card (p): caught cards carry their scan URL, a seen or empty card none ($($c40.scan))"
+  Assert (-not @(Get-ChildItem $wout -Recurse -Include '*hires*', '*_scan*')) "no scan is downloaded into the export"
   Assert ($o1 -match 'no built art' -and $wpk.unbuilt -gt 0) "cards without built art are warned about ($($wpk.unbuilt) unbuilt)"
   $wh = Get-Content (Join-Path $wout 'binder.html') -Raw -Encoding UTF8
   Assert ($wh.Contains('card__text') -and $wh.Contains('tx-cost') -and $wh.Contains('card__wrr') -and -not $wh.Contains('ODDS FROM PACK.JSON')) "the page renders the text half (costs, weakness / resistance / retreat); odds are 'Pull odds'"
+  Assert ($wh.Contains('function printedEl') -and $wh.Contains("status === 'caught' && cd?.scan") -and $wh.Contains('pokeshell-binder-printed') -and $wh.Contains('printed--err')) "the page's printed-card toggle (p, remembered): a caught card's scan beside ours, a note when it can't load"
   $order = (& $py -c "import sys; sys.path.insert(0, r'$(Join-Path $fx 'tools')'); import binder_web as b; print(','.join(sorted(['TG10', 'B/128', '2', 'SV6a', '100', '', 'GG01', '25a', '215/203', 'SV10', '1/203', 'TG01', 'SV6', '25', 'GG10', '9', '10'], key=b.number_key)))" 2>&1 | Out-String).Trim()
   Assert ($order -eq '1/203,2,9,10,25,25a,100,215/203,GG01,GG10,SV6,SV6a,SV10,TG01,TG10,B/128,') "checklist order: numbers, then each prefix group in numeric order, then letters alone ($order)"
   $stale = Join-Path $wout 'img\pokemon\gone\old-card.png'; [void][IO.Directory]::CreateDirectory((Split-Path $stale)); [IO.File]::WriteAllBytes($stale, [byte[]](1, 2, 3))

@@ -1069,6 +1069,16 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
 .detail__swap { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
 .detail__swap button { min-height: 34px; border: 1px solid var(--chip-line); background: var(--chip); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-size: 13.5px; }
 .detail__swap button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+/* p: the printed card (the real scan, from pokemontcg.io) beside ours, caught cards only */
+dialog.detail.has-printed { max-width: min(1180px, calc(100vw - 24px)); }
+.detail__box.has-printed { grid-template-columns: minmax(0, 620px) minmax(0, 1fr); }
+.detail__pair { display: flex; gap: 16px; align-items: center; justify-content: center; width: 100%; }
+.detail__stage .detail__pair > .card, .detail__stage .detail__pair > .printed { flex: 1 1 0; min-width: 0; width: auto; max-width: 290px; }
+.printed { margin: 0; aspect-ratio: 63 / 88; border-radius: 4.6% / 3.3%; overflow: hidden; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--ink) 6%, transparent); box-shadow: 0 2px 3px rgba(0,0,0,.25), 0 30px 50px -18px rgba(0,0,0,.55); }
+.printed img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.printed--err { box-shadow: none; border: 1px dashed var(--panel-line); padding: 14px; text-align: center; font-size: 13.5px; line-height: 1.4; color: var(--ink-soft); }
+.detail__swap .kbd { font-size: 11px; margin-left: 6px; opacity: .7; }
 .detail__box:focus { outline: none; }
 .detail__close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--chip-line); background: var(--panel); cursor: pointer; font-size: 18px; z-index: 10; }
 .detail__info { min-width: 0; }
@@ -1123,6 +1133,8 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
   .detail__box { grid-template-columns: 1fr; padding: 18px 16px; gap: 6px; border-radius: 18px; }
   .detail__stage { position: static; padding-top: 28px; }
   .detail__stage .card, .detail__stage .ghost { width: min(82vw, 320px); }
+  .detail__box.has-printed { grid-template-columns: 1fr; }
+  .detail__pair { gap: 10px; }
   .d-name { font-size: 28px; }
   .d-grid { gap: 6px; }
   .d-stat { padding: 8px 9px; }
@@ -1208,7 +1220,7 @@ dialog.detail[open] { animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
       <small id="searchCount" role="status" aria-live="polite"></small>
     </div>
   </div>
-  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">Home</span> <span class="kbd">End</span> first / last page · <span id="packKeys"></span> <span class="kbd">/</span> search (forgiving: pikchu, lyc vmax; set: rarity: type: filters; -word leaves out; a click opens the result's page, Esc goes back) · click a card for details (its tags search)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
+  <p class="hint"><span class="desk-only"><span class="kbd">←</span> <span class="kbd">→</span> flip pages · <span class="kbd">Home</span> <span class="kbd">End</span> first / last page · <span id="packKeys"></span> <span class="kbd">/</span> search (forgiving: pikchu, lyc vmax; set: rarity: type: filters; -word leaves out; a click opens the result's page, Esc goes back) · click a card for details (its tags search; <span class="kbd">p</span> the printed card beside a caught one)</span><span class="phone-only">swipe or tap ◀ ▶ to flip · tap a card for details</span></p>
   <p class="snapshot" id="snapshot"></p>
 </main>
 
@@ -1900,7 +1912,10 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
   /* -------------------------------------------------------------- pages */
   const state = { pack: packs[0].id, page: 0, single: false, open: false, busy: false, caughtOnly: false, set: null, query: '',
                   before: null,   // where a search started ({ pack, set, page }): Esc or clearing it goes back
-                  flash: null };  // the key of a result just opened on its real page (it glows)
+                  flash: null,    // the key of a result just opened on its real page (it glows)
+                  printed: false };  // p: a caught card's printed card (the real scan) beside ours; remembered
+  try { state.printed = localStorage.getItem('pokeshell-binder-printed') === '1'; } catch {}
+  if (params.has('printed')) state.printed = flag('printed');
   const binder = $('#binder'), leftSlot = $('#leftSlot'), rightSlot = $('#rightSlot'), spreadEl = $('#spread');
   const mq = matchMedia('(max-width: 760px)');
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
@@ -2418,7 +2433,11 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     // the text half is for caught cards only: a seen card is its silhouette, an empty one its empty pocket
     const big = status === 'seen' ? seenEl(slot, { static: true }) : status === 'none' ? ghostEl(slot)
       : cardEl({ pack: slot.pack, char: slot.char, tier: tierId, card: slot.card, shiny: showShiny, skin, count: gotV.length, isNew: gotV.some(p => p.new), static: true });
-    stage.append(big);
+    // p: the printed card beside ours, a caught card's only (data.json has no scan for the others)
+    const scan = status === 'caught' && cd?.scan ? cd.scan : null;
+    const showPrinted = !!(scan && state.printed);
+    stage.append(showPrinted ? h('div', { class: 'detail__pair' }, big, printedEl(cd, scan)) : big);
+    dlg.classList.toggle('has-printed', showPrinted);
     if (hasShiny && hasPlain) {
       const sw = h('div', { class: 'detail__swap', role: 'group', 'aria-label': 'Show the card' });
       const mk = (v, txt) => h('button', { type: 'button', 'aria-pressed': String(showShiny === v), onclick: () => {
@@ -2428,6 +2447,11 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
       }, 'data-v': String(v) }, txt);
       sw.append(mk(false, 'Normal'), mk(true, '✦ Shiny'));
       stage.append(sw);
+    }
+    if (scan) {
+      const pb = h('button', { type: 'button', class: 'detail__printed', 'aria-pressed': String(showPrinted), title: 'the real printed card beside ours (p)',
+        onclick: () => togglePrinted() }, 'Printed card', h('span', { class: 'kbd', 'aria-hidden': 'true' }, 'p'));
+      stage.append(h('div', { class: 'detail__swap', role: 'group', 'aria-label': 'The printed card' }, pb));
     }
 
     const info = h('div', { class: 'detail__info' });
@@ -2513,7 +2537,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
 
     const close = h('button', { class: 'detail__close', type: 'button', 'aria-label': 'Close' }, '✕');
     close.onclick = () => dlg.close();
-    const box = h('div', { class: 'detail__box', tabindex: '-1' }, close, stage, info);
+    const box = h('div', { class: 'detail__box' + (showPrinted ? ' has-printed' : ''), tabindex: '-1' }, close, stage, info);
     dlg.replaceChildren(box);
     // the big card follows the pointer anywhere over the stage too
     stage.addEventListener('pointermove', e => {
@@ -2525,6 +2549,31 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     });
     stage.addEventListener('pointerleave', () => { big.classList.remove('live'); big.style.removeProperty('--px'); big.style.removeProperty('--py'); });
   }
+  // the printed card (p): the real scan, loaded by the browser from pokemontcg.io (nothing is shipped with the page);
+  // offline or missing, a short note in its place
+  function printedEl(cd, url) {
+    const fig = h('figure', { class: 'printed' });
+    const img = h('img', { src: url, alt: `The printed card: ${cd.name}, ${cd.set_name || cd.set_id} ${cd.number}`, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+    img.addEventListener('error', () => {
+      fig.classList.add('printed--err');
+      fig.replaceChildren(h('figcaption', {}, 'The printed card couldn’t load (offline, or no scan of it online).'));
+    });
+    fig.append(img);
+    return fig;
+  }
+  function togglePrinted() {
+    state.printed = !state.printed;
+    try { localStorage.setItem('pokeshell-binder-printed', state.printed ? '1' : '0'); } catch {}
+    if (dlg.open && detailCtx) {
+      renderDetail(detailCtx);
+      dlg.querySelector('.detail__printed')?.focus();
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if (!dlg.open || e.key !== 'p' || e.altKey || e.ctrlKey || e.metaKey || e.target.matches?.('input, textarea, select')) return;
+    e.preventDefault();
+    togglePrinted();
+  });
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener('close', () => {
     refreshIdle();

@@ -465,6 +465,17 @@ def energy(xs):
     return [x for x in (xs or []) if isinstance(x, str)]
 
 
+def scan_url(cid, large):
+    """the printed card's scan (the page's `p` toggle shows it beside ours, caught cards only): its card data's
+    images.large, else pokemontcg.io's image for the card id (<set>-<number>); None when the id isn't one. Only the
+    URL goes into data.json: the browser fetches the scan itself, nothing is downloaded or shipped here."""
+    if isinstance(large, str) and large.strip().startswith(("https://", "http://")):
+        return large.strip()
+    s, _, n = cid.partition("-")
+    ok = lambda x: bool(x) and bool(re.fullmatch(r"[A-Za-z0-9_]+", x))
+    return f"https://images.pokemontcg.io/{s}/{n}_hires.png" if ok(s) and ok(n) else None
+
+
 def card_meta(pid, cid, c):
     """a real card's display fields and tags: pack.json's card entry, completed from packs/<pack>/cards/<id>.json
     (docs/CARD_FORMAT.md) when it exists: set, printed rarity, subtypes, types, artist, and the text half ("text":
@@ -473,6 +484,7 @@ def card_meta(pid, cid, c):
     m = {"id": cid, "character": c["character"], "tier": c["tier"], "name": c.get("name") or "", "number": number,
          "rarity": c.get("rarity") or "", "set_id": cid.rsplit("-", 1)[0] if "-" in cid else "", "set_name": c.get("set") or "",
          "subtypes": [], "types": [], "artist": ""}
+    m["scan"] = scan_url(cid, None)
     f = ROOT / "packs" / pid / "cards" / f"{cid}.json"
     if not f.exists():
         return m
@@ -481,6 +493,7 @@ def card_meta(pid, cid, c):
     except ValueError:
         print(f"warning: {f} is not valid JSON; card text left out", file=sys.stderr)
         return m
+    m["scan"] = scan_url(cid, (d.get("images") or {}).get("large"))
     s = d.get("set") or {}
     m["set_id"] = s.get("id") or m["set_id"]
     m["set_name"] = s.get("name") or m["set_name"]
@@ -958,11 +971,15 @@ def main():
     caught_slots = {slot(p) for p in pulls if p["status"] == "collected"}
     seen_slots = {slot(p) for p in pulls} - caught_slots
     # the text half (HP, abilities, attacks ...) is for caught cards only (docs/BINDER_SPEC.md "Empty, seen, caught"):
-    # an empty or seen card's text isn't even in data.json, so neither the page nor its search can show it
+    # an empty or seen card's text isn't even in data.json, so neither the page nor its search can show it; nor is its
+    # printed card's scan (the `p` toggle)
     for pk in packs:
         for c in pk.get("cards") or []:
             if (pk["id"], c["id"], None) not in caught_slots:
                 c.pop("text", None)
+                c.pop("scan", None)
+            elif not c.get("scan"):
+                c.pop("scan", None)
     data = {
         "owner": a.owner,
         "generated": dt.datetime.now().isoformat(timespec="seconds"),
