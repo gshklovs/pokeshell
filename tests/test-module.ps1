@@ -15,7 +15,7 @@ $state = Join-Path $lad 'pokeshell'; $cur = Join-Path $state 'current'
 [void][IO.Directory]::CreateDirectory($mods); [void][IO.Directory]::CreateDirectory($lad)
 
 # guard rails: fingerprints of the real things this test must not touch
-$real = Get-PokeshellWtSettingsPath
+$real = $RealWtSettings   # (Get-PokeshellWtSettingsPath is off in tests: _setup.ps1)
 $realHash = if ($real) { (Get-FileHash $real).Hash }
 $realState = Join-Path $env:LOCALAPPDATA 'pokeshell'
 function Get-Fingerprint([string]$Dir) {

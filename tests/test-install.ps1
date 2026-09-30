@@ -9,7 +9,7 @@ param([string]$Settings)
 $work = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-install-$PID"
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 [void][IO.Directory]::CreateDirectory($work)
-$real = Get-PokeshellWtSettingsPath
+$real = $RealWtSettings   # (Get-PokeshellWtSettingsPath is off in tests: _setup.ps1)
 $realHash = if ($real) { (Get-FileHash $real).Hash }
 $skinCount = @(Get-PokeshellSkins $RepoRoot | Where-Object { Test-Path $_.shader }).Count
 # a binder app (and its link launcher) to install the hotkey and the card link for: stand-ins, never run
@@ -26,11 +26,13 @@ function Invoke-Cli([string]$State, [string[]]$CliArgs) {
 $cases = [ordered]@{}
 if (-not $Settings) { $Settings = $real }
 if ($Settings -and (Test-Path $Settings)) {
-  # pokeshell may already be installed there: start the round trip from the copy without its profiles
+  # pokeshell may already be installed there: start the round trip from the copy without what an install adds (its
+  # profiles, the binder hotkey, safeUriSchemes' pokeshell), so the copy is a clean "before" file
   $s = Read-WtSettingsFile $Settings
-  $bytes = [Text.UTF8Encoding]::new($false).GetBytes((Remove-PokeshellProfilesText $s.text @()))
+  $clean = Remove-PokeshellSafeSchemeText (Remove-PokeshellHotkeyText (Remove-PokeshellProfilesText $s.text @()) -DropEmptyActions) -DropEmpty
+  $bytes = [Text.UTF8Encoding]::new($false).GetBytes($clean)
   if ($s.bom) { $bytes = [byte[]](0xEF, 0xBB, 0xBF) + $bytes }
-  $cases['your settings.json (copy, pokeshell profiles removed)'] = [byte[]]$bytes
+  $cases['your settings.json (copy, pokeshell removed)'] = [byte[]]$bytes
 }
 $utf8 = [Text.UTF8Encoding]::new($false)
 $cases['comments + trailing commas + CRLF'] = $utf8.GetBytes((@'
@@ -103,7 +105,7 @@ Write-Host "$($i + 1). hotkey off / urlhandler off are remembered by the next in
 $file = Join-Path $work 'settings-off.json'; $state = Join-Path $work 'state-off'
 [IO.File]::WriteAllText($file, '{ "profiles": { "list": [] } }', $utf8)
 $null = Invoke-Cli $state @('install', '-SettingsPath', $file)
-$null = Invoke-Cli $state @('hotkey', 'off')
+$null = Invoke-Cli $state @('hotkey', 'off', '-SettingsPath', $file)
 $null = Invoke-Cli $state @('urlhandler', 'off')
 $null = Invoke-Cli $state @('install', '-SettingsPath', $file)
 $tree = ConvertFrom-Jsonc (Read-WtSettingsFile $file).text
@@ -117,6 +119,13 @@ $t = '{"profiles":{"list":[{"guid":"{a}","name":"pokeshell: x/y"},{"guid":"{b}",
 $clean = Remove-PokeshellProfilesText $t @()
 Assert ($clean -eq '{"profiles":{"list":[{"guid":"{b}","name":"B"},{"guid":"{d}","name":"D"}]}}') "leading + middle removal: $clean"
 Assert ((Remove-PokeshellProfilesText '{"profiles":{"list":[{"name":"pokeshell: a"}]}}' @()) -eq '{"profiles":{"list":[]}}') "removing every profile keeps the brackets"
+
+# the guard (POKESHELL_REAL_WT=off, _setup.ps1): with nothing recorded, a command without -SettingsPath refuses rather
+# than falling back to the real settings.json
+$out = Invoke-Cli (Join-Path $work 'state-none') @('hotkey', 'off')
+Assert ($out -match 'not found \(pass -SettingsPath') "hotkey off with no settings path recorded: refused, the real settings.json is off limits in tests"
+$out = Invoke-Cli (Join-Path $work 'state-none') @('install')
+Assert ($out -match 'not found \(pass -SettingsPath') "install without -SettingsPath: refused likewise"
 
 if ($real) { Assert ((Get-FileHash $real).Hash -eq $realHash) "the real Windows Terminal settings.json was not touched" }
 Remove-Item Env:POKESHELL_BINDER

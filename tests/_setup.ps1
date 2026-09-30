@@ -13,6 +13,10 @@ foreach ($k in 'POKESHELL_PULL', 'POKESHELL_ROLLED', 'CARDSHELL_ROLLED', 'OPSHEL
 $env:POKESHELL_ART = 'skip'
 # ...and never writes the registry (the pokeshell:// handler): Set-PokeshellUrlHandler only reports what it would do
 $env:POKESHELL_REGISTRY = 'dryrun'
+# ...and never falls back to the real Windows Terminal settings.json (a command run without -SettingsPath throws
+# instead). Every child process inherits it; the tests' own "was it touched" hash checks use $RealWtSettings.
+$RealWtSettings = Get-PokeshellWtSettingsPath
+$env:POKESHELL_REAL_WT = 'off'
 $script:Failures = 0
 
 function New-TestState([string]$Name) {

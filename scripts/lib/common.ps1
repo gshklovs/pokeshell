@@ -253,9 +253,6 @@ function Get-PokeshellRuntimeFiles([string]$Root) {
   # a prebuilt binder app and its link launcher next to the scripts, if the package has them: the hotkey and the
   # pokeshell:// handler then point into <state>\current, which survives Update-Module
   foreach ($r in 'bin\binder.exe', 'bin\binder-link.exe') { if ([IO.File]::Exists((Join-Path $Root $r))) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } } }
-  # a prebuilt binder app (and its link launcher) next to the scripts, when the package has one: the hotkey and the
-  # pokeshell:// handler then point into <state>\current, which survives Update-Module
-  foreach ($r in 'bininder.exe', 'bininder-link.exe') { if ([IO.File]::Exists((Join-Path $Root $r))) { [pscustomobject]@{ from = Join-Path $Root $r; to = $r } } }
   foreach ($id in Get-PokeshellPackIds $Root) {
     $pd = Join-Path $Root "packs\$id"
     [pscustomobject]@{ from = Join-Path $pd 'pack.json'; to = "packs\$id\pack.json" }
@@ -371,6 +368,8 @@ function Set-PokeshellUrlHandler([string]$Exe, [string]$LinkExe, [string]$Root, 
 }
 
 function Get-PokeshellWtSettingsPath {
+  # POKESHELL_REAL_WT=off (the tests set it): never fall back to the real settings.json; callers then need -SettingsPath
+  if ($env:POKESHELL_REAL_WT -eq 'off') { return $null }
   $candidates = @(
     (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'),
     (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json'),

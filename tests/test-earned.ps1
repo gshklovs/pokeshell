@@ -26,7 +26,7 @@ function Invoke-Cli {
 function Roll-Common([string]$State, [long]$Now = [DateTime]::UtcNow.Ticks, [double]$Foil = 0) {
   Invoke-Fresh { [Pokeshell.Core]::Roll($RepoRoot, $State, $PlainGuid, @('powershell.exe'), $Now, 7, $Foil, 'x', $env:TEMP, (Join-Path $RepoRoot 'scripts\lib')) }
 }
-$real = Get-PokeshellWtSettingsPath
+$real = $RealWtSettings   # (Get-PokeshellWtSettingsPath is off in tests: _setup.ps1)
 $realHash = if ($real) { (Get-FileHash $real).Hash }
 $regKey = 'HKCU:\Software\Classes\pokeshell'
 $regBefore = Test-Path $regKey
@@ -467,8 +467,9 @@ $cases = [ordered]@{
   'older (keys inside actions)'      = "{`n  `"profiles`": { `"list`": [] },`n  `"actions`": [ { `"command`": `"paste`", `"keys`": `"ctrl+v`" }, ]`n}`n"
   'no actions at all'                = "// comment`n{`n    `"profiles`": { `"list`": [] }`n}`n"
 }
-# read only: the test edits a copy, minus its pokeshell profiles (uninstall would remove those too)
-if ($real) { $cases['your settings.json (a copy)'] = Remove-PokeshellProfilesText (Read-WtSettingsFile $real).text @() }
+# read only: the test edits a copy, minus what an earlier install put there (its profiles, binder key and
+# safeUriSchemes entry: uninstall would remove those too, and a key already bound would stop the test's key going in)
+if ($real) { $cases['your settings.json (a copy)'] = Remove-PokeshellSafeSchemeText (Remove-PokeshellHotkeyText (Remove-PokeshellProfilesText (Read-WtSettingsFile $real).text @()) -DropEmptyActions) -DropEmpty }
 $i = 0
 foreach ($name in $cases.Keys) {
   $i++; $hsState = Join-Path $rs "hk$i"; [void][IO.Directory]::CreateDirectory($hsState)
@@ -496,16 +497,29 @@ $out = Strip (Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'on' '-SettingsPath' $fi
 Assert ($out -match 'already bound' -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($before)) "keys already taken (Shift+Ctrl+B = ctrl+shift+b): refused, file untouched"
 $null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'on' '-SettingsPath' $file '-Keys' 'ctrl+alt+b' @{ POKESHELL_BINDER = $fakeExe }
 Assert ((Read-WtSettingsFile $file).text -match '"keys": "ctrl\+alt\+b"') "-Keys picks other keys"
-$null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'off'
+$null = Invoke-Cli (Join-Path $rs 'hk1') 'hotkey' 'off' '-SettingsPath' $file
 Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($before)) "hotkey off: exactly as before"
 Assert (Test-Path (Join-Path $rs 'hk1\hotkey.off')) "hotkey off is remembered (hotkey.off), so pokeshell install leaves it out"
 $out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'hotkey' 'on' '-SettingsPath' (Join-Path $rs 'hk2\settings.json') @{ POKESHELL_BINDER = (Join-Path $rs 'missing.exe') })
 Assert ($out -match "binder app isn't built") "no binder app: no hotkey"
+# the hotkey and the card link each leave the other alone (the round-trip check strips only what it adds)
+$bs = Join-Path $rs 'both'; [void][IO.Directory]::CreateDirectory($bs); $file = Join-Path $bs 'settings.json'
+[IO.File]::WriteAllText($file, "{`n  `"safeUriSchemes`": [ `"pokeshell`" ],`n  `"profiles`": { `"list`": [] }`n}`n", $utf8); $orig = [IO.File]::ReadAllBytes($file)
+$out = Strip (Invoke-Cli $bs 'hotkey' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe })
+$tree = ConvertFrom-Jsonc (Read-WtSettingsFile $file).text
+Assert ($out -notmatch 'verification failed' -and @((Get-JsoncMember $tree 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ }).Count -eq 1 -and @((Get-JsoncMember $tree 'safeUriSchemes').items | Where-Object { Test-PokeshellSchemeNode $_ }).Count -eq 1) "hotkey on, settings.json already listing pokeshell in safeUriSchemes: added, the scheme kept$(if ($out -match 'verification failed') { ': ' + $out.Trim() })"
+[IO.File]::WriteAllText((Join-Path $rs 'binder-link.exe'), 'not a real exe')
+$out = Strip (Invoke-Cli $bs 'urlhandler' 'on' '-SettingsPath' $file @{ POKESHELL_BINDER = $fakeExe })
+$tree = ConvertFrom-Jsonc (Read-WtSettingsFile $file).text
+Assert ($out -notmatch 'verification failed' -and @((Get-JsoncMember $tree 'actions').items | Where-Object { Test-PokeshellHotkeyNode $_ }).Count -eq 1 -and (Test-Path (Join-Path $bs 'urlhandler.txt'))) "urlhandler on, settings.json already holding the hotkey: set up, the hotkey kept$(if ($out -match 'verification failed') { ': ' + $out.Trim() })"
+$null = Invoke-Cli $bs 'hotkey' 'off' '-SettingsPath' $file
+$null = Invoke-Cli $bs 'urlhandler' 'off'
+Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($file)) -eq [Convert]::ToBase64String($orig)) "hotkey off + urlhandler off: back to the file as it was (its own safeUriSchemes entry kept)"
 
 Write-Host "9. the pokeshell:// handler (registry: dry run only; settings.json: copies)" -ForegroundColor Cyan
 $us = Join-Path $rs 'url'; [void][IO.Directory]::CreateDirectory($us)
 $fakeLink = Join-Path $rs 'binder-link.exe'; Set-Content $fakeLink 'not a real exe'
-$out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = (Join-Path $rs 'hk2inder.exe') })
+$out = Strip (Invoke-Cli (Join-Path $rs 'hk2') 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = (Join-Path $rs 'hk2\binder.exe') })
 Assert ($out -match "binder app isn't built") "no binder app: no handler"
 $out = Strip (Invoke-Cli $us 'urlhandler' 'on' '-DryRun' @{ POKESHELL_BINDER = $fakeExe })
 Assert ($out -match [regex]::Escape("would set $regKey [(default)] = URL:pokeshell binder") -and $out -match [regex]::Escape("would set $regKey [URL Protocol] = ")) "registers HKCU\Software\Classes\pokeshell as a URL protocol"

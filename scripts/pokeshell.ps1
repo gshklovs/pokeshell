@@ -667,10 +667,12 @@ function Get-BinderAccessPlan([string]$Text, [bool]$Hotkey = $true, [bool]$Link 
   $plan
 }
 
-# the settings text without anything Get-BinderAccessPlan adds (for the Remove(Add(x)) == Remove(x) check)
+# the settings text without what this plan adds (for the Remove(Add(x)) == Remove(x) check); only the parts the plan
+# touched, so `hotkey on` keeps an existing card link and `link on` an existing hotkey
 function Remove-BinderAccessText([string]$Text, $Plan) {
-  $t = Remove-PokeshellHotkeyText $Text -DropEmptyActions:($Plan.hotkey -and $Plan.hotkey.created)
-  Remove-PokeshellSafeSchemeText $t -DropEmpty:($Plan.scheme -and $Plan.scheme.created)
+  $t = if ($Plan.hotkey) { Remove-PokeshellHotkeyText $Text -DropEmptyActions:($Plan.hotkey.created) } else { $Text }
+  if ($Plan.link) { $t = Remove-PokeshellSafeSchemeText $t -DropEmpty:($Plan.scheme -and $Plan.scheme.created) }
+  $t
 }
 
 # after settings.json was written: record the plan, and register the pokeshell:// handler (HKCU)
