@@ -72,6 +72,8 @@ BATCHES = {
     "base": {"dir": "base", "globs": ["art/*.json"], "skip_variants": []},
     # Brilliant Stars (swsh9 + its Trainer Gallery swsh9tg, one data folder, artlab/sets/brs): as cz
     "brs": {"dir": "brs", "globs": ["art/*.json"], "skip_variants": []},
+    # Lost Origin (swsh11 + its Trainer Gallery swsh11tg, one data folder, artlab/sets/lor): as brs
+    "lor": {"dir": "lor", "globs": ["art/*.json"], "skip_variants": []},
 }
 NOT_ART_DIRS = {"cards", "api", "masks", "ref", "work", "__pycache__", "anim"}
 NAME_SUFFIXES = re.compile(r"\s+(V|VMAX|VSTAR|V-UNION|ex|EX|GX|LV\.X|BREAK|Prime|LEGEND|δ|☆|◇|star)$")
@@ -106,7 +108,7 @@ def name_matches(character, name):
     squash = lambda s: re.sub(r"[^a-z0-9]", "", fold(s).lower().replace("♀", "f").replace("♂", "m"))  # noqa: E731
     # form sprites (garbodor-gmax, lycanroc-dusk, articuno-galar) match on the base Pokémon's name
     # stripped repeatedly: urshifu-rapid-strike-gmax -> urshifu-rapid-strike -> urshifu
-    suffix = re.compile(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|complete|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet|sandy|trash|hangry|rapid-strike|noice)$")
+    suffix = re.compile(r"-(gmax|galar|alola|hisui|paldea|dusk|midday|midnight|mega.*|sunshine|poke-ball|low-key|crowned|complete|origin|unbound|sky|resolute|red|orange|yellow|green|blue|indigo|violet|sandy|trash|hangry|rapid-strike|noice|east|white-striped|eternamax)$")
     base, prev = character, None
     while base != prev:
         prev, base = base, suffix.sub("", base)

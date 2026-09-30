@@ -37,6 +37,9 @@ SETS = [
     ("Brilliant Stars + Trainer Gallery", "brs", ["swsh9", "swsh9tg"],
      {"swsh9tg-TG20": "no dotfiles sprite for Rapid Strike Urshifu (only its Gigantamax form), and the Single Strike "
                       "sprite would be the wrong form"}),
+    ("Lost Origin + Trainer Gallery", "lor", ["swsh11", "swsh11tg"],
+     {"swsh11tg-TG22": "the card is Eternamax Eternatus: its dotfiles sprite is 56 rows (112 grid px), over the "
+                       "110 cap, and the plain Eternatus sprite would be the wrong form"}),
 ]
 
 
