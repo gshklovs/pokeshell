@@ -74,6 +74,34 @@ New tabs pick up new cards on their own (the roll cache stamps `dist/pokemon`). 
   `render_card(card=<CARD_FORMAT dict>, art=<the ART_FORMAT dict from the batch>, rarity=<its rarities.json entry or None>)`
   returning an ART_FORMAT dict of the same shape. Without the flag the batch art is used as-is.
 
+## build_carddata.py: the cards' gameplay data (shipped)
+
+`packs/<pack>/carddata.json` holds, for every card in `pack.json`, only the gameplay fields: supertype, hp, types,
+subtypes, evolvesFrom, abilities, attacks (name, cost, convertedEnergyCost, damage, text), weaknesses, resistances,
+retreatCost and rules. The data is pokemontcg.io's. Unlike `packs/pokemon/cards/`, the file is tracked and ships with
+the module. `pokeshell collection --json` reads it for the cards you caught (README, "For other tools"). Re-run it
+after every import (docs/ART_METHOD.md section 19):
+
+```powershell
+.venv\Scripts\python tools\build_carddata.py            # add / refresh: local card JSON first, the API for the rest
+.venv\Scripts\python tools\build_carddata.py --check    # does it cover pack.json? (no network, writes nothing)
+.venv\Scripts\python tools\build_carddata.py --refresh  # every set again from the API
+# a worktree without style-lab: --lab ..\pokeshell\style-lab --from ..\pokeshell\packs\pokemon\cards
+```
+
+- **Incremental.** Cards already in the file are kept. A card's data comes from the first place that has it:
+  1. the cached API response for its set (`.cache/carddata/<set>.json`, git-ignored);
+  2. `packs/<pack>/cards/<id>.json`;
+  3. a batch's `style-lab/*/cards/api/<id>.json` or `cards/<id>.json` (`--lab`, `$env:ARTLAB_DATA`), or `--from <dir>`;
+  4. the existing file;
+  5. the API, with one `set.id:<set>` query per set (it sends a User-Agent and retries with backoff when the API is flaky).
+- **New sets.** A new set such as Lost Origin (`swsh11`, `swsh11tg`) needs nothing new: its ids are in `pack.json`,
+  and its batch's `cards/` (or the API) supply the data.
+- **Gaps.** A card with no data anywhere is printed as a gap, listed in `"missing"`, and makes the tool exit 2.
+  `--check` exits 1 when `pack.json` has cards the file neither covers nor lists as missing.
+- **Format.** There is a header, then one card per line (`"<id>":{...}`), so a reader can take the lines it needs
+  without parsing the whole file. About 570 KB for 990 cards.
+
 ## make_media.py: showcase images
 
 ```powershell

@@ -15,7 +15,7 @@ function Get-PokeshellPackIds([string]$Root) {
 }
 
 function ConvertTo-PokeshellTitle([string]$Id) {
-  (($Id -split '[-_]') | ForEach-Object { if ($_) { $_.Substring(0, 1).ToUpper() + $_.Substring(1) } }) -join ' '
+  (@(foreach ($w in ($Id -split '[-_]')) { if ($w) { $w.Substring(0, 1).ToUpper() + $w.Substring(1) } })) -join ' '   # no pipeline: called per character
 }
 
 # pack.json + display names: pack.json "names" {id: name}, else art/<id>.json, else a title-cased id.
@@ -34,7 +34,7 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
   $pack = [IO.File]::ReadAllText((Join-Path $dir 'pack.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
   $isCards = [bool]$pack.PSObject.Properties['cards']
   $tierIx = @{}; $tl = @($pack.tiers); for ($i = 0; $i -lt $tl.Count; $i++) { $tierIx[[string]$tl[$i].id] = $i }
-  $cardList = @(); $cardIndex = @{}; $retired = @{}
+  $cardList = [Collections.Generic.List[object]]::new(); $cardIndex = @{}; $retired = @{}   # a List: += on an array is O(n^2)
   if ($isCards) {
     $order = [Collections.Generic.List[string]]::new()
     if ($pack.cards) {
@@ -43,7 +43,7 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
         if ($null -eq $ti) { throw "pack $Id, card $($p.Name): no tier '$($c.tier)' in pack.json" }
         $card = [pscustomobject]@{ id = $p.Name; character = [string]$c.character; tier = $ti; tierId = [string]$c.tier
                                   name = [string]$c.name; tag = [string]$c.number }
-        $cardList += $card; $cardIndex[$p.Name] = $card
+        $cardList.Add($card); $cardIndex[$p.Name] = $card
         if (-not $order.Contains($card.character)) { $order.Add($card.character) }
       }
     }
@@ -59,7 +59,7 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
     $name = $given[$c]
     if (-not $name) {
       $artFile = Join-Path $dir "art\$c.json"
-      if (Test-Path $artFile) { try { $name = (Get-Content $artFile -Raw -Encoding UTF8 | ConvertFrom-Json).name } catch { } }
+      if ([IO.File]::Exists($artFile)) { try { $name = (Get-Content $artFile -Raw -Encoding UTF8 | ConvertFrom-Json).name } catch { } }
     }
     $names[$c] = if ($name) { $name } else { ConvertTo-PokeshellTitle $c }
   }
@@ -82,7 +82,7 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
   $pack | Add-Member -NotePropertyName frames -NotePropertyValue $frames -Force
   $pack | Add-Member -NotePropertyName dir -NotePropertyValue $dir -Force
   $pack | Add-Member -NotePropertyName isCardPack -NotePropertyValue $isCards -Force
-  $pack | Add-Member -NotePropertyName cardList -NotePropertyValue $cardList -Force
+  $pack | Add-Member -NotePropertyName cardList -NotePropertyValue $cardList.ToArray() -Force
   $pack | Add-Member -NotePropertyName cardIndex -NotePropertyValue $cardIndex -Force
   $pack | Add-Member -NotePropertyName tierIndex -NotePropertyValue $tierIx -Force
   $pack | Add-Member -NotePropertyName retired -NotePropertyValue $retired -Force
@@ -91,7 +91,7 @@ function Read-PokeshellPack([string]$Root, [string]$Id) {
 
 # a real card's prebuilt art: dist\<pack>\<character>-<card id>.ans (tools\build_realcards.py); cards without it never roll
 function Test-PokeshellCardBuilt([string]$Root, [string]$Pack, $Card) {
-  [IO.File]::Exists((Join-Path $Root "dist\$Pack\$($Card.character)-$($Card.id).ans"))
+  [IO.File]::Exists([IO.Path]::Combine($Root, "dist\$Pack\$($Card.character)-$($Card.id).ans"))
 }
 
 <#
@@ -106,7 +106,7 @@ Mirrored by binder-tui / the web export (docs/PACK_FORMAT.md, "retired").
 #>
 function Resolve-PokeshellPull($Pack, [string]$Character, [string]$Tier, [string]$Art) {
   if (-not $Pack.isCardPack) { return 'legacy' }
-  $root = Split-Path (Split-Path $Pack.dir); $id = Split-Path -Leaf $Pack.dir
+  $root = [IO.Path]::GetDirectoryName([IO.Path]::GetDirectoryName($Pack.dir)); $id = [IO.Path]::GetFileName($Pack.dir)
   $c = $Pack.cardIndex[$Art]
   if ($c -and $c.character -eq $Character -and (Test-PokeshellCardBuilt $root $id $c)) { return $c }
   $k = "$Character/$Tier"
@@ -256,6 +256,7 @@ function Get-PokeshellRuntimeFiles([string]$Root) {
   foreach ($id in Get-PokeshellPackIds $Root) {
     $pd = Join-Path $Root "packs\$id"
     [pscustomobject]@{ from = Join-Path $pd 'pack.json'; to = "packs\$id\pack.json" }
+    if ([IO.File]::Exists((Join-Path $pd 'carddata.json'))) { [pscustomobject]@{ from = Join-Path $pd 'carddata.json'; to = "packs\$id\carddata.json" } }   # gameplay data (collection --json)
     foreach ($sub in @(@('art', '*.json'), @('shaders', '*.hlsl'))) {
       foreach ($f in Get-ChildItem (Join-Path $pd $sub[0]) -Filter $sub[1] -File -ErrorAction SilentlyContinue) {
         [pscustomobject]@{ from = $f.FullName; to = "packs\$id\$($sub[0])\$($f.Name)" }

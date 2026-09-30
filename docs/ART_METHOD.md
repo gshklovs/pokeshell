@@ -649,6 +649,11 @@ frequencies must match the weights.
 7. The lookbook's Decided list is updated.
 8. The set is in `SETS` in `tools/skipped_report.py` (with a `why` for any Pokémon card skipped on purpose), and
    `docs/SKIPPED.md` is regenerated, so the user can see every card that is not served and why.
+9. `packs/pokemon/carddata.json` covers the new cards. Run `.venv\Scripts\python tools\build_carddata.py`: it takes
+   the gameplay fields from the batch's `cards/` (or the API) and keeps every other card. Then run
+   `tools\build_carddata.py --check`, which must print `carddata: ok`. Commit the file with the import: it ships
+   with the module and `collection --json` reads it. A gap (a card with no API data) is printed, listed in
+   `missing`, and reported to the user.
 
 ## 20. Worked example: Leafeon V, swsh7-7 (Rare Holo V)
 
