@@ -212,6 +212,10 @@ if ($py) {
   $caught = @($after.pulls | Where-Object { $_.status -eq 'collected' } | ForEach-Object card)
   Assert ($before.counts.caught -eq 0 -and $after.counts.caught -eq $ids.Count) "binder data: caught 0 -> $($after.counts.caught) ($($ids.Count) distinct cards in the pack)"
   Assert (-not @($ids | Where-Object { $caught -notcontains $_ })) "every card of the pack is a caught pull in the binder"
+  $saved = $env:POKESHELL_PYTHON; $env:POKESHELL_PYTHON = $py
+  $x = (Invoke-Cli $s3 'pack' 'open' 'swsh11' '--json' '--free' '--export') | ConvertFrom-Json
+  $env:POKESHELL_PYTHON = $saved
+  Assert ($x.exported -eq $true -and -not @($x.cards | Where-Object { -not $_.png -or -not (Test-Path $_.png) })) "--export: the web export is rebuilt, every card's png exists (the stub art's pixel)"
 } else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
 
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue

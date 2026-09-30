@@ -330,7 +330,10 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
           $o
         }
         $res | Add-Member -NotePropertyName imageRoot -NotePropertyValue (Join-Path $State 'web')
-        if (Has @('export')) { Invoke-BinderWeb -Quiet; $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
+        if (Has @('export')) {   # the pack is recorded already: a failed export is reported, not fatal
+          try { Invoke-BinderWeb -Quiet; $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
+          catch { $res | Add-Member -NotePropertyName exported -NotePropertyValue $false; $res | Add-Member -NotePropertyName exportError -NotePropertyValue $_.Exception.Message }
+        }
         foreach ($c in @($res.cards)) {   # the image's full path once the web export has it (collection --json's `png`), else null
           $f = Join-Path $res.imageRoot $c.image.Replace('/', '\')
           $c | Add-Member -NotePropertyName png -NotePropertyValue $(if ([IO.File]::Exists($f)) { $f } else { $null })
@@ -699,6 +702,7 @@ function Invoke-BinderWeb([switch]$Quiet) {
   [void]@(Read-Pulls -All)
   $exe = $py[0]; $pre = @($py | Select-Object -Skip 1)
   if ($Quiet) {   # pack open --export: only (re)write the export, nothing on stdout (it carries the JSON)
+    $ErrorActionPreference = 'Continue'   # the export's warnings on stderr aren't failures; its exit code is
     & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out 2>&1 | Out-Null
     if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
     return
