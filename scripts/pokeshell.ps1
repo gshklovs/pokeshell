@@ -678,37 +678,22 @@ function Invoke-Binder {
   if ($LASTEXITCODE) { throw "the binder exited with code $LASTEXITCODE" }
 }
 
-# Python with Pillow for the web export: $env:POKESHELL_PYTHON, the repo's .venv, then py -3 / python on PATH
-function Find-PokeshellPython {
-  $c = @()
-  if ($env:POKESHELL_PYTHON) { $c += , @($env:POKESHELL_PYTHON) }
-  $c += , @((Join-Path $Root '.venv\Scripts\python.exe'))
-  $c += , @('py', '-3'); $c += , @('python')
-  foreach ($x in $c) {
-    $exe = $x[0]
-    if ($exe -match '[\\/]' -and -not (Test-Path $exe)) { continue }
-    if ($exe -notmatch '[\\/]' -and -not (Get-Command $exe -ErrorAction SilentlyContinue)) { continue }
-    $rest = @($x | Select-Object -Skip 1)
-    & $exe @rest -c 'import PIL' 2>$null
-    if ($LASTEXITCODE -eq 0) { return , $x }
-  }
-  $null
-}
-
-# `binder --web`: rebuild the static web binder into <state>\web (about a second) and open it in the browser
+# `binder --web`: rebuild the static web binder into <state>\web (about half a second once the art is cached) and open
+# it in the browser. The export is the binder app's (binder.exe --export-web, binder\src\webexport.rs): a module install
+# ships it in bin\, so it needs no Python.
 function Invoke-BinderWeb([switch]$Quiet) {
-  $py = Find-PokeshellPython
-  if (-not $py) { throw "binder --web needs Python 3 with Pillow (py -3 -m venv .venv; .venv\Scripts\python -m pip install pillow), or set POKESHELL_PYTHON" }
+  $exe = Get-PokeshellBinderExe $Root
+  if (-not $exe) { throw "binder --web needs the binder app (powershell -File binder\build.ps1 builds it; a module install has it in bin\)" }
   $out = Join-Path $State 'web'
   [void]@(Read-Pulls -All)
-  $exe = $py[0]; $pre = @($py | Select-Object -Skip 1)
+  $a = @('--export-web', $out, '--root', $RuntimeRoot, '--state', $State)
   if ($Quiet) {   # pack open --export: only (re)write the export, nothing on stdout (it carries the JSON)
     $ErrorActionPreference = 'Continue'   # the export's warnings on stderr aren't failures; its exit code is
-    & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out 2>&1 | Out-Null
+    & $exe @a 2>&1 | Out-Null
     if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
     return
   }
-  & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out
+  & $exe @a
   if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
   $page = Join-Path $out 'binder.html'
   if ($env:POKESHELL_NO_OPEN -eq '1' -or (Has @('noopen'))) { Write-Host "pokeshell: web binder at $page" }

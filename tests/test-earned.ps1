@@ -2,7 +2,7 @@
 The earned rule and the binder entry points (docs/BINDER_SPEC.md), against throwaway state dirs and settings copies:
 pull ids + pending in pulls.log, the tab's first command earning it (the prompt / OnIdle hook, in child processes),
 expiry (24 h, another boot session), viewed.txt / NEW, the earn setting, the binder footer link, `binder` (app,
-text fallback, --web; empty / seen / caught cards), the Windows Terminal hotkey on settings.json COPIES, and the
+text fallback, --web (the app's own export, no Python); empty / seen / caught cards), the Windows Terminal hotkey on settings.json COPIES, and the
 pokeshell:// handler as a dry run.
 Never opens a tab, a window or a browser; never touches the real settings.json, registry, $PROFILE or state.
   powershell -NoProfile -File tests\test-earned.ps1
@@ -166,12 +166,11 @@ Write-Host "4. reading the log: earned / pending / expired, legacy lines, viewed
 # the pokemon pack is a real-card pack (pack.json "cards"): the art column holds the card id; older lines resolve
 # through pack.json "retired" (an old common -> its base-set card; an old holo -> hidden). A card whose art isn't built
 # is muted: pulls resolving to it are hidden too. So sections 4-7 run the CLI and the binders on a fixture root (the
-# scripts, the web export and pokemon's pack.json copied, fake art for the cards below), whatever is built locally.
+# scripts, the web page and pokemon's pack.json copied, fake art for the cards below), whatever is built locally.
 $fx = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-earned-root-$PID"
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
 foreach ($d in 'packs\pokemon', 'dist\pokemon', 'tools\binder-web') { [void][IO.Directory]::CreateDirectory((Join-Path $fx $d)) }
 Copy-Item -Recurse (Join-Path $RepoRoot 'scripts') $fx
-Copy-Item (Join-Path $RepoRoot 'tools\binder_web.py') (Join-Path $fx 'tools')
 Copy-Item (Join-Path $RepoRoot 'tools\binder-web\index.html') (Join-Path $fx 'tools\binder-web')
 Copy-Item (Join-Path $RepoRoot 'packs\pokemon\pack.json') (Join-Path $fx 'packs\pokemon')
 # fake art: a common is the plain sprite (transparent around it), every other card a full-bleed scene (the silhouette
@@ -312,10 +311,9 @@ if (Test-Path $exe) {
   Assert ($out -match 'selftest ok') "binder --selftest (keys incl. v / d, mouse, resizes): $($out.Trim())"
 } else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
 
-Write-Host "7. binder --web (static page into <state>\web; not opened)" -ForegroundColor Cyan
-$py = @($env:POKESHELL_PYTHON, (Join-Path $RepoRoot '.venv\Scripts\python.exe'), (Join-Path (Split-Path $RepoRoot) 'pokeshell\.venv\Scripts\python.exe')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-if ($py) {
-  $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_PYTHON = $py; POKESHELL_NO_OPEN = '1' })
+Write-Host "7. binder --web (static page into <state>\web; not opened): the binder app's export, binder.exe --export-web" -ForegroundColor Cyan
+if (Test-Path $exe) {
+  $out = Strip (Invoke-Cli $rs 'binder' '--web' @{ POKESHELL_BINDER = $exe; POKESHELL_NO_OPEN = '1' })
   $data = Get-Content (Join-Path $rs 'web\data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   $st2 = ($data.pulls | ForEach-Object { "$($_.char)/$($_.status)$(if ($_.new) { '+new' })" }) -join ' '
   Assert ($st2 -eq 'squirtle/collected glaceon/collected glaceon/collected glaceon/collected glaceon/collected pikachu/collected+new squirtle/pending charmander/expired bulbasaur/expired bulbasaur/collected' -and $data.hidden -eq 2) "data.json marks caught vs pending vs expired (both seen: expired pulls are kept now; retired art and unbuilt cards hidden): $st2"
@@ -412,7 +410,7 @@ console.log(JSON.stringify(out));
   } else { Write-Host "  skip  node not found: the page's matcher is not run" -ForegroundColor Yellow }
   Assert ($data.counts.pulls -eq 7 -and $data.counts.caught -eq 7 -and $data.counts.seen -eq 3) "data.json counts caught pulls and cards; seen cards apart ($($data.counts.pulls) pulls, caught $($data.counts.caught), seen $($data.counts.seen))"
 
-  # tools\binder_web.py on its own: the text half, seen not counted, unreadable lines, checklist order, the art cache
+  # the export on its own (binder.exe --export-web): the text half, seen not counted, unreadable lines, checklist order, the art cache
   $cardsDir = Join-Path $fx 'packs\pokemon\cards'; [void][IO.Directory]::CreateDirectory($cardsDir)
   $cardJson = '{"id":"swsh7-40","name":"Glaceon V","supertype":"Pokémon","subtypes":["Basic","V"],"hp":"210","types":["Water"],"evolvesFrom":"",' +
     '"abilities":[{"name":"Test Ability","text":"Does a thing.","type":"Ability"}],' +
@@ -430,9 +428,8 @@ console.log(JSON.stringify(out));
   $bytes = [Text.Encoding]::UTF8.GetBytes(($wl -join "`r`n") + "`r`n") +
     [Text.Encoding]::GetEncoding(28591).GetBytes("$($realT.ToString('s'))`tpokemon`tfl$([char]0xe9)b$([char]0xe9)b$([char]0xe9)`tcommon`tcommon`t`t0`t`r`n")   # PowerShell 5 ANSI bytes
   [IO.File]::WriteAllBytes((Join-Path $ws 'pulls.log'), $bytes)
-  $webPy = Join-Path $fx 'tools\binder_web.py'
-  function Invoke-WebPy { $ErrorActionPreference = 'Continue'; & $py $webPy @args 2>&1 | ForEach-Object { "$_" } | Out-String -Width 300 }
-  $o1 = Invoke-WebPy --root $fx --state $ws --out $wout
+  function Invoke-WebExe { $ErrorActionPreference = 'Continue'; & $exe @args 2>&1 | ForEach-Object { "$_" } | Out-String -Width 300 }
+  $o1 = Invoke-WebExe --export-web $wout --root $fx --state $ws
   Assert ($LASTEXITCODE -eq 0 -and $o1 -match '2 lines of pulls.log couldn''t be read') "invalid UTF-8 and a corrupt time: skipped with a warning, no crash ($(($o1 -split "`n" | Where-Object { $_ -match 'read' } | Select-Object -First 1).Trim()))"
   $wd = Get-Content (Join-Path $wout 'data.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   Assert ($wd.counts.pulls -eq 2 -and $wd.counts.caught -eq 2 -and $wd.counts.seen -eq 1 -and $wd.counts.shiny -eq 1 -and $wd.bad_lines -eq 2) "a pending shiny is seen, not counted: pulls $($wd.counts.pulls), caught $($wd.counts.caught), seen $($wd.counts.seen), shiny $($wd.counts.shiny)"
@@ -449,17 +446,17 @@ console.log(JSON.stringify(out));
   $wh = Get-Content (Join-Path $wout 'binder.html') -Raw -Encoding UTF8
   Assert ($wh.Contains('card__text') -and $wh.Contains('tx-cost') -and $wh.Contains('card__wrr') -and -not $wh.Contains('ODDS FROM PACK.JSON')) "the page renders the text half (costs, weakness / resistance / retreat); odds are 'Pull odds'"
   Assert ($wh.Contains('function printedEl') -and $wh.Contains("status === 'caught' && cd?.scan") -and $wh.Contains('pokeshell-binder-printed') -and $wh.Contains('printed--err')) "the page's printed-card toggle (p, remembered): a caught card's scan beside ours, a note when it can't load"
-  $order = (& $py -c "import sys; sys.path.insert(0, r'$(Join-Path $fx 'tools')'); import binder_web as b; print(','.join(sorted(['TG10', 'B/128', '2', 'SV6a', '100', '', 'GG01', '25a', '215/203', 'SV10', '1/203', 'TG01', 'SV6', '25', 'GG10', '9', '10'], key=b.number_key)))" 2>&1 | Out-String).Trim()
+  $order = (& $exe --number-order 'TG10,B/128,2,SV6a,100,,GG01,25a,215/203,SV10,1/203,TG01,SV6,25,GG10,9,10' | Out-String).Trim()
   Assert ($order -eq '1/203,2,9,10,25,25a,100,215/203,GG01,GG10,SV6,SV6a,SV10,TG01,TG10,B/128,') "checklist order: numbers, then each prefix group in numeric order, then letters alone ($order)"
   $stale = Join-Path $wout 'img\pokemon\gone\old-card.png'; [void][IO.Directory]::CreateDirectory((Split-Path $stale)); [IO.File]::WriteAllBytes($stale, [byte[]](1, 2, 3))
-  $sw = [Diagnostics.Stopwatch]::StartNew(); $o2 = Invoke-WebPy --root $fx --state $ws --out $wout; $sw.Stop()
+  $sw = [Diagnostics.Stopwatch]::StartNew(); $o2 = Invoke-WebExe --export-web $wout --root $fx --state $ws; $sw.Stop()
   Assert ($o2 -match '[(]0 decoded' -and $o2 -match 'cached' -and $o2 -match 'stale removed' -and -not (Test-Path $stale)) "a rerun reuses the decoded art (img\.cache.json) and prunes stale PNGs ($([int]$sw.Elapsed.TotalMilliseconds) ms)"
   $nPng = @(Get-ChildItem (Join-Path $wout 'img') -Recurse -Filter *.png).Count
   Remove-Item -Recurse -Force (Join-Path $ws 'noart') -ErrorAction SilentlyContinue
-  $o3 = Invoke-WebPy --root $fx --state $ws --out (Join-Path $ws 'noart') --no-art
+  $o3 = Invoke-WebExe --export-web (Join-Path $ws 'noart') --root $fx --state $ws --no-art
   Assert ($o3 -match 'art skipped' -and -not (Test-Path (Join-Path $ws 'noart\img')) -and (Test-Path (Join-Path $ws 'noart\binder.html'))) "--no-art decodes and writes no art (still data.json + binder.html; $nPng PNGs in the full export)"
   Assert (-not @(Get-ChildItem $wout -Recurse -Filter '*.tmp')) "writes are atomic (no temp files left)"
-} else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
+} else { Write-Host "  skip  binder.exe not built (binder\build.ps1): no web export" -ForegroundColor Yellow }
 
 $cli = Join-Path $RepoRoot 'scripts\pokeshell.ps1'   # sections 8-9: the repo's CLI again
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue

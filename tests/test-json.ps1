@@ -2,7 +2,7 @@
 The JSON commands for other tools (README "For other tools"): `pokeshell version --json` and
 `pokeshell collection --json [--pack <id>]`, and the shipped gameplay data packs\pokemon\carddata.json
 (tools\build_carddata.py): its coverage of pack.json, the tool's gap report, caught vs seen (the binders' rule, checked
-against the web export when Python with Pillow is there), gameplay data for caught cards only, and the speed on a
+against the web export, binder.exe --export-web, when the binder is built), gameplay data for caught cards only, and the speed on a
 1000-pull state. Runs the CLI of a fixture root (the scripts, pokemon's pack.json and carddata.json, fake art) against
 throwaway state dirs. Never opens a tab or a window; never touches the real settings.json, $PROFILE or state.
   powershell -NoProfile -File tests\test-json.ps1
@@ -22,7 +22,7 @@ $fx = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-json-root-$PID"
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
 foreach ($d in 'packs\pokemon', 'dist\pokemon', 'tools\binder-web') { [void][IO.Directory]::CreateDirectory((Join-Path $fx $d)) }
 Copy-Item -Recurse (Join-Path $RepoRoot 'scripts') $fx
-Copy-Item (Join-Path $RepoRoot 'tools\binder_web.py'), (Join-Path $RepoRoot 'tools\build_carddata.py') (Join-Path $fx 'tools')
+Copy-Item (Join-Path $RepoRoot 'tools\build_carddata.py') (Join-Path $fx 'tools')
 Copy-Item (Join-Path $RepoRoot 'tools\binder-web\index.html') (Join-Path $fx 'tools\binder-web')
 Copy-Item (Join-Path $RepoRoot 'packs\pokemon\pack.json'), $carddata (Join-Path $fx 'packs\pokemon')
 $fxArt = "$e[0;38;2;10;20;30m" + [char]0x2588 + [char]0x2588 + "$e[0m`n"
@@ -51,6 +51,13 @@ function Invoke-Py {
   & $py @args 2>&1 | ForEach-Object { "$_" } | Out-String -Width 400
 }
 function Parse([string]$s) { try { $s | ConvertFrom-Json } catch { $null } }
+# the web export (the binder app's, binder.exe --export-web): data.json of a state, no art
+$binderExe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
+function Get-WebData([string]$State) {
+  $ErrorActionPreference = 'Continue'
+  $null = & $binderExe --export-web (Join-Path $State 'webx') --root $fx --state $State --no-art 2>&1 | Out-String
+  [IO.File]::ReadAllText((Join-Path $State 'webx\data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+}
 
 $now = [DateTime]::UtcNow; $boot = [Pokeshell.Core]::BootId()
 function PullLine([int]$Ago, [string]$Card, [string]$Flags = '', [int]$Shiny = 0, [switch]$Id) {
@@ -136,12 +143,11 @@ Assert ($r4.code -ne 0 -and (Parse $r4.out).error -match "no pack 'nope'") "--pa
 $es = New-TestState 'json-empty'
 $r5 = Invoke-Json $es 'collection' '--json'
 Assert ($r5.code -eq 0 -and @((Parse $r5.out).cards).Count -eq 0 -and (Parse $r5.out).counts.caught -eq 0) "no pulls yet: empty lists, exit 0"
-if ($py) {
-  # the web export (tools\binder_web.py) on the same state counts the same caught / seen cards
-  $null = Invoke-Py (Join-Path $fx 'tools\binder_web.py') --root $fx --state $cs --out (Join-Path $cs 'webx') --no-art
-  $wd = [IO.File]::ReadAllText((Join-Path $cs 'webx\data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+if (Test-Path $binderExe) {
+  # the web export (binder.exe --export-web) on the same state counts the same caught / seen cards
+  $wd = Get-WebData $cs
   Assert ($wd.counts.caught -eq $j.counts.caught -and $wd.counts.seen -eq $j.counts.seen -and $wd.counts.pulls -eq $j.counts.pulls) "the web export agrees: caught $($wd.counts.caught), seen $($wd.counts.seen), pulls $($wd.counts.pulls)"
-} else { Write-Host "  skip  no Python (the web export cross-check)" -ForegroundColor Yellow }
+} else { Write-Host "  skip  binder.exe not built (the web export cross-check)" -ForegroundColor Yellow }
 
 Write-Host "4. carddata.json: coverage and the tool's gap report" -ForegroundColor Cyan
 $cdText = [IO.File]::ReadAllText($carddata, [Text.Encoding]::UTF8)
@@ -194,9 +200,8 @@ $times = @(1..3 | ForEach-Object { (Invoke-Json $ss 'collection' '--json').ms })
 $jb = Parse $w.out
 $best = ($times | Measure-Object -Minimum).Minimum
 Assert ($w.code -eq 0 -and $jb -and $jb.counts.pulls -eq 800) "1000 pulls: $($jb.counts.caught) caught cards (800 pulls), $($jb.counts.seen) seen"
-if ($py) {
-  $null = Invoke-Py (Join-Path $fx 'tools\binder_web.py') --root $fx --state $ss --out (Join-Path $ss 'webx') --no-art
-  $wd = [IO.File]::ReadAllText((Join-Path $ss 'webx\data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+if (Test-Path $binderExe) {
+  $wd = Get-WebData $ss
   Assert ($wd.counts.caught -eq $jb.counts.caught -and $wd.counts.seen -eq $jb.counts.seen -and $wd.counts.pulls -eq $jb.counts.pulls) "the web export agrees on the 1000 pulls: caught $($wd.counts.caught), seen $($wd.counts.seen), pulls $($wd.counts.pulls)"
 }
 Assert ($best -lt 1500) "collection --json: $best ms (runs: $($times -join ', ') ms; whole process, PowerShell start included; limit 1500)"

@@ -7,7 +7,7 @@ Real booster packs (packs\pokemon\boosters.json, scripts\lib\booster.ps1 + Boost
   3. a Monte Carlo of 20,000 packs per set matches the configured odds (4.5 sigma), plus 20,000 with the CSPRNG
   4. `pokeshell pack open --json`: the contract, every card recorded in pulls.log as a caught pull, NEW only once
   5. the token ledger: grant, spend, no tokens, --free, and concurrent opens never double-spend
-  6. uncaught -> caught in the binder data (tools\binder_web.py --no-art), when Python with Pillow is around
+  6. uncaught -> caught in the binder data (the web export, binder.exe --export-web --no-art), when the binder is built
 Isolated: a temp checkout copy (the real pack.json + boosters.json, stub art for every card), POKESHELL_HOME in %TEMP%,
 POKESHELL_REAL_WT=off. Never touches %LOCALAPPDATA%\pokeshell, settings.json or $PROFILE; never opens a tab.
   powershell -NoProfile -File tests\test-boosters.ps1
@@ -22,7 +22,6 @@ $fx = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-boosters-$PID"
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
 foreach ($d in 'packs\pokemon', 'dist\pokemon', 'tools', 'state') { [void][IO.Directory]::CreateDirectory((Join-Path $fx $d)) }
 Copy-Item (Join-Path $RepoRoot 'scripts') $fx -Recurse
-Copy-Item (Join-Path $RepoRoot 'tools\binder_web.py') (Join-Path $fx 'tools')
 Copy-Item (Join-Path $RepoRoot 'tools\binder-web') (Join-Path $fx 'tools') -Recurse
 foreach ($f in 'pack.json', 'boosters.json') { Copy-Item (Join-Path $RepoRoot "packs\pokemon\$f") (Join-Path $fx "packs\pokemon\$f") }
 $e = [char]27
@@ -200,12 +199,10 @@ $bad = Invoke-Cli $s2 'pack' 'grant' 'x' '--json'
 Assert ($script:LastExit -eq 1 -and ($bad | ConvertFrom-Json).error -match 'usage') "grant needs a count"
 
 Write-Host "6. uncaught -> caught in the binder data" -ForegroundColor Cyan
-$py = @($env:POKESHELL_PYTHON, (Join-Path $RepoRoot '.venv\Scripts\python.exe'), (Join-Path (Split-Path $RepoRoot) 'pokeshell\.venv\Scripts\python.exe'), 'python') |
-  Where-Object { $_ -and ((Test-Path $_) -or (Get-Command $_ -ErrorAction SilentlyContinue)) } |
-  Where-Object { & $_ -c 'import PIL' 2>$null; $LASTEXITCODE -eq 0 } | Select-Object -First 1
-if ($py) {
+$bexe = Join-Path $RepoRoot 'binder\target\release\binder.exe'
+if (Test-Path $bexe) {
   $s3 = Join-Path $fx 's3'; [void][IO.Directory]::CreateDirectory($s3)
-  function Get-BinderData { $ErrorActionPreference = 'Continue'; & $py (Join-Path $fx 'tools\binder_web.py') --root $fx --state $s3 --out (Join-Path $s3 'web') --no-art 2>&1 | Out-Null
+  function Get-BinderData { $ErrorActionPreference = 'Continue'; & $bexe --export-web (Join-Path $s3 'web') --root $fx --state $s3 --no-art 2>&1 | Out-Null
                             [IO.File]::ReadAllText((Join-Path $s3 'web\data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json }
   $before = Get-BinderData
   $r = (Invoke-Cli $s3 'pack' 'open' 'swsh9' '--json' '--free' '--seed' '3') | ConvertFrom-Json
@@ -214,11 +211,11 @@ if ($py) {
   $caught = @($after.pulls | Where-Object { $_.status -eq 'collected' } | ForEach-Object card)
   Assert ($before.counts.caught -eq 0 -and $after.counts.caught -eq $ids.Count) "binder data: caught 0 -> $($after.counts.caught) ($($ids.Count) distinct cards in the pack)"
   Assert (-not @($ids | Where-Object { $caught -notcontains $_ })) "every card of the pack is a caught pull in the binder"
-  $saved = $env:POKESHELL_PYTHON; $env:POKESHELL_PYTHON = $py
+  $saved = $env:POKESHELL_BINDER; $env:POKESHELL_BINDER = $bexe   # (the fixture root has no bin\binder.exe)
   $x = (Invoke-Cli $s3 'pack' 'open' 'swsh11' '--json' '--free' '--export') | ConvertFrom-Json
-  $env:POKESHELL_PYTHON = $saved
+  $env:POKESHELL_BINDER = $saved
   Assert ($x.exported -eq $true -and -not @($x.cards | Where-Object { -not $_.png -or -not (Test-Path $_.png) })) "--export: the web export is rebuilt, every card's png exists (the stub art's pixel)"
-} else { Write-Host "  skip  no Python with Pillow (set POKESHELL_PYTHON)" -ForegroundColor Yellow }
+} else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
 
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue
 if ($script:Failures) { Write-Host "`n$script:Failures FAILED" -ForegroundColor Red; exit 1 }
