@@ -6,6 +6,7 @@ Runs from a source checkout or from an installed module version; user state live
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'lib\roll.ps1')
 . (Join-Path $PSScriptRoot 'lib\common.ps1')
+. (Join-Path $PSScriptRoot 'lib\booster.ps1')
 
 $Root = Split-Path $PSScriptRoot
 $State = Get-PokeshellStateDir
@@ -26,7 +27,7 @@ $Command = ''; $Pos = @(); $Flags = @{}; $Opts = @{}
 $argList = @($args)
 for ($i = 0; $i -lt $argList.Count; $i++) {
   $a = [string]$argList[$i]
-  if ($a -match '^--?(settingspath|shell|pull|card|keys|art)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1].ToLower()] = [string]$argList[++$i] }
+  if ($a -match '^--?(settingspath|shell|pull|card|keys|art|reason|seed|delay)$' -and $i + 1 -lt $argList.Count) { $Opts[$Matches[1].ToLower()] = [string]$argList[++$i] }
   elseif ($a -match '^--?[a-z]') { $Flags[$a.TrimStart('-').ToLower()] = $true }
   elseif (-not $Command) { $Command = $a.ToLower() }
   else { $Pos += $a }
@@ -45,6 +46,13 @@ function Show-Help {
 pokeshell - every new Windows Terminal tab is a pack pull
 
   pokeshell pack [<pack>|all]             show or choose the active pack
+  pokeshell pack sets [--json]            the real booster packs you can open (sets, sizes, card counts)
+  pokeshell pack open <set> [--json] [--free] [--seed N] [--export] [--delay ms]
+                                          open one real booster of that set (spends a pack token unless
+                                          --free); every card goes into your binder, caught. In a terminal
+                                          the cards are revealed one by one, rarest last
+  pokeshell pack grant <n> --reason <text> [--json]   add pack tokens (what whoever awards packs calls)
+  pokeshell pack tokens [--json]          your pack-token balance and the latest changes
   pokeshell odds [pack]                   pull odds for the active pack (or the one named)
   pokeshell binder [--pull <id>|--card <pack/char/tier>]
                                           the binder app, full screen (q returns); `binder` for short.
@@ -234,6 +242,7 @@ function Invoke-Uninstall {
 
 # ---------------------------------------------------------------- pack / odds / collection / show
 function Invoke-Pack {
+  if ($Pos -and $Pos[0].ToLower() -in 'open', 'sets', 'odds', 'grant', 'tokens') { Invoke-Booster $Pos[0].ToLower() @($Pos | Select-Object -Skip 1); return }
   $all = @(Get-PokeshellPackIds $Root)
   if (-not $Pos) {
     Write-Host "active pack: $($Cfg.pack)"
@@ -245,6 +254,141 @@ function Invoke-Pack {
   Set-PokeshellConfigValue $State 'pack' $want
   Update-PokeshellRollCache -Root $RuntimeRoot -StateDir $State
   Write-Host "pokeshell: new tabs now pull from $want"
+}
+
+# ---------------------------------------------------------------- real booster packs (lib\booster.ps1, docs\BOOSTERS.md)
+# lib\jsonapi.ps1's conventions: one document on stdout, ASCII only (\uXXXX), {"error": ...} and exit 1 on a failure
+function Write-PokeshellBoosterJson($Obj) {
+  if (-not (Get-Command ConvertTo-PokeshellAsciiJson -ErrorAction SilentlyContinue)) { . (Join-Path $PSScriptRoot 'lib\jsonapi.ps1') }
+  Write-PokeshellJson (ConvertTo-Json -InputObject $Obj -Depth 8 -Compress)
+}
+
+function Invoke-Booster([string]$Sub, [string[]]$Args2) {
+  $json = Has @('json')
+  try {
+    $pack = Read-PokeshellPack $Root 'pokemon'
+    $boosters = Read-PokeshellBoosters $Root 'pokemon'
+    switch ($Sub) {
+      'sets' {
+        Import-PokeshellBooster $State
+        $sets = @(Get-PokeshellBoosterSets $Root $pack $boosters)
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ pack = $pack.id; tokens = (Get-PokeshellTokenBalance $State); sets = $sets }); return }
+        Write-Host ''
+        Write-Host "Real booster packs  (pokeshell pack open <set>; you have $(Get-PokeshellTokenBalance $State) pack tokens)" -ForegroundColor Cyan
+        $sets | ForEach-Object { [pscustomobject]@{ set = $_.id; name = $_.name; series = $_.series; released = $_.released
+            'cards served' = $(if ($_.openable) { "$($_.cards) of $($_.printed) printed" } else { 'none yet' }); 'pack' = "$($_.packSize) cards" } } |
+          Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+      }
+      'odds' {
+        if (-not $Args2) { throw "usage: pokeshell pack odds <set> [--json]" }
+        $set = Find-PokeshellBoosterSet $boosters $Args2[0]
+        Import-PokeshellBooster $State
+        $m = Get-PokeshellBoosterModel $Root $pack $set
+        $rows = for ($s = 0; $s -lt $m.slots.Count; $s++) {
+          $sl = $m.slots[$s]
+          for ($o = 0; $o -lt $sl.Outcomes.Count; $o++) {
+            $om = $m.meta[$s][$o]; $pr = $sl.Probability($o)
+            [pscustomobject][ordered]@{ slot = $sl.Id; count = $sl.Count; outcome = $om.label; rate = $om.rate; printed = $om.printed; served = $om.served
+              base = $om.base; probability = [math]::Round($pr, 6); oneIn = $(if ($pr -gt 0) { [math]::Round(1 / $pr, 1) } else { $null }) }
+          }
+        }
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ set = $set.id; name = $set.name; cards = $m.cards.Count; outcomes = @($rows) }); return }
+        Write-Host ''
+        Write-Host "$($set.name) booster: $($set.realPack)" -ForegroundColor Cyan
+        Write-Host "  published per-pack rate, printed cards, the ones we serve, and the odds we roll (base = takes the unserved share)" -ForegroundColor DarkGray
+        $rows | ForEach-Object { [pscustomobject]@{ slot = "$($_.slot)$(if ($_.count -gt 1) { " x$($_.count)" })"; outcome = "$($_.outcome)$(if ($_.base) { ' (base)' })"
+            published = ('{0:0.00}%' -f (100 * $_.rate)); printed = $_.printed; served = $_.served; rolled = ('{0:0.00}%' -f (100 * $_.probability)); '1 in' = $_.oneIn } } |
+          Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+      }
+      'tokens' {
+        $lines = @(Get-PokeshellTokenLines $State); $bal = 0; foreach ($t in $lines) { $bal += $t.delta }
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ balance = $bal; recent = @($lines | Select-Object -Last 20) }); return }
+        Write-Host "pack tokens: $bal"
+        foreach ($t in ($lines | Select-Object -Last 10)) { Write-Host ("  {0}  {1,3}  {2}{3}" -f $t.time.Replace('T', ' '), $(if ($t.delta -gt 0) { "+$($t.delta)" } else { $t.delta }), $t.reason, $(if ($t.set) { "  ($($t.set))" })) -ForegroundColor DarkGray }
+      }
+      'grant' {
+        $n = 0
+        if (-not $Args2 -or -not [int]::TryParse($Args2[0], [ref]$n) -or $n -lt 1 -or $n -gt 1000) { throw 'usage: pokeshell pack grant <n (1-1000)> --reason <text> [--json]' }
+        $reason = if ($Opts.reason) { $Opts.reason } else { 'granted' }
+        $r = Invoke-PokeshellTokenLocked $State { $id = Add-PokeshellTokens $State $n $reason; [ordered]@{ granted = $n; reason = $reason; id = $id; balance = (Get-PokeshellTokenBalance $State) } }
+        if ($json) { Write-PokeshellBoosterJson $r; return }
+        Write-Host "pokeshell: +$n pack token$(if ($n -gt 1) { 's' }) ($reason); balance $($r.balance)"
+      }
+      'open' {
+        if (-not $Args2) { throw "usage: pokeshell pack open <set> [--json] [--free]  (sets: $(@($boosters.sets | ForEach-Object id) -join ', '))" }
+        $set = Find-PokeshellBoosterSet $boosters $Args2[0]
+        Import-PokeshellBooster $State
+        $rng = if ($Opts.seed) { [Pokeshell.BoosterRng]::new([int]$Opts.seed) } else { $null }
+        if (-not $rng) { $rng = [Pokeshell.BoosterRng]::new() }
+        $free = Has @('free')
+        $res = Invoke-PokeshellTokenLocked $State {
+          $bal = Get-PokeshellTokenBalance $State
+          if (-not $free -and $bal -lt 1) { $e = [Exception]::new("no pack tokens (balance $bal): win a battle, or pokeshell pack grant 1 --reason <why>"); $e.Data['code'] = 'no-tokens'; throw $e }
+          $o = Open-PokeshellBooster $Root $State $pack $set $rng
+          if (-not $free) { [void](Add-PokeshellTokens $State -1 "opened $($set.id)" "set=$($set.id)`tpack=$($o.packId)") }
+          $o | Add-Member -NotePropertyName spent -NotePropertyValue ([int](-not $free))
+          $o | Add-Member -NotePropertyName tokens -NotePropertyValue (Get-PokeshellTokenBalance $State)
+          $o
+        }
+        $res | Add-Member -NotePropertyName imageRoot -NotePropertyValue (Join-Path $State 'web')
+        if (Has @('export')) {   # the pack is recorded already: a failed export is reported, not fatal
+          try { Invoke-BinderWeb -Quiet; $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
+          catch { $res | Add-Member -NotePropertyName exported -NotePropertyValue $false; $res | Add-Member -NotePropertyName exportError -NotePropertyValue $_.Exception.Message }
+        }
+        foreach ($c in @($res.cards)) {   # the image's full path once the web export has it (collection --json's `png`), else null
+          $f = Join-Path $res.imageRoot $c.image.Replace('/', '\')
+          $c | Add-Member -NotePropertyName png -NotePropertyValue $(if ([IO.File]::Exists($f)) { $f } else { $null })
+        }
+        if ($json) { Write-PokeshellBoosterJson $res; return }
+        Show-BoosterReveal $res $pack $set
+      }
+    }
+  } catch {
+    if (-not $json) { throw }
+    $code = if ($_.Exception.Data['code']) { $_.Exception.Data['code'] } else { 'error' }
+    Write-PokeshellBoosterJson ([ordered]@{ error = $_.Exception.Message; message = $_.Exception.Message; code = $code; tokens = (Get-PokeshellTokenBalance $State) })
+    exit 1
+  }
+}
+
+# `pack open` in a terminal: the pack's cards one after another, each in its normal card rendering, rarest last.
+# Interactive: a key shows the next card (s: straight to the summary); --delay <ms>: timed; redirected: no waits.
+function Show-BoosterReveal($Res, $Pack, $Set) {
+  $st = [string][char]0x2726; $tri = [string][char]0x25B8; $dot = [string][char]0xB7
+  $cards = @($Res.cards)
+  $interactive = -not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected -and -not $Opts.delay
+  $delay = if ($Opts.delay) { [int]$Opts.delay } else { 0 }
+  $revIx = $Pack.tierIndex['reverse-holo']
+  $hitColor = @{ 0 = 'DarkGray'; 1 = 'Gray'; 2 = 'Cyan'; 3 = 'Magenta'; 4 = 'Yellow'; 5 = 'Yellow' }
+  Write-Host ''
+  Write-Host "  $($Set.name) booster  $dot  $($cards.Count) cards$(if ($Res.spent) { "  $dot  1 pack token spent, $($Res.tokens) left" })" -ForegroundColor Cyan
+  $skip = $false
+  for ($i = 0; $i -lt $cards.Count; $i++) {
+    $c = $cards[$i]
+    $last = $i -eq $cards.Count - 1
+    if (-not $skip) {
+      $tease = switch ($c.hit) { { $_ -ge 5 } { "$st $st $st  the pack is blazing gold..." } 4 { "$st $st  something shimmers in every colour..." } 3 { "$st  a card glows..." } default { '' } }
+      if ($interactive) {
+        Write-Host -NoNewline ("  $tri card {0}/{1}{2}   (any key $dot s: skip) " -f ($i + 1), $cards.Count, $(if ($last) { ', the last one' }))
+        $k = [Console]::ReadKey($true); Write-Host ''
+        if ($k.KeyChar -eq 's') { $skip = $true }
+      } elseif ($delay) { Start-Sleep -Milliseconds $delay }
+      if (-not $skip -and $tease) { Write-Host "  $tease" -ForegroundColor $hitColor[[int]$c.hit]; if ($interactive -or $delay) { Start-Sleep -Milliseconds 700 } }
+    }
+    if ($skip) { continue }
+    $ti = $Pack.tierIndex[$c.tier]
+    $frame = if ($c.finish -eq 'reverse' -and $null -ne $revIx -and $c.fx -eq 'reverse') { $Pack.frames[$revIx] } else { $Pack.frames[$ti] }
+    $label = $c.tierLabel + $(if ($c.finish -eq 'reverse') { " $dot reverse holo" })
+    $Host.UI.Write([Pokeshell.Core]::PullText($Root, $Pack.id, $c.character, $c.name, $c.id, $label, $ti, [bool]$c.shiny, $frame, $c.number, $false))
+    $note = @(); if ($c.isNew) { $note += 'NEW!' }; if ($c.shiny) { $note += "shiny $st" }
+    Write-Host ("  {0}{1}" -f $(if ($note) { ($note -join '  ') + '  ' }), "$($c.slot) slot $dot 1 in $($c.oneIn) packs") -ForegroundColor $hitColor[[int]$c.hit]
+  }
+  Write-Host ''
+  Write-Host "  in this pack  (all caught, in your binder)" -ForegroundColor Cyan
+  foreach ($c in $cards) {
+    Write-Host ("  {0,-4} {1,-28} {2,-10} {3}{4}" -f $(if ($c.isNew) { 'NEW' } else { '' }), "$($c.name)$(if ($c.shiny) { " $st" })", $c.number, $c.tierLabel, $(if ($c.finish -eq 'reverse') { ' (reverse holo)' })) -ForegroundColor $hitColor[[int]$c.hit]
+  }
+  Write-Host ''
 }
 
 function Invoke-Display {
@@ -552,12 +696,18 @@ function Find-PokeshellPython {
 }
 
 # `binder --web`: rebuild the static web binder into <state>\web (about a second) and open it in the browser
-function Invoke-BinderWeb {
+function Invoke-BinderWeb([switch]$Quiet) {
   $py = Find-PokeshellPython
   if (-not $py) { throw "binder --web needs Python 3 with Pillow (py -3 -m venv .venv; .venv\Scripts\python -m pip install pillow), or set POKESHELL_PYTHON" }
   $out = Join-Path $State 'web'
   [void]@(Read-Pulls -All)
   $exe = $py[0]; $pre = @($py | Select-Object -Skip 1)
+  if ($Quiet) {   # pack open --export: only (re)write the export, nothing on stdout (it carries the JSON)
+    $ErrorActionPreference = 'Continue'   # the export's warnings on stderr aren't failures; its exit code is
+    & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out 2>&1 | Out-Null
+    if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
+    return
+  }
   & $exe @pre (Join-Path $Root 'tools\binder_web.py') --root $RuntimeRoot --state $State --out $out
   if ($LASTEXITCODE) { throw "the web export failed (exit $LASTEXITCODE)" }
   $page = Join-Path $out 'binder.html'
