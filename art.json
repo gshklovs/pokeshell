@@ -17,27 +17,27 @@
                                 ]
                   }
               ],
-    "tag":  "art-2026-09-29-4",
+    "tag":  "art-2026-09-29-5",
     "base_url":  "https://github.com/gshklovs/pokeshell-art/releases/download",
     "assets":  [
                    {
                        "pack":  "pokemon",
                        "part":  "still",
-                       "name":  "pokemon-still-art-2026-09-29-4.zip",
-                       "sha256":  "6e20479a800dd985a0ce9c886c24f33b6d091fcc36304fd78c9caeba07174a40",
-                       "size":  9874825,
-                       "files":  1721,
-                       "cards":  902,
+                       "name":  "pokemon-still-art-2026-09-29-5.zip",
+                       "sha256":  "c4f694a85fd02d4aac3e9bc76372ed67be9f88efc062ef075b87d2e237b85332",
+                       "size":  12309375,
+                       "files":  2280,
+                       "cards":  1183,
                        "optional":  false
                    },
                    {
                        "pack":  "pokemon",
                        "part":  "anim",
-                       "name":  "pokemon-anim-art-2026-09-29-4.zip",
-                       "sha256":  "b9e5ddfd3bdca778ef2e91f743d1821aa61011865c200f9e288b68866a0ca3b6",
-                       "size":  161496579,
-                       "files":  897,
-                       "cards":  490,
+                       "name":  "pokemon-anim-art-2026-09-29-5.zip",
+                       "sha256":  "5e6d1318f934097a01b99863956583a506ce1ec58608887dd589fb9fd5a07762",
+                       "size":  198848556,
+                       "files":  1114,
+                       "cards":  600,
                        "optional":  true
                    }
                ]
