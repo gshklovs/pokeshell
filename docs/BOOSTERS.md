@@ -36,7 +36,9 @@ The data is `packs/pokemon/boosters.json`; the roll is `scripts/lib/booster.ps1`
 
 ### `pack open --json`
 
-stdout is one line of JSON, ASCII only (anything else as `\uXXXX`):
+stdout is one line of JSON with the conventions of the other JSON commands (README "For other tools",
+`scripts/lib/jsonapi.ps1`, where `version --json` lists these commands): ASCII only (anything else as `\uXXXX`), and on
+a failure `{"error": ...}` with exit code 1:
 
 ```json
 { "set": "swsh7", "setName": "Evolving Skies", "packId": "01M3QTARN56Q9RD141B01M770D", "secure": true,
@@ -69,8 +71,10 @@ stdout is one line of JSON, ASCII only (anything else as `\uXXXX`):
 - `image`: the card's picture in the web export, relative to `imageRoot` (`<state>\web`, what `binder --web` writes;
   `img/<pack>/<character>/<card id>[-shiny].png`, 1 px per art pixel: scale it with `image-rendering: pixelated`). Run
   with `--export` (or `pokeshell binder --web`) to make sure it exists.
+- `png`: the image's full path once the web export has it (as in `collection --json`), else `null`.
 - `pullId`: the card's pull id in `pulls.log`.
-- Errors (with `--json`): `{ "error": "...", "code": "no-tokens" | "error", "tokens": n }` and exit code 1.
+- Errors (with `--json`): `{ "error": "...", "code": "no-tokens" | "error", "tokens": n }` and exit code 1 (`code` and
+  `tokens` are added to the usual `{"error"}`).
 
 `pack sets --json` is `{ pack, tokens, sets: [{ id, name, series, released, cardSets, cards, inPack, printed,
 packSize, realPackSize, openable, art: { colors, accent, hero, motif }, hero, slots: [{ id, count, finish }] }] }`.
@@ -256,7 +260,7 @@ Printed pack: **11 cards: 7 common, 3 uncommon, 1 rare**; no reverse holos. Rare
 knowledge). Neo's basic Energy aren't served, and where they fell in the pack isn't documented.
 
 ### Lost Origin (swsh11) + Trainer Gallery (swsh11tg)
-Described now; it opens once Lost Origin's cards are in `pack.json` (its branch is being built). Printed pack: 10
+Printed pack: 10
 cards + code + basic Energy or VSTAR marker: **5 common, 3 uncommon, the reverse-holo slot, 1 rare**.
 
 | slot | outcome | rate |
@@ -281,11 +285,12 @@ in 114); the table's figures are used.
 
 ## Monte Carlo
 
-`tests/test-boosters.ps1` rolls **20,000 packs of every openable set** (seeded) plus 20,000 Evolving Skies packs from
+`tests/test-boosters.ps1` rolls **20,000 packs of each of the 8 sets** (seeded) plus 20,000 Evolving Skies packs from
 the CSPRNG, and checks every outcome's frequency against the probability the model rolls, within 4.5 binomial
 standard deviations (it writes every row to `%TEMP%\pokeshell-booster-montecarlo.tsv`). A 20,000-pack run takes
 30-130 ms per set. The worst deviation per set on the last run: Evolving Skies 1.75 sigma, 30th Celebration 0.70,
-Crown Zenith 2.46, Hidden Fates 0.92, Base Set 0.81, Brilliant Stars 2.42, Neo Genesis 0.25; the CSPRNG run 0.8-1.7.
+Crown Zenith 2.46, Hidden Fates 0.92, Base Set 0.81, Brilliant Stars 2.42, Neo Genesis 0.25, Lost Origin 1.99; the
+CSPRNG runs 0.8-2.1.
 Some of the rare-slot rows (expected, observed over 20,000 packs):
 
 | set | slot | outcome | expected | observed |

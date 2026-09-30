@@ -81,8 +81,7 @@ Assert (-not $bad) "each served card keeps its published per-pack odds; the unse
 $evs = $models['swsh7']
 $gold = @(for ($o = 0; $o -lt $evs.slots[3].Outcomes.Count; $o++) { if ($evs.meta[3][$o].label -eq 'gold') { $evs.slots[3].Probability($o) } })[0]
 Assert ([math]::Abs($gold - 0.0091 * 3 / 12) -lt 1e-9) "Evolving Skies gold: 0.91% a pack x 3 of 12 printed golds served = $([math]::Round(100 * $gold, 3))%"
-$lor = $sets | Where-Object id -eq 'swsh11'
-Assert (-not $models['swsh11'].cards.Count) "Lost Origin is described but has no served cards yet (it can't be opened)"
+Assert ($models['swsh11'].cards.Count -gt 150) "Lost Origin + Trainer Gallery can be opened ($($models['swsh11'].cards.Count) served cards)"
 
 Write-Host "2. the structure: 200 seeded packs of each openable set" -ForegroundColor Cyan
 foreach ($s in $open) {
@@ -166,10 +165,12 @@ $j2 = (Invoke-Cli $s1 'pack' 'open' 'swsh7' '--json' '--free' '--seed' '11') | C
 Assert ((@($j2.cards.id) -join ',') -eq (@($j.cards.id) -join ',') -and -not @($j2.cards | Where-Object isNew)) "the same pack again: nothing is NEW any more"
 $txt = Invoke-Cli $s1 'pack' 'open' 'base' '--free'
 Assert ($txt -match 'Base Set booster' -and $txt -match 'in this pack' -and ([regex]::Matches($txt, [string][char]0x2580)).Count -ge 9) "open base in a terminal: every card rendered, then the summary"
-$err = (Invoke-Cli $s1 'pack' 'open' 'lost' '--json' '--free') | ConvertFrom-Json
-Assert ($script:LastExit -eq 1 -and $err.error -match 'no cards') "a set with no served cards: a JSON error, exit 1"
+$err = (Invoke-Cli $s1 'pack' 'open' 'nosuchset' '--json' '--free') | ConvertFrom-Json
+Assert ($script:LastExit -eq 1 -and $err.error -match 'no booster') "an unknown set: a JSON error, exit 1"
+$v = (Invoke-Cli $s1 'version' '--json') | ConvertFrom-Json
+Assert (@('pack sets --json', 'pack odds --json', 'pack open --json', 'pack grant --json', 'pack tokens --json' | Where-Object { @($v.commands) -notcontains $_ }).Count -eq 0) "version --json lists the pack commands"
 $ls = (Invoke-Cli $s1 'pack' 'sets' '--json') | ConvertFrom-Json
-Assert (@($ls.sets).Count -eq $sets.Count -and ($ls.sets | Where-Object id -eq 'swsh7').cards -eq 193 -and -not ($ls.sets | Where-Object id -eq 'swsh11').openable -and ($ls.sets | Where-Object id -eq 'swsh7').hero -like 'img/pokemon/*') "pack sets --json: every set, card counts, openable, art hints"
+Assert (@($ls.sets).Count -eq $sets.Count -and ($ls.sets | Where-Object id -eq 'swsh7').cards -eq 193 -and ($ls.sets | Where-Object id -eq 'swsh11').openable -and ($ls.sets | Where-Object id -eq 'swsh7').hero -like 'img/pokemon/*') "pack sets --json: every set, card counts, openable, art hints"
 
 Write-Host "5. pack tokens" -ForegroundColor Cyan
 $s2 = Join-Path $fx 's2'; [void][IO.Directory]::CreateDirectory($s2)

@@ -16,7 +16,7 @@ half, an uncaught card's moveset stays hidden.
 $PokeshellJsonApi = 1
 # the JSON commands this pokeshell answers (version --json lists them; add new ones here)
 $PokeshellJsonCommands = [Collections.Generic.List[string]]::new()
-foreach ($c in 'version --json', 'collection --json') { $PokeshellJsonCommands.Add($c) }
+foreach ($c in 'version --json', 'collection --json', 'pack sets --json', 'pack odds --json', 'pack open --json', 'pack grant --json', 'pack tokens --json') { $PokeshellJsonCommands.Add($c) }
 
 # a JSON string literal (null for $null). HttpUtility.JavaScriptStringEncode is in .NET Framework (System.Web) and in
 # .NET (System.Web.HttpUtility), so in both editions; a .NET call is cheap in a loop, a PowerShell function isn't. It

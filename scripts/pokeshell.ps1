@@ -257,11 +257,10 @@ function Invoke-Pack {
 }
 
 # ---------------------------------------------------------------- real booster packs (lib\booster.ps1, docs\BOOSTERS.md)
-# JSON on stdout, ASCII only (non-ASCII as \uXXXX), so any caller's pipe decoding reads it right
-function Write-PokeshellJson($Obj) {
-  $j = ConvertTo-Json -InputObject $Obj -Depth 8 -Compress
-  $j = [regex]::Replace($j, '[^\x00-\x7F]', { param($m) '\u{0:x4}' -f [int][char]$m.Value })
-  [Console]::Out.WriteLine($j)
+# lib\jsonapi.ps1's conventions: one document on stdout, ASCII only (\uXXXX), {"error": ...} and exit 1 on a failure
+function Write-PokeshellBoosterJson($Obj) {
+  if (-not (Get-Command ConvertTo-PokeshellAsciiJson -ErrorAction SilentlyContinue)) { . (Join-Path $PSScriptRoot 'lib\jsonapi.ps1') }
+  Write-PokeshellJson (ConvertTo-Json -InputObject $Obj -Depth 8 -Compress)
 }
 
 function Invoke-Booster([string]$Sub, [string[]]$Args2) {
@@ -272,7 +271,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
     switch ($Sub) {
       'sets' {
         $sets = @(Get-PokeshellBoosterSets $Root $pack $boosters)
-        if ($json) { Write-PokeshellJson ([ordered]@{ pack = $pack.id; tokens = (Get-PokeshellTokenBalance $State); sets = $sets }); return }
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ pack = $pack.id; tokens = (Get-PokeshellTokenBalance $State); sets = $sets }); return }
         Write-Host ''
         Write-Host "Real booster packs  (pokeshell pack open <set>; you have $(Get-PokeshellTokenBalance $State) pack tokens)" -ForegroundColor Cyan
         $sets | ForEach-Object { [pscustomobject]@{ set = $_.id; name = $_.name; series = $_.series; released = $_.released
@@ -292,7 +291,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
               base = $om.base; probability = [math]::Round($pr, 6); oneIn = $(if ($pr -gt 0) { [math]::Round(1 / $pr, 1) } else { $null }) }
           }
         }
-        if ($json) { Write-PokeshellJson ([ordered]@{ set = $set.id; name = $set.name; cards = $m.cards.Count; outcomes = @($rows) }); return }
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ set = $set.id; name = $set.name; cards = $m.cards.Count; outcomes = @($rows) }); return }
         Write-Host ''
         Write-Host "$($set.name) booster: $($set.realPack)" -ForegroundColor Cyan
         Write-Host "  published per-pack rate, printed cards, the ones we serve, and the odds we roll (base = takes the unserved share)" -ForegroundColor DarkGray
@@ -302,7 +301,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
       }
       'tokens' {
         $lines = @(Get-PokeshellTokenLines $State); $bal = 0; foreach ($t in $lines) { $bal += $t.delta }
-        if ($json) { Write-PokeshellJson ([ordered]@{ balance = $bal; recent = @($lines | Select-Object -Last 20) }); return }
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ balance = $bal; recent = @($lines | Select-Object -Last 20) }); return }
         Write-Host "pack tokens: $bal"
         foreach ($t in ($lines | Select-Object -Last 10)) { Write-Host ("  {0}  {1,3}  {2}{3}" -f $t.time.Replace('T', ' '), $(if ($t.delta -gt 0) { "+$($t.delta)" } else { $t.delta }), $t.reason, $(if ($t.set) { "  ($($t.set))" })) -ForegroundColor DarkGray }
       }
@@ -311,7 +310,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
         if (-not $Args2 -or -not [int]::TryParse($Args2[0], [ref]$n) -or $n -lt 1 -or $n -gt 1000) { throw 'usage: pokeshell pack grant <n (1-1000)> --reason <text> [--json]' }
         $reason = if ($Opts.reason) { $Opts.reason } else { 'granted' }
         $r = Invoke-PokeshellTokenLocked $State { $id = Add-PokeshellTokens $State $n $reason; [ordered]@{ granted = $n; reason = $reason; id = $id; balance = (Get-PokeshellTokenBalance $State) } }
-        if ($json) { Write-PokeshellJson $r; return }
+        if ($json) { Write-PokeshellBoosterJson $r; return }
         Write-Host "pokeshell: +$n pack token$(if ($n -gt 1) { 's' }) ($reason); balance $($r.balance)"
       }
       'open' {
@@ -332,14 +331,18 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
         }
         $res | Add-Member -NotePropertyName imageRoot -NotePropertyValue (Join-Path $State 'web')
         if (Has @('export')) { Invoke-BinderWeb -Quiet; $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
-        if ($json) { Write-PokeshellJson $res; return }
+        foreach ($c in @($res.cards)) {   # the image's full path once the web export has it (collection --json's `png`), else null
+          $f = Join-Path $res.imageRoot $c.image.Replace('/', '\')
+          $c | Add-Member -NotePropertyName png -NotePropertyValue $(if ([IO.File]::Exists($f)) { $f } else { $null })
+        }
+        if ($json) { Write-PokeshellBoosterJson $res; return }
         Show-BoosterReveal $res $pack $set
       }
     }
   } catch {
     if (-not $json) { throw }
     $code = if ($_.Exception.Data['code']) { $_.Exception.Data['code'] } else { 'error' }
-    Write-PokeshellJson ([ordered]@{ error = $_.Exception.Message; code = $code; tokens = (Get-PokeshellTokenBalance $State) })
+    Write-PokeshellBoosterJson ([ordered]@{ error = $_.Exception.Message; code = $code; tokens = (Get-PokeshellTokenBalance $State) })
     exit 1
   }
 }

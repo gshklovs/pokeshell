@@ -213,7 +213,7 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 |---|---|
 | `pokeshell pack [<pack>\|all]` | show or choose the pack new tabs pull from |
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
-| `pokeshell pack open <set> [--json] [--free]` | open one **real booster pack** of a set (Evolving Skies, 30th Celebration, Crown Zenith, Hidden Fates, Base Set, Brilliant Stars, Neo Genesis): the printed slot layout rolled with published pull rates, revealed card by card, rarest last; every card goes into your binder, caught. Costs a pack token unless `--free`. `--json` for programs. Details, sources and odds: [docs/BOOSTERS.md](docs/BOOSTERS.md) |
+| `pokeshell pack open <set> [--json] [--free]` | open one **real booster pack** of a set (Evolving Skies, 30th Celebration, Crown Zenith, Hidden Fates, Base Set, Brilliant Stars, Neo Genesis, Lost Origin): the printed slot layout rolled with published pull rates, revealed card by card, rarest last; every card goes into your binder, caught. Costs a pack token unless `--free`. `--json` for programs. Details, sources and odds: [docs/BOOSTERS.md](docs/BOOSTERS.md) |
 | `pokeshell pack sets` / `pack odds <set>` | the boosters you can open; one booster's slots and odds |
 | `pokeshell pack grant <n> --reason <text>` / `pack tokens` | add pack tokens (what a game that awards packs calls); the balance |
 | `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on the last card you caught; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set>` (a set's checklist, by id or name: `swsh7`, `evolving`, `30th`), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
@@ -246,6 +246,10 @@ another state folder. `api` goes up when a shape changes incompatibly; fields ar
   carddata, webExport, commands, features}`. `root` is the checkout or module folder, `runtimeRoot` is where new
   tabs run from, and `state` is the state folder. `packs` lists the pack ids, `carddata` the packs that ship gameplay
   data, `webExport` is the `binder --web` folder (or `null`), and `commands` lists the JSON commands this version answers.
+- **`pokeshell pack sets --json`, `pack odds <set> --json`, `pack open <set> --json [--free] [--export]`,
+  `pack grant <n> --reason <text> --json`, `pack tokens --json`**: real booster packs and the pack-token ledger. `pack
+  open` records the pack's cards as caught and prints `{set, packId, cards: [{id, name, rarity, tier, slot, shiny,
+  isNew, image, png, fx, hit, ...}], tokens}` in reveal order, rarest last. Shapes and odds: [docs/BOOSTERS.md](docs/BOOSTERS.md).
 - **`pokeshell collection --json [--pack <id>]`**: your real cards, with the binders' rule (a card is **caught** once
   one of its pulls is earned, and **seen** when it was pulled but never earned; pulls of retired or unbuilt art are
   left out). `{api, version, state, pack, counts: {caught, seen, pulls, shiny}, cards: [...], seen: [...]}`:
