@@ -41,22 +41,9 @@ function Find-PokeshellBoosterSet($Boosters, [string]$Want) {
   throw "no booster '$Want' (pokeshell pack sets lists them: $(($sets | ForEach-Object id) -join ', '))"
 }
 
-# The effect family the opening scene (and the terminal reveal) shows for a card: a tier's default, an outcome's
-# "fx" overrides it, a reverse-holo slot makes a non-foil card "reverse". "hit" (0-5) is how big the reveal is.
-$script:BoosterFx = @{
-  'common' = 'plain'; 'uncommon' = 'plain'; 'rare' = 'plain'
-  'rare-holo' = 'holo'; 'promo' = 'holo'; 'trainer-gallery-rare-holo' = 'holo'; 'pikachu-rare' = 'holo'
-  'rare-holo-v' = 'holo'; 'rare-holo-vmax' = 'holo'; 'rare-holo-vstar' = 'holo'; 'rare-holo-gx' = 'holo'; 'rare-holo-ex' = 'holo'
-  'double-rare' = 'holo'; 'rare-holo-lv-x' = 'holo'; 'rare-prime' = 'holo'; 'rare-break' = 'holo'; 'legend' = 'holo'
-  'rare-holo-star' = 'holo'; 'rare-prism-star' = 'holo'; 'ace-spec-rare' = 'holo'; 'futuristic-rare' = 'holo'
-  'rare-ultra' = 'full-art'; 'ultra-rare' = 'full-art'; 'illustration-rare' = 'full-art'
-  'special-illustration-rare' = 'alt-art'
-  'rare-rainbow' = 'rainbow'; 'shiny-ultra-rare' = 'rainbow'
-  'rare-secret' = 'gold'; 'hyper-rare' = 'gold'
-  'radiant-rare' = 'radiant'; 'amazing-rare' = 'radiant'; 'rare-shining' = 'radiant'
-  'rare-shiny' = 'shiny'; 'rare-shiny-gx' = 'shiny'; 'shiny-rare' = 'shiny'
-}
-$script:BoosterHit = @{ plain = 0; reverse = 1; holo = 2; 'full-art' = 3; radiant = 3; shiny = 3; 'alt-art' = 4; rainbow = 4; gold = 5 }
+# The effect family the opening scene (and the terminal reveal) shows for a card and how big the reveal is ("hit",
+# 0-5) are Booster.cs's (Booster.Fx / Booster.Hit): a tier's default, an outcome's "fx" overrides it, a reverse-holo
+# slot makes a non-foil card "reverse".
 
 function Test-PokeshellCardMatch($Card, $Pick, [string[]]$DefaultSets) {
   $sets = if ($Pick.sets) { @($Pick.sets) } else { $DefaultSets }
@@ -126,6 +113,88 @@ function Get-PokeshellBoosterModel([string]$Root, $Pack, $Set) {
   [pscustomobject]@{ set = $Set; cards = $cards; slots = $slots.ToArray(); meta = $meta }
 }
 
+# ---------------------------------------------------------------- the booster index (Booster.cs BoosterIndex)
+<#
+Every set's model, resolved once into <state>\booster-index-<pack>.tsv, so `pack open` never parses pack.json (half a
+second in PowerShell 5.1): an open loads the index and rolls in C#. The stamp is what the models depend on: the root,
+pack.json, boosters.json, the art folder (a card whose art is built or removed changes its time) and this code. A
+stale or missing index is rebuilt here, once (a second or two), then reused.
+#>
+function Get-PokeshellBoosterIndexStamp([string]$Root, [string]$PackId = 'pokemon') {
+  $p = @('v1', $Root.TrimEnd('\').ToLowerInvariant())
+  foreach ($f in (Join-Path $Root "packs\$PackId\pack.json"), (Join-Path $Root "packs\$PackId\boosters.json"), (Join-Path $PSScriptRoot 'booster.ps1'), (Join-Path $PSScriptRoot 'Booster.cs')) {
+    $fi = [IO.FileInfo]::new($f); $p += $(if ($fi.Exists) { "$($fi.LastWriteTimeUtc.Ticks),$($fi.Length)" } else { '-' })
+  }
+  $d = Join-Path $Root "dist\$PackId"
+  $p += $(if ([IO.Directory]::Exists($d)) { [IO.Directory]::GetLastWriteTimeUtc($d).Ticks } else { '-' })
+  $p -join '|'
+}
+
+function Get-PokeshellBoosterIndex([string]$Root, [string]$StateDir, $Pack, $Boosters, [string]$PackId = 'pokemon') {
+  Import-PokeshellBooster $StateDir
+  $stamp = Get-PokeshellBoosterIndexStamp $Root $PackId
+  if ($script:BoosterIndex -and $script:BoosterIndex.Stamp -eq $stamp) { return , $script:BoosterIndex }
+  $file = Join-Path $StateDir "booster-index-$PackId.tsv"
+  $x = [Pokeshell.BoosterIndex]::Load($file, $stamp)
+  if (-not $x) {
+    if (-not $Pack) { $Pack = Read-PokeshellPack $Root $PackId }
+    if (-not $Boosters) { $Boosters = Read-PokeshellBoosters $Root $PackId }
+    $x = New-PokeshellBoosterIndex $Root $Pack $Boosters
+    $x.Stamp = $stamp
+    try { [void][IO.Directory]::CreateDirectory($StateDir); $x.Save($file) } catch { }   # (can't write it: rebuilt next time)
+  }
+  $script:BoosterIndex = $x
+  , $x
+}
+
+function New-PokeshellBoosterIndex([string]$Root, $Pack, $Boosters) {
+  $x = [Pokeshell.BoosterIndex]::new()
+  $x.Pack = $Pack.id; $x.ShinyChance = [double]$Pack.shiny_chance
+  $x.PriceExponent = [double]$(if ($null -ne $Boosters.priceExponent) { $Boosters.priceExponent } else { 1 })
+  $tiers = @($Pack.tiers)
+  for ($i = 0; $i -lt $tiers.Count; $i++) { if ($tiers[$i].shiny -eq 'printed') { [void]$x.PrintedShinyTiers.Add($i) } }
+  # every built card (one folder listing, not a test per card): pull resolution sees them all
+  $files = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+  $dist = Join-Path $Root "dist\$($Pack.id)"
+  if ([IO.Directory]::Exists($dist)) { foreach ($f in [IO.Directory]::GetFiles($dist, '*.ans')) { [void]$files.Add([IO.Path]::GetFileName($f)) } }
+  foreach ($c in $Pack.cardList) {
+    if (-not $files.Contains("$($c.character)-$($c.id).ans")) { continue }
+    $bc = [Pokeshell.BoosterCard]::new()
+    $bc.Id = $c.id; $bc.Character = $c.character; $bc.Name = $c.name; $bc.Number = $c.tag; $bc.Tier = $c.tier; $bc.TierId = $c.tierId
+    $bc.TierLabel = [string]$tiers[$c.tier].label; $bc.ShinyArt = $files.Contains("$($c.character)-$($c.id)-shiny.ans")
+    [void]$x.AddCard($bc)
+  }
+  foreach ($k in $Pack.retired.Keys) { if ($Pack.retired[$k]) { $x.Retired[$k] = $Pack.retired[$k] } }
+  foreach ($s in @($Boosters.sets)) {
+    $m = Get-PokeshellBoosterModel $Root $Pack $s
+    $bs = [Pokeshell.BoosterSet]::new()
+    $bs.Id = $s.id; $bs.Name = $s.name; $bs.Aliases = [string[]]@(@($s.aliases) | Where-Object { $_ } | ForEach-Object { "$_".ToLowerInvariant() })
+    $bs.Price = [double]$(if ($s.price) { $s.price } else { 0 }); $bs.Cards = $m.cards.Count
+    # the model's pools index its own card list: point them at the index's table (and give those cards their rarity)
+    $map = [int[]]::new($m.cards.Count)
+    for ($i = 0; $i -lt $m.cards.Count; $i++) {
+      $c = $m.cards[$i]; $g = $x.ById[$c.id]
+      $x.Cards[$g].Rarity = $c.rarity; $x.Cards[$g].SetName = $c.set; $map[$i] = $g
+    }
+    $meta = [Pokeshell.BoosterOutcomeMeta[][]]::new($m.slots.Count)
+    for ($i = 0; $i -lt $m.slots.Count; $i++) {
+      foreach ($o in $m.slots[$i].Outcomes) { $o.Pool = [int[]]@(foreach ($p in $o.Pool) { $map[$p] }) }
+      $meta[$i] = [Pokeshell.BoosterOutcomeMeta[]]@(foreach ($om in $m.meta[$i]) {
+        $bm = [Pokeshell.BoosterOutcomeMeta]::new()
+        $bm.Label = $om.label; $bm.Fx = $om.fx; $bm.Rate = $om.rate; $bm.Printed = $om.printed; $bm.Served = $om.served; $bm.Base = $om.base
+        $bm })
+    }
+    $bs.Slots = $m.slots; $bs.Meta = $meta
+    $x.Sets.Add($bs)
+  }
+  , $x
+}
+
+# a set of the index by id, alias or name (Find-PokeshellBoosterSet's rule): its index; the error is the message alone
+function Find-PokeshellBoosterSetIndex($Index, [string]$Want) {
+  try { $Index.FindSet($Want) } catch { throw $(if ($_.Exception.InnerException) { $_.Exception.InnerException.Message } else { $_.Exception.Message }) }
+}
+
 # ---------------------------------------------------------------- the ledger: pack tokens (tokens.log)
 <#
 <state>\tokens.log, append-only TSV, one line per change:  time  delta  reason  id=<ulid>  [set=<set> pack=<pack id>]
@@ -143,7 +212,14 @@ function Get-PokeshellTokenLines([string]$StateDir) {
     [pscustomobject]@{ time = $x[0]; delta = $d; reason = $x[2]; id = $kv['id']; set = $kv['set']; pack = $kv['pack'] }
   })
 }
-function Get-PokeshellTokenBalance([string]$StateDir) { $b = 0; foreach ($t in Get-PokeshellTokenLines $StateDir) { $b += $t.delta }; $b }
+# (Get-PokeshellTokenLines' rule, without building the line objects: pack open asks twice)
+function Get-PokeshellTokenBalance([string]$StateDir) {
+  $f = Join-Path $StateDir 'tokens.log'
+  if (-not [IO.File]::Exists($f)) { return 0 }
+  $b = 0; $d = 0
+  foreach ($l in [IO.File]::ReadAllLines($f, [Text.Encoding]::UTF8)) { $x = $l.Split("`t"); if ($x.Count -ge 3 -and [int]::TryParse($x[1], [ref]$d)) { $b += $d } }
+  $b
+}
 
 function Invoke-PokeshellTokenLocked([string]$StateDir, [scriptblock]$Block) {
   $h = [BitConverter]::ToString([Security.Cryptography.MD5]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($StateDir.ToLower()))).Replace('-', '')
@@ -166,74 +242,58 @@ function Add-PokeshellTokens([string]$StateDir, [int]$Delta, [string]$Reason, [s
 }
 
 # ---------------------------------------------------------------- opening one pack
-# card ids you have caught (earned pulls, resolved the way the binders do)
-function Get-PokeshellCaughtCards([string]$StateDir, $Pack) {
-  $set = @{}
-  foreach ($r in [Pokeshell.Core]::ReadPulls($StateDir, [DateTime]::UtcNow.Ticks, [Pokeshell.Core]::BootId())) {
-    if ($r.Status -ne 'earned' -or $r.Pack -ne $Pack.id) { continue }
-    $c = Resolve-PokeshellPull $Pack $r.Character $r.Tier $r.Art
-    if ($c -and $c -ne 'legacy') { $set[$c.id] = $true }
-  }
-  $set
-}
-
 <#
-Roll one pack of $Set, record every card into pulls.log (caught at once: a pack is already earned) and return the
-result: { set, packId, cards: [...] } with the cards in reveal order (rarest last). -NoRecord: roll only.
+Roll one pack of $Set (a set object, its id / alias / name, or its index in the booster index), record every card into
+pulls.log (caught at once: a pack is already earned) and return the result: { set, setName, setChance, setOneIn,
+random, packId, secure, cards: [...] } with the cards in reveal order (rarest last). -NoRecord: roll only. The roll is
+Booster.cs's (BoosterIndex + Booster.Open); -Random marks a set that `pack open random` chose.
 #>
-function Open-PokeshellBooster([string]$Root, [string]$StateDir, $Pack, $Set, $Rng, [switch]$NoRecord) {
+function Open-PokeshellBooster([string]$Root, [string]$StateDir, $Pack, $Set, $Rng, [switch]$NoRecord, $Index, [switch]$Random) {
   Import-PokeshellBooster $StateDir
-  $m = Get-PokeshellBoosterModel $Root $Pack $Set
-  if (-not $m.cards.Count) { throw "no cards of $($Set.name) are served yet (its art isn't built), so it can't be opened" }
+  $packId = if ($Pack -is [string]) { $Pack } elseif ($Pack) { $Pack.id } else { 'pokemon' }
+  if (-not $Index) { $Index = Get-PokeshellBoosterIndex $Root $StateDir -Pack $(if ($Pack -isnot [string]) { $Pack }) -PackId $packId }
+  $si = if ($Set -is [int]) { $Set } else { Find-PokeshellBoosterSetIndex $Index $(if ($Set -is [string]) { $Set } else { [string]$Set.id }) }
+  $bs = $Index.Sets[$si]
+  if (-not $bs.Openable) { throw "no cards of $($bs.Name) are served yet (its art isn't built), so it can't be opened" }
   if (-not $Rng) { $Rng = [Pokeshell.BoosterRng]::new() }
-  $picks = [Pokeshell.Booster]::Roll($m.slots, $Rng)
-  $caught = Get-PokeshellCaughtCards $StateDir $Pack
-  $shinyChance = [double]$Pack.shiny_chance
-  $printedShiny = @{}; for ($i = 0; $i -lt @($Pack.tiers).Count; $i++) { if ($Pack.tiers[$i].shiny -eq 'printed') { $printedShiny[$i] = $true } }
   $now = [DateTime]::UtcNow.Ticks
-  $packId = [Pokeshell.Core]::NewPullId($now)
-  $stamp = [DateTime]::new($now, [DateTimeKind]::Utc).ToLocalTime().ToString('s', [Globalization.CultureInfo]::InvariantCulture)
-  $boot = [Pokeshell.Core]::BootId()
-  $n = 0
-  $out = foreach ($p in $picks) {
-    $c = $m.cards[$p.Card]; $om = $m.meta[$p.Slot][$p.Outcome]
-    $roll = $Rng.NextDouble()   # always drawn, so a seeded pack stays in step
-    $shiny = $roll -lt $shinyChance -and -not $printedShiny[$c.tier] -and [IO.File]::Exists((Join-Path $Root "dist\$($Pack.id)\$($c.character)-$($c.id)-shiny.ans"))
-    $fx = if ($om.fx) { $om.fx } elseif ($script:BoosterFx.ContainsKey($c.tierId)) { $script:BoosterFx[$c.tierId] } else { 'holo' }
-    if ($p.Finish -ne 'normal' -and $fx -eq 'plain') { $fx = 'reverse' }   # a foil print of a non-foil card (reverse holo, 30th's foil commons)
-    $hit = $script:BoosterHit[$fx]; if ($fx -eq 'plain' -and $c.tierId -eq 'rare') { $hit = 1 }   # the rare slot's floor still comes last
-    if ($shiny) { $hit = [math]::Min(5, $hit + 1) }
-    $prob = $m.slots[$p.Slot].Probability($p.Outcome)
-    $isNew = -not $caught[$c.id]; $caught[$c.id] = $true   # a second copy in the same pack isn't new
+  $caught = [Pokeshell.Booster]::Caught($Index, [Pokeshell.Core]::ReadPulls($StateDir, $now, [Pokeshell.Core]::BootId()))
+  $picks = [Pokeshell.Booster]::Open($Index, $si, $Rng, $caught)
+  $packUid = [Pokeshell.Core]::NewPullId($now)
+  $cards = foreach ($c in $picks) {
     [pscustomobject][ordered]@{
-      id = $c.id; name = $c.name; number = $c.number; rarity = $c.rarity; tier = $c.tierId; tierLabel = $Pack.tiers[$c.tier].label
-      slot = $p.SlotId; outcome = $p.Label; finish = $p.Finish; fx = $fx; hit = $hit; shiny = [bool]$shiny; isNew = $isNew
-      oneIn = $(if ($prob -gt 0) { [math]::Round(1 / $prob, 1) } else { 0 })
-      character = $c.character; setName = $c.set
-      image = "img/$($Pack.id)/$($c.character)/$($c.id)$(if ($shiny) { '-shiny' }).png"
-      order = $n++; tierIndex = $c.tier; pullId = ''
-      card = $c.id; pull = ''   # the arena SPEC's names for id / pullId (docs/arena SPEC: pokeshell pack open)
+      id = $c.Id; name = $c.Name; number = $c.Number; rarity = $c.Rarity; tier = $c.Tier; tierLabel = $c.TierLabel
+      slot = $c.Slot; outcome = $c.Outcome; finish = $c.Finish; fx = $c.Fx; hit = $c.Hit; shiny = $c.Shiny; isNew = $c.IsNew
+      oneIn = $c.OneIn; character = $c.Character; setName = $c.SetName; image = $c.Image; pullId = ''
+      card = $c.Id; pull = ''   # the arena SPEC's names for id / pullId (docs/arena SPEC: pokeshell pack open)
     }
   }
-  # reveal order, rarest last: by the odds of the kind of hit (the outcome's per-pack chance, lower = later), then
-  # the effect, then the slot order printed packs have (commons first, rare at the back)
-  $sorted = @($out | Sort-Object @{ e = { $_.hit + $(if ($_.shiny) { 0.5 } else { 0 }) } }, @{ e = { $_.oneIn } }, @{ e = { $_.order } })
   if (-not $NoRecord) {
-    $lines = foreach ($x in $sorted) {
+    $stamp = [DateTime]::new($now, [DateTimeKind]::Utc).ToLocalTime().ToString('s', [Globalization.CultureInfo]::InvariantCulture)
+    $boot = [Pokeshell.Core]::BootId()
+    $lines = foreach ($x in $cards) {
       $x.pullId = [Pokeshell.Core]::NewPullId($now); $x.pull = $x.pullId
       # a caught pull (no "pending" flag): pulls.log's columns, plus where it came from
-      "$stamp`t$($Pack.id)`t$($x.character)`t$($x.tier)`t$($x.id)`t`t$(if ($x.shiny) { '1' } else { '0' })`tbooster:$($Set.id)`tid=$($x.pullId)`tboot=$boot`tcard=$($x.id)`tbooster=$packId`tslot=$($x.slot)`tfinish=$($x.finish)"
+      "$stamp`t$($Index.Pack)`t$($x.character)`t$($x.tier)`t$($x.id)`t`t$(if ($x.shiny) { '1' } else { '0' })`tbooster:$($bs.Id)`tid=$($x.pullId)`tboot=$boot`tcard=$($x.id)`tbooster=$packUid`tslot=$($x.slot)`tfinish=$($x.finish)"
     }
     [void][IO.Directory]::CreateDirectory($StateDir)
     [IO.File]::AppendAllText((Join-Path $StateDir 'pulls.log'), (($lines -join "`r`n") + "`r`n"), [Text.UTF8Encoding]::new($false))
   }
-  foreach ($x in $sorted) { $x.PSObject.Properties.Remove('order'); $x.PSObject.Properties.Remove('tierIndex') }
-  [pscustomobject][ordered]@{ set = $Set.id; setName = $Set.name; packId = $packId; secure = $Rng.Secure; cards = $sorted }
+  $chance = $Index.SetChances()[$si]
+  [pscustomobject][ordered]@{
+    set = $bs.Id; setName = $bs.Name
+    setChance = [math]::Round($chance, 6); setOneIn = $(if ($chance -gt 0) { [math]::Round(1 / $chance, 1) } else { $null })
+    setPrice = $(if ($bs.Price -gt 0) { $bs.Price } else { $null }); random = [bool]$Random
+    packId = $packUid; secure = $Rng.Secure; cards = @($cards)
+  }
 }
 
 # ---------------------------------------------------------------- listing
-function Get-PokeshellBoosterSets([string]$Root, $Pack, $Boosters) {
+# (with the booster index: each set's price and its chance to be the pack `pack open random` opens)
+function Get-PokeshellBoosterSets([string]$Root, $Pack, $Boosters, $Index) {
+  $chances = if ($Index) { $Index.SetChances() }
   foreach ($s in @($Boosters.sets)) {
+    $ch = $null; if ($Index) { for ($i = 0; $i -lt $Index.Sets.Count; $i++) { if ($Index.Sets[$i].Id -eq $s.id) { $ch = $chances[$i] } } }
     $cardSets = @($s.cardSets)
     $all = @($Pack.cardList | Where-Object { $cardSets -contains (Get-PokeshellCardSet $_.id) })
     $built = @($all | Where-Object { Test-PokeshellCardBuilt $Root $Pack.id $_ })
@@ -257,6 +317,8 @@ function Get-PokeshellBoosterSets([string]$Root, $Pack, $Boosters) {
       id = $s.id; name = $s.name; series = $s.series; released = $s.released; cardSets = $cardSets
       cards = $built.Count; inPack = $all.Count; printed = [int]$s.printed; packSize = $size; realPackSize = [int]$s.realPackSize
       openable = $built.Count -gt 0
+      price = $(if ($s.price) { [double]$s.price } else { $null }); priceSource = $s.priceSource
+      chance = $(if ($null -ne $ch) { [math]::Round($ch, 6) } else { $null }); oneIn = $(if ($ch -gt 0) { [math]::Round(1 / $ch, 1) } else { $null })
       odds = @(foreach ($k in $odds.Keys) { [ordered]@{ tier = $k; weight = [math]::Round($odds[$k], 5) } })
       art = $s.art
       hero = $(if ($s.art.hero) { $h = $Pack.cardIndex[$s.art.hero]; if ($h) { "img/$($Pack.id)/$($h.character)/$($h.id).png" } })

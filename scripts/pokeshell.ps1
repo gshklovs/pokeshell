@@ -47,10 +47,12 @@ pokeshell - every new Windows Terminal tab is a pack pull
 
   pokeshell pack [<pack>|all]             show or choose the active pack
   pokeshell pack sets [--json]            the real booster packs you can open (sets, sizes, card counts)
-  pokeshell pack open <set> [--json] [--free] [--seed N] [--export] [--delay ms]
+  pokeshell pack open <set>|random [--json] [--free] [--seed N] [--export] [--delay ms]
                                           open one real booster of that set (spends a pack token unless
                                           --free); every card goes into your binder, caught. In a terminal
-                                          the cards are revealed one by one, rarest last
+                                          the cards are revealed one by one, rarest last. random: the set is
+                                          rolled too, cheap packs often, pricey vintage ones rarely
+  pokeshell pack odds <set>|random [--json]   a set's pull rates; random: each set's chance
   pokeshell pack grant <n> --reason <text> [--json]   add pack tokens (what whoever awards packs calls)
   pokeshell pack tokens [--json]          your pack-token balance and the latest changes
   pokeshell odds [pack]                   pull odds for the active pack (or the one named)
@@ -183,6 +185,8 @@ function Invoke-Install {
   $tsv = @("# pack`tskin`tguid`tsettings.json (written by pokeshell install)") + @($skins | ForEach-Object { "$($_.pack)`t$($_.skin)`t$($_.guid)`t$path" })
   [IO.File]::WriteAllLines((Join-Path $State 'installed.tsv'), [string[]]$tsv)
   Update-PokeshellRollCache -Root $RuntimeRoot -StateDir $State
+  # the booster index (lib\booster.ps1), so the first `pack open` doesn't build it
+  try { Import-PokeshellBooster $State; [void](Get-PokeshellBoosterIndex $Root $State) } catch { Write-Host "pokeshell: booster index not built: $($_.Exception.Message)" -ForegroundColor Yellow }
 
   $packs = $skins | Group-Object pack | ForEach-Object { "$($_.Name) ($($_.Count))" }
   Write-Host "pokeshell: $($skins.Count) skin profiles synced into $path  [$($packs -join ', ')]" -ForegroundColor Green
@@ -266,24 +270,46 @@ function Write-PokeshellBoosterJson($Obj) {
 function Invoke-Booster([string]$Sub, [string[]]$Args2) {
   $json = Has @('json')
   try {
-    $pack = Read-PokeshellPack $Root 'pokemon'
-    $boosters = Read-PokeshellBoosters $Root 'pokemon'
+    # pack.json takes half a second to parse in PowerShell 5.1: only the listings and the terminal reveal read it; an
+    # open rolls from the booster index (lib\booster.ps1, Booster.cs)
+    $script:BoosterPack = $null; $script:BoosterData = $null
+    function Get-BoosterPack { if (-not $script:BoosterPack) { $script:BoosterPack = Read-PokeshellPack $Root 'pokemon' }; $script:BoosterPack }
+    function Get-BoosterData { if (-not $script:BoosterData) { $script:BoosterData = Read-PokeshellBoosters $Root 'pokemon' }; $script:BoosterData }
     switch ($Sub) {
       'sets' {
         Import-PokeshellBooster $State
-        $sets = @(Get-PokeshellBoosterSets $Root $pack $boosters)
-        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ pack = $pack.id; tokens = (Get-PokeshellTokenBalance $State); sets = $sets }); return }
+        $idx = Get-PokeshellBoosterIndex $Root $State -Pack (Get-BoosterPack) -Boosters (Get-BoosterData)
+        $sets = @(Get-PokeshellBoosterSets $Root (Get-BoosterPack) (Get-BoosterData) $idx)
+        if ($json) { Write-PokeshellBoosterJson ([ordered]@{ pack = 'pokemon'; tokens = (Get-PokeshellTokenBalance $State); priceExponent = $idx.PriceExponent; sets = $sets }); return }
         Write-Host ''
-        Write-Host "Real booster packs  (pokeshell pack open <set>; you have $(Get-PokeshellTokenBalance $State) pack tokens)" -ForegroundColor Cyan
+        Write-Host "Real booster packs  (pokeshell pack open <set> | random; you have $(Get-PokeshellTokenBalance $State) pack tokens)" -ForegroundColor Cyan
         $sets | ForEach-Object { [pscustomobject]@{ set = $_.id; name = $_.name; series = $_.series; released = $_.released
-            'cards served' = $(if ($_.openable) { "$($_.cards) of $($_.printed) printed" } else { 'none yet' }); 'pack' = "$($_.packSize) cards" } } |
+            'cards served' = $(if ($_.openable) { "$($_.cards) of $($_.printed) printed" } else { 'none yet' }); 'pack' = "$($_.packSize) cards"
+            price = $(if ($_.price) { '${0:0.00}' -f $_.price } else { '' }); random = $(if ($_.oneIn) { "1 in $($_.oneIn)" } else { '' }) } } |
           Format-Table -AutoSize | Out-String -Width 200 | Write-Host
       }
       'odds' {
-        if (-not $Args2) { throw "usage: pokeshell pack odds <set> [--json]" }
-        $set = Find-PokeshellBoosterSet $boosters $Args2[0]
+        if (-not $Args2) { throw "usage: pokeshell pack odds <set>|random [--json]" }
         Import-PokeshellBooster $State
-        $m = Get-PokeshellBoosterModel $Root $pack $set
+        if ($Args2[0].ToLower() -eq 'random') {   # the set table: which pack `pack open random` opens
+          $idx = Get-PokeshellBoosterIndex $Root $State
+          $ch = $idx.SetChances()
+          $rows = for ($i = 0; $i -lt $idx.Sets.Count; $i++) {
+            $bs = $idx.Sets[$i]; $src = @((Get-BoosterData).sets | Where-Object id -eq $bs.Id)[0].priceSource
+            [pscustomobject][ordered]@{ set = $bs.Id; name = $bs.Name; price = $(if ($bs.Price -gt 0) { $bs.Price } else { $null }); priceSource = $src
+              openable = $bs.Openable; chance = [math]::Round($ch[$i], 6); oneIn = $(if ($ch[$i] -gt 0) { [math]::Round(1 / $ch[$i], 1) } else { $null }) }
+          }
+          if ($json) { Write-PokeshellBoosterJson ([ordered]@{ set = 'random'; priceExponent = $idx.PriceExponent; sets = @($rows) }); return }
+          Write-Host ''
+          Write-Host "pokeshell pack open random: the set, weighted by pack price (weight = price ^ -$($idx.PriceExponent))" -ForegroundColor Cyan
+          Write-Host "  one sealed booster pack's market price (USD, docs\BOOSTERS.md has the sources); cheap packs come up often" -ForegroundColor DarkGray
+          $rows | Sort-Object { -$_.chance } | ForEach-Object { [pscustomobject]@{ set = $_.set; name = $_.name; price = $(if ($_.price) { '${0:0.00}' -f $_.price } else { '-' })
+              chance = ('{0:0.00}%' -f (100 * $_.chance)); '1 in' = $(if ($_.oneIn) { $_.oneIn } elseif ($_.openable) { 'never (no price)' } else { 'never (no cards yet)' }) } } |
+            Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          return
+        }
+        $set = Find-PokeshellBoosterSet (Get-BoosterData) $Args2[0]
+        $m = Get-PokeshellBoosterModel $Root (Get-BoosterPack) $set
         $rows = for ($s = 0; $s -lt $m.slots.Count; $s++) {
           $sl = $m.slots[$s]
           for ($o = 0; $o -lt $sl.Outcomes.Count; $o++) {
@@ -315,24 +341,30 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
         Write-Host "pokeshell: +$n pack token$(if ($n -gt 1) { 's' }) ($reason); balance $($r.balance)"
       }
       'open' {
-        if (-not $Args2) { throw "usage: pokeshell pack open <set> [--json] [--free]  (sets: $(@($boosters.sets | ForEach-Object id) -join ', '))" }
-        $set = Find-PokeshellBoosterSet $boosters $Args2[0]
+        # `pack open random` (or --random): the set is rolled too, weighted by pack price (docs\BOOSTERS.md)
+        $want = if (Has @('random')) { 'random' } elseif ($Args2) { [string]$Args2[0] } else { $null }
         Import-PokeshellBooster $State
-        $rng = if ($Opts.seed) { [Pokeshell.BoosterRng]::new([int]$Opts.seed) } else { $null }
-        if (-not $rng) { $rng = [Pokeshell.BoosterRng]::new() }
+        $idx = Get-PokeshellBoosterIndex $Root $State
+        if (-not $want) { throw "usage: pokeshell pack open <set>|random [--json] [--free]  (sets: $(@($idx.Sets | ForEach-Object Id) -join ', '))" }
+        $random = $want.ToLower() -eq 'random'
+        $si = if ($random) { -1 } else { Find-PokeshellBoosterSetIndex $idx $want }
+        $rng = if ($Opts.seed) { [Pokeshell.BoosterRng]::new([int]$Opts.seed) } else { [Pokeshell.BoosterRng]::new() }
         $free = Has @('free')
         $res = Invoke-PokeshellTokenLocked $State {
           $bal = Get-PokeshellTokenBalance $State
           if (-not $free -and $bal -lt 1) { $e = [Exception]::new("no pack tokens (balance $bal): win a battle, or pokeshell pack grant 1 --reason <why>"); $e.Data['code'] = 'no-tokens'; throw $e }
-          $o = Open-PokeshellBooster $Root $State $pack $set $rng
-          if (-not $free) { [void](Add-PokeshellTokens $State -1 "opened $($set.id)" "set=$($set.id)`tpack=$($o.packId)") }
+          $pick = if ($random) { $idx.PickSet($rng) } else { $si }   # (seeded: the set is the first draw, then the pack)
+          if ($pick -lt 0) { $e = [Exception]::new('no set can be opened at random (none has a price and built cards)'); $e.Data['code'] = 'no-sets'; throw $e }
+          $o = Open-PokeshellBooster $Root $State 'pokemon' ([int]$pick) $rng -Index $idx -Random:$random
+          if (-not $free) { [void](Add-PokeshellTokens $State -1 "opened $($o.set)" "set=$($o.set)`tpack=$($o.packId)$(if ($random) { "`trandom=1" })") }
           $o | Add-Member -NotePropertyName spent -NotePropertyValue ([int](-not $free))
           $o | Add-Member -NotePropertyName tokens -NotePropertyValue (Get-PokeshellTokenBalance $State)
           $o
         }
         $res | Add-Member -NotePropertyName imageRoot -NotePropertyValue (Join-Path $State 'web')
         if (Has @('export')) {   # the pack is recorded already: a failed export is reported, not fatal
-          try { Invoke-BinderWeb -Quiet; $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
+          # incremental: only this pack's cards are rendered, data.json is rewritten (binder.exe --export-web --only)
+          try { Invoke-BinderWeb -Quiet -Only @($res.cards | ForEach-Object id); $res | Add-Member -NotePropertyName exported -NotePropertyValue $true }
           catch { $res | Add-Member -NotePropertyName exported -NotePropertyValue $false; $res | Add-Member -NotePropertyName exportError -NotePropertyValue $_.Exception.Message }
         }
         foreach ($c in @($res.cards)) {   # the image's full path once the web export has it (collection --json's `png`), else null
@@ -340,7 +372,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
           $c | Add-Member -NotePropertyName png -NotePropertyValue $(if ([IO.File]::Exists($f)) { $f } else { $null })
         }
         if ($json) { Write-PokeshellBoosterJson $res; return }
-        Show-BoosterReveal $res $pack $set
+        Show-BoosterReveal $res (Get-BoosterPack)
       }
     }
   } catch {
@@ -353,7 +385,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
 
 # `pack open` in a terminal: the pack's cards one after another, each in its normal card rendering, rarest last.
 # Interactive: a key shows the next card (s: straight to the summary); --delay <ms>: timed; redirected: no waits.
-function Show-BoosterReveal($Res, $Pack, $Set) {
+function Show-BoosterReveal($Res, $Pack) {
   $st = [string][char]0x2726; $tri = [string][char]0x25B8; $dot = [string][char]0xB7
   $cards = @($Res.cards)
   $interactive = -not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected -and -not $Opts.delay
@@ -361,7 +393,12 @@ function Show-BoosterReveal($Res, $Pack, $Set) {
   $revIx = $Pack.tierIndex['reverse-holo']
   $hitColor = @{ 0 = 'DarkGray'; 1 = 'Gray'; 2 = 'Cyan'; 3 = 'Magenta'; 4 = 'Yellow'; 5 = 'Yellow' }
   Write-Host ''
-  Write-Host "  $($Set.name) booster  $dot  $($cards.Count) cards$(if ($Res.spent) { "  $dot  1 pack token spent, $($Res.tokens) left" })" -ForegroundColor Cyan
+  if ($Res.random) {   # pack open random: the set first ("you got a Base Set pack! (1 in 60)")
+    $rare = if ($Res.setOneIn -ge 30) { 'Yellow' } elseif ($Res.setOneIn -ge 8) { 'Magenta' } else { 'Cyan' }
+    Write-Host "  $st you got a $($Res.setName) pack!$(if ($Res.setOneIn) { " (1 in $($Res.setOneIn))" })" -ForegroundColor $rare
+    if ($interactive -or $delay) { Start-Sleep -Milliseconds 700 }
+  }
+  Write-Host "  $($Res.setName) booster  $dot  $($cards.Count) cards$(if ($Res.spent) { "  $dot  1 pack token spent, $($Res.tokens) left" })" -ForegroundColor Cyan
   $skip = $false
   for ($i = 0; $i -lt $cards.Count; $i++) {
     $c = $cards[$i]
@@ -681,12 +718,13 @@ function Invoke-Binder {
 # `binder --web`: rebuild the static web binder into <state>\web (about half a second once the art is cached) and open
 # it in the browser. The export is the binder app's (binder.exe --export-web, binder\src\webexport.rs): a module install
 # ships it in bin\, so it needs no Python.
-function Invoke-BinderWeb([switch]$Quiet) {
+function Invoke-BinderWeb([switch]$Quiet, [string[]]$Only) {
   $exe = Get-PokeshellBinderExe $Root
   if (-not $exe) { throw "binder --web needs the binder app (powershell -File binder\build.ps1 builds it; a module install has it in bin\)" }
   $out = Join-Path $State 'web'
-  [void]@(Read-Pulls -All)
+  if (-not $Only) { [void]@(Read-Pulls -All) }   # (logs expired pulls; a pack open's pulls are all caught)
   $a = @('--export-web', $out, '--root', $RuntimeRoot, '--state', $State)
+  if ($Only) { $a += '--only', ($Only -join ',') }   # pack open --export: only these cards' images (webexport.rs --only)
   if ($Quiet) {   # pack open --export: only (re)write the export, nothing on stdout (it carries the JSON)
     $ErrorActionPreference = 'Continue'   # the export's warnings on stderr aren't failures; its exit code is
     & $exe @a 2>&1 | Out-Null

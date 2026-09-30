@@ -16,12 +16,14 @@ half, an uncaught card's moveset stays hidden.
 $PokeshellJsonApi = 1
 # the JSON commands this pokeshell answers (version --json lists them; add new ones here)
 $PokeshellJsonCommands = [Collections.Generic.List[string]]::new()
-foreach ($c in 'version --json', 'collection --json', 'pack sets --json', 'pack odds --json', 'pack open --json', 'pack grant --json', 'pack tokens --json') { $PokeshellJsonCommands.Add($c) }
+foreach ($c in 'version --json', 'collection --json', 'pack sets --json', 'pack odds --json', 'pack open --json', 'pack open random --json', 'pack odds random --json', 'pack grant --json', 'pack tokens --json') { $PokeshellJsonCommands.Add($c) }
 
 # a JSON string literal (null for $null). HttpUtility.JavaScriptStringEncode is in .NET Framework (System.Web) and in
 # .NET (System.Web.HttpUtility), so in both editions; a .NET call is cheap in a loop, a PowerShell function isn't. It
 # also escapes ' < > & as \u00xx, which is still JSON.
-Add-Type -AssemblyName System.Web
+# Loaded by the commands that use it (Use-PokeshellJsonWeb): the pack commands only need Write-PokeshellJson, and
+# loading System.Web would cost each of them ~40 ms.
+function Use-PokeshellJsonWeb { if (-not ('System.Web.HttpUtility' -as [type])) { Add-Type -AssemblyName System.Web } }
 function ConvertTo-PokeshellJsonString($s) {
   if ($null -eq $s) { 'null' } else { [Web.HttpUtility]::JavaScriptStringEncode([string]$s, $true) }
 }function ConvertTo-PokeshellJsonList($Items) {
@@ -57,6 +59,7 @@ function Read-PokeshellCardData([string]$Root, [string]$Pack) {
 }
 
 function Invoke-PokeshellVersionJson {
+  Use-PokeshellJsonWeb
   $packs = @(Get-PokeshellPackIds $Root)
   $withData = @($packs | Where-Object { [IO.File]::Exists((Join-Path $Root "packs\$_\carddata.json")) })
   $web = Join-Path $State 'web'
@@ -81,6 +84,7 @@ function Invoke-PokeshellVersionJson {
 }
 
 function Invoke-PokeshellCollectionJson([string]$PackFilter) {
+  Use-PokeshellJsonWeb
   $all = @(Get-PokeshellPackIds $Root)
   if ($PackFilter -and $all -notcontains $PackFilter) { throw "no pack '$PackFilter' (packs: $($all -join ', '))" }
   $shown = @(Get-ShownPulls @(Read-Pulls -All))   # earned, pending and expired; retired / unbuilt art left out

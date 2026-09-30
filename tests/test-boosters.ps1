@@ -8,6 +8,9 @@ Real booster packs (packs\pokemon\boosters.json, scripts\lib\booster.ps1 + Boost
   4. `pokeshell pack open --json`: the contract, every card recorded in pulls.log as a caught pull, NEW only once
   5. the token ledger: grant, spend, no tokens, --free, and concurrent opens never double-spend
   6. uncaught -> caught in the binder data (the web export, binder.exe --export-web --no-art), when the binder is built
+  7. random packs: the set chances (price ^ -k), a Monte Carlo of the set choice, --seed, one token per open
+  8. the booster index (<state>\booster-index-pokemon.tsv): reused, rebuilt when the data or the art changes
+  9. the incremental export (--only), the art cache across root paths and old absolute stamps, a lenient timing check
 Isolated: a temp checkout copy (the real pack.json + boosters.json, stub art for every card), POKESHELL_HOME in %TEMP%,
 POKESHELL_REAL_WT=off. Never touches %LOCALAPPDATA%\pokeshell, settings.json or $PROFILE; never opens a tab.
   powershell -NoProfile -File tests\test-boosters.ps1
@@ -215,6 +218,134 @@ if (Test-Path $bexe) {
   $x = (Invoke-Cli $s3 'pack' 'open' 'swsh11' '--json' '--free' '--export') | ConvertFrom-Json
   $env:POKESHELL_BINDER = $saved
   Assert ($x.exported -eq $true -and -not @($x.cards | Where-Object { -not $_.png -or -not (Test-Path $_.png) })) "--export: the web export is rebuilt, every card's png exists (the stub art's pixel)"
+} else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
+
+Write-Host "7. random packs, weighted by pack price" -ForegroundColor Cyan
+$k = [double]$boosters.priceExponent
+$noPrice = @($sets | Where-Object { -not ($_.price -gt 0) -or -not $_.priceSource.url -or -not $_.priceSource.date })
+Assert ($k -gt 0 -and -not $noPrice) "boosters.json: priceExponent $k, every set has a price and a priceSource (url, date)$(if ($noPrice) { ': missing ' + ($noPrice.id -join ', ') })"
+$idx = Get-PokeshellBoosterIndex $fx $st -Pack $pack -Boosters $boosters
+$ch = $idx.SetChances()
+$w = @{}; $tw = 0.0; foreach ($s in $open) { if ($s.price -gt 0) { $w[$s.id] = [math]::Pow([double]$s.price, -$k); $tw += $w[$s.id] } }
+$bad = @(for ($i = 0; $i -lt $idx.Sets.Count; $i++) { $id = $idx.Sets[$i].Id; $want = if ($w.ContainsKey($id)) { $w[$id] / $tw } else { 0 }; if ([math]::Abs($ch[$i] - $want) -gt 1e-12) { "$id $($ch[$i]) vs $want" } })
+Assert (-not $bad -and [math]::Abs(($ch | Measure-Object -Sum).Sum - 1) -lt 1e-9) "each set's chance is price^-$k over the openable sets, summing to 1$(if ($bad) { ': ' + ($bad -join '; ') })"
+$oneIn = @{}; for ($i = 0; $i -lt $idx.Sets.Count; $i++) { if ($ch[$i] -gt 0) { $oneIn[$idx.Sets[$i].Id] = 1 / $ch[$i] } }
+$vintage = @('base1', 'neo1' | Where-Object { $oneIn[$_] })
+$modern = @($oneIn.Keys | Where-Object { $vintage -notcontains $_ })
+Assert ($vintage.Count -eq 2 -and -not @($vintage | Where-Object { $oneIn[$_] -lt 30 -or $oneIn[$_] -gt 100 })) "vintage packs are rare, not impossible: $(($vintage | ForEach-Object { "$_ 1 in $([math]::Round($oneIn[$_], 1))" }) -join ', ') (30-100)"
+Assert (-not @($modern | Where-Object { $oneIn[$_] -gt 15 })) "modern packs are common: $(($modern | Sort-Object { $oneIn[$_] } | ForEach-Object { "$_ 1 in $([math]::Round($oneIn[$_], 1))" }) -join ', ')"
+# Monte Carlo of the set choice: 200,000 seeded draws, then 50,000 from the CSPRNG
+foreach ($run in @(@{ tag = 'seeded'; rng = [Pokeshell.BoosterRng]::new(20260929); n = 200000 }, @{ tag = 'CSPRNG'; rng = [Pokeshell.BoosterRng]::new(); n = 50000 })) {
+  $cnt = [Pokeshell.Booster]::SimulateSets($idx, $run.n, $run.rng); $worst = 0.0; $bad = @()
+  for ($i = 0; $i -lt $idx.Sets.Count; $i++) {
+    $p = $ch[$i]; $f = $cnt[$i] / $run.n
+    $z = if ($p -gt 0) { [math]::Abs($f - $p) / [math]::Sqrt($p * (1 - $p) / $run.n) } elseif ($cnt[$i] -eq 0) { 0 } else { 99 }
+    if ($z -gt $worst) { $worst = $z }; if ($z -gt 4.5) { $bad += "$($idx.Sets[$i].Id) $f vs $p (z $([math]::Round($z, 1)))" }
+  }
+  Assert (-not $bad) ("set choice ({0}): {1:N0} draws match the chances within 4.5 sigma (worst {2:0.00}){3}" -f $run.tag, $run.n, $worst, $(if ($bad) { ': ' + ($bad -join '; ') }))
+}
+$s4 = Join-Path $fx 's4'; [void][IO.Directory]::CreateDirectory($s4)
+$r1 = (Invoke-Cli $s4 'pack' 'open' 'random' '--json' '--free' '--seed' '77') | ConvertFrom-Json
+$r2 = (Invoke-Cli $s4 'pack' 'open' '--random' '--json' '--free' '--seed' '77') | ConvertFrom-Json
+$si = [array]::IndexOf([string[]]@($idx.Sets | ForEach-Object Id), [string]$r1.set)
+Assert ($r1.random -eq $true -and $r1.set -and $r1.setName -eq $idx.Sets[$si].Name -and [math]::Abs($r1.setChance - $ch[$si]) -lt 1e-6 -and $r1.setOneIn -eq [math]::Round(1 / $ch[$si], 1) -and $r1.setPrice -gt 0) "open random --json: { set, setName, setChance, setOneIn, setPrice, random } ($($r1.setName), 1 in $($r1.setOneIn))"
+Assert ($r2.set -eq $r1.set -and (@($r2.cards.id) -join ',') -eq (@($r1.cards.id) -join ',')) "--seed makes the set and the pack reproducible; --random is the same as random"
+$e = [Pokeshell.BoosterRng]::new(77); $want = $idx.Sets[$idx.PickSet($e)].Id
+Assert ($r1.set -eq $want) "the seeded set is the first draw ($want), then the pack"
+$seen = @{}; foreach ($n in 1..12) { $seen[((Invoke-Cli $s4 'pack' 'open' 'random' '--json' '--free' '--seed' "$(500 + $n)") | ConvertFrom-Json).set] = 1 }
+Assert ($seen.Count -ge 3) "different seeds open different sets ($($seen.Keys -join ', '))"
+$x1 = (Invoke-Cli $s4 'pack' 'open' 'swsh7' '--json' '--free' '--seed' '5') | ConvertFrom-Json
+Assert ($x1.set -eq 'swsh7' -and $x1.random -eq $false -and $x1.setChance -gt 0) "an explicit set still opens, with its random chance for reference"
+$s5 = Join-Path $fx 's5'; [void][IO.Directory]::CreateDirectory($s5)
+[void](Invoke-Cli $s5 'pack' 'grant' '2' '--reason' 'test' '--json')
+$o1 = (Invoke-Cli $s5 'pack' 'open' 'random' '--json') | ConvertFrom-Json
+$o2 = (Invoke-Cli $s5 'pack' 'open' 'random' '--json') | ConvertFrom-Json
+$o3 = (Invoke-Cli $s5 'pack' 'open' 'random' '--json') | ConvertFrom-Json
+$tl = @(Get-Content (Join-Path $s5 'tokens.log'))
+$spentLines = @($tl | Where-Object { $_ -match "`t-1`topened (\S+)`tid=.*`tset=\1`tpack=.*`trandom=1$" })
+Assert ($o1.spent -eq 1 -and $o1.tokens -eq 1 -and $o2.spent -eq 1 -and $o2.tokens -eq 0 -and $o3.code -eq 'no-tokens') "random opens spend one token each; with none left it's refused"
+Assert ($tl.Count -eq 3 -and $spentLines.Count -eq 2 -and $spentLines[0] -match "set=$($o1.set)`t" -and $spentLines[1] -match "set=$($o2.set)`t") "tokens.log: exactly one -1 line per random open, naming the set it rolled"
+$pl = @(Get-Content (Join-Path $s5 'pulls.log') -Encoding UTF8)
+Assert ($pl.Count -eq @($o1.cards).Count + @($o2.cards).Count -and @($pl | Where-Object { $_ -match "`tbooster:$($o1.set)`t" }).Count -ge @($o1.cards).Count) "every card of the random packs is logged, tagged with its set"
+$od = (Invoke-Cli $s5 'pack' 'odds' 'random' '--json') | ConvertFrom-Json
+Assert ($od.set -eq 'random' -and @($od.sets).Count -eq $idx.Sets.Count -and [math]::Abs((@($od.sets) | Measure-Object chance -Sum).Sum - 1) -lt 1e-4 -and ($od.sets | Where-Object set -eq 'base1').priceSource.url) "pack odds random --json: every set's price, source and chance"
+$ls2 = (Invoke-Cli $s5 'pack' 'sets' '--json') | ConvertFrom-Json
+Assert ($ls2.priceExponent -eq $k -and -not @($ls2.sets | Where-Object { -not $_.price -or ($_.openable -and -not $_.chance) })) "pack sets --json: price and chance per set"
+$txt = Invoke-Cli $s5 'pack' 'open' 'random' '--free' '--seed' '3'
+$at = $txt.IndexOf('you got a '); $bt = $txt.IndexOf(' booster ')
+Assert ($at -ge 0 -and $bt -gt $at -and $txt -match 'you got a .+ pack! \(1 in [\d.]+\)') "the terminal reveal announces the set first"
+$v = (Invoke-Cli $s5 'version' '--json') | ConvertFrom-Json
+Assert (@($v.commands) -contains 'pack open random --json' -and @($v.commands) -contains 'pack odds random --json') "version --json lists pack open random / pack odds random"
+
+Write-Host "8. the booster index" -ForegroundColor Cyan
+$if = Join-Path $s5 'booster-index-pokemon.tsv'
+Assert ((Test-Path $if) -and (Get-Content $if -TotalCount 1) -like "stamp`tv1|*") "<state>\booster-index-pokemon.tsv is written once and reused"
+$t0 = (Get-Item $if).LastWriteTimeUtc
+[void](Invoke-Cli $s5 'pack' 'open' 'swsh7' '--json' '--free')
+Assert ((Get-Item $if).LastWriteTimeUtc -eq $t0) "an open reuses the index (not rewritten)"
+$bj = Join-Path $fx 'packs\pokemon\boosters.json'; [IO.File]::SetLastWriteTimeUtc($bj, [DateTime]::UtcNow.AddMinutes(1))
+[void](Invoke-Cli $s5 'pack' 'open' 'swsh7' '--json' '--free')
+Assert ((Get-Item $if).LastWriteTimeUtc -ne $t0) "boosters.json changed: the index is rebuilt"
+$t1 = (Get-Item $if).LastWriteTimeUtc
+[IO.File]::WriteAllText((Join-Path $fx 'dist\pokemon\zz-test-new.ans'), $art, $utf8)   # a card's art built or removed
+[void](Invoke-Cli $s5 'pack' 'open' 'swsh7' '--json' '--free')
+Remove-Item (Join-Path $fx 'dist\pokemon\zz-test-new.ans')
+Assert ((Get-Item $if).LastWriteTimeUtc -ne $t1) "the art folder changed: the index is rebuilt"
+[IO.File]::WriteAllText($if, "stamp`tgarbage`n")
+$g = (Invoke-Cli $s5 'pack' 'open' 'swsh7' '--json' '--free' '--seed' '5') | ConvertFrom-Json
+Assert ((@($g.cards.id) -join ',') -eq (@($x1.cards.id) -join ',')) "a damaged index is rebuilt; the same seed opens the same pack"
+
+Write-Host "9. the incremental web export and its timing" -ForegroundColor Cyan
+if (Test-Path $bexe) {
+  $saved = $env:POKESHELL_BINDER; $env:POKESHELL_BINDER = $bexe
+  $s6 = Join-Path $fx 's6'; [void][IO.Directory]::CreateDirectory($s6)
+  [void](Invoke-Cli $s6 'pack' 'open' 'swsh7' '--json' '--free' '--seed' '1')
+  $ErrorActionPreference = 'Continue'
+  $full = (& $bexe --export-web (Join-Path $s6 'web') --root $fx --state $s6 2>$null) -join ' '
+  $ErrorActionPreference = 'Stop'
+  $img = Join-Path $s6 'web\img\pokemon'
+  # an image of a card not in the pack goes missing: --only leaves it alone, a full export puts it back
+  $other = @(Get-ChildItem $img -Recurse -Filter '*.png' | Where-Object { $_.Name -notmatch '^_' })[0]
+  $j = (Invoke-Cli $s6 'pack' 'open' 'base' '--json' '--free' '--seed' '2' '--export') | ConvertFrom-Json
+  $mine = @($j.cards | ForEach-Object { Join-Path $s6 ("web\" + $_.image.Replace('/', '\')) })
+  Assert ($j.exported -eq $true -and -not @($mine | Where-Object { -not (Test-Path $_) })) "--export renders the pack's cards (and only needs them)"
+  Remove-Item $other.FullName
+  foreach ($m in $mine) { Remove-Item $m -ErrorAction SilentlyContinue }
+  $ErrorActionPreference = 'Continue'
+  $inc = (& $bexe --export-web (Join-Path $s6 'web') --root $fx --state $s6 --only (@($j.cards.id) -join ',') 2>$null) -join ' '
+  $ErrorActionPreference = 'Stop'
+  Assert (-not (Test-Path $other.FullName) -and -not @($mine | Where-Object { -not (Test-Path $_) }) -and $inc -match '\((\d+) decoded' -and [int]$Matches[1] -eq @($j.cards.id | Select-Object -Unique).Count) "--only re-renders just the named cards ($($Matches[1]) decoded), nothing else is touched or pruned"
+  $d = [IO.File]::ReadAllText((Join-Path $s6 'web\data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+  Assert (@($d.pulls | Where-Object { $_.status -eq 'collected' }).Count -eq @(Get-Content (Join-Path $s6 'pulls.log')).Count) "--only still rewrites data.json with every pull"
+  $ErrorActionPreference = 'Continue'
+  $back = (& $bexe --export-web (Join-Path $s6 'web') --root $fx --state $s6 2>$null) -join ' '
+  $ErrorActionPreference = 'Stop'
+  Assert ((Test-Path $other.FullName) -and $back -match '\(1 decoded') "a full export puts the missing image back (1 decoded, the rest cached)"
+  # the art cache is keyed by paths relative to the root: the same checkout under another path (a module's
+  # <state>\current, a copied state) keeps it
+  $alias = Join-Path ([IO.Path]::GetTempPath()) "pokeshell-test-boosters-alias-$PID"
+  Remove-Item $alias -Force -ErrorAction SilentlyContinue
+  [void](New-Item -ItemType Junction -Path $alias -Target $fx)
+  $ErrorActionPreference = 'Continue'
+  $moved = (& $bexe --export-web (Join-Path $s6 'web') --root $alias --state $s6 2>$null) -join ' '
+  $ErrorActionPreference = 'Stop'
+  [IO.Directory]::Delete($alias)   # the junction only, never its target
+  Assert ($moved -match '\(0 decoded') "another root path with the same files: the art cache still holds (0 decoded)"
+  # an older cache that named absolute source paths still matches (the user's cache before this change)
+  $cf = Join-Path $s6 'web\img\.cache.json'
+  $c = [IO.File]::ReadAllText($cf) -replace '"src":\["dist\\\\', ('"src":["' + ($fx -replace '\\', '\\') + '\\dist\\')
+  [IO.File]::WriteAllText($cf, $c)
+  $ErrorActionPreference = 'Continue'
+  $old = (& $bexe --export-web (Join-Path $s6 'web') --root $fx --state $s6 2>$null) -join ' '
+  $ErrorActionPreference = 'Stop'
+  Assert ($c.Contains(($fx -replace '\\', '\\')) -and $old -match '\(0 decoded') "a cache with absolute source paths (the old format) is still warm (0 decoded)"
+  # timing (lenient: a loaded machine gets a wide margin). Warm: the index and the art cache exist.
+  $ms = foreach ($n in 1..3) {
+    $sw = [Diagnostics.Stopwatch]::StartNew(); $t = (Invoke-Cli $s6 'pack' 'open' 'random' '--json' '--free' '--export') | ConvertFrom-Json; $sw.Stop()
+    if ($t.exported) { $sw.ElapsedMilliseconds } else { 99999 } }
+  $med = @($ms | Sort-Object)[1]
+  Assert ($med -lt 4000) "pack open random --json --export, warm: $(($ms | ForEach-Object { "$_ ms" }) -join ', ') (median under 4 s; about 1 s on an idle machine)"
+  $env:POKESHELL_BINDER = $saved
 } else { Write-Host "  skip  binder.exe not built (binder\build.ps1)" -ForegroundColor Yellow }
 
 Remove-Item $fx -Recurse -Force -ErrorAction SilentlyContinue

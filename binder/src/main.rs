@@ -19,7 +19,9 @@
 //!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending (seen, not caught)
 //!   binder --export-web DIR    write the web binder (data.json, img\, binder.html) into DIR and exit (webexport.rs;
 //!                              `pokeshell binder --web`); --no-art: no art decoded or written; --owner NAME: the cover's
-//!                              name (default: $POKESHELL_OWNER, else the user name)
+//!                              name (default: $POKESHELL_OWNER, else the user name); --only ID,ID,...: incremental,
+//!                              only these cards' images are (re)rendered, every other image is taken from the art
+//!                              cache as it is (no stat, no prune); data.json and binder.html are still rewritten
 //!
 //! In the app, `p` shows the real printed card beside ours (caught cards; the scan is downloaded once into
 //! <state>\cache\realcards). POKESHELL_SIXEL=on|off|auto: sixel or half blocks (auto asks the terminal, DA1).
@@ -117,6 +119,7 @@ struct Args {
     export_web: Option<String>,
     owner: Option<String>,
     no_art: bool,
+    only: Option<Vec<String>>,
     number_order: Option<String>,
 }
 
@@ -138,6 +141,7 @@ fn parse_args() -> Args {
         export_web: None,
         owner: None,
         no_art: false,
+        only: None,
         number_order: None,
     };
     let mut it = std::env::args().skip(1).peekable();
@@ -183,6 +187,7 @@ fn parse_args() -> Args {
             "--export-web" => a.export_web = Some(val("--export-web", &mut it)),
             "--owner" => a.owner = Some(val("--owner", &mut it)),
             "--no-art" => a.no_art = true,
+            "--only" => a.only = Some(val("--only", &mut it).split([',', ' ']).map(str::trim).filter(|x| !x.is_empty()).map(str::to_string).collect()),
             // (tests: the web export's checklist order of card numbers, comma-separated in, sorted out)
             "--number-order" => a.number_order = Some(it.next().unwrap_or_default()),
             "--demo-pending" => a.demo_pending = val("--demo-pending", &mut it).parse().unwrap_or(0),
@@ -218,7 +223,7 @@ fn main() -> io::Result<()> {
     }
     let state = args.state.clone().map(PathBuf::from).unwrap_or_else(default_state);
     if let Some(out) = &args.export_web {
-        let o = webexport::Opts { root, state, log: args.log.clone().map(PathBuf::from), out: PathBuf::from(out), owner: args.owner.clone(), no_art: args.no_art };
+        let o = webexport::Opts { root, state, log: args.log.clone().map(PathBuf::from), out: PathBuf::from(out), owner: args.owner.clone(), no_art: args.no_art, only: args.only.clone() };
         std::process::exit(webexport::run(o));
     }
     let log = args.log.clone().map(PathBuf::from).unwrap_or_else(|| state.join("pulls.log"));

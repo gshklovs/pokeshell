@@ -1,13 +1,15 @@
 # Real booster packs
 
 `pokeshell pack open <set>` opens one **real booster** of a set we serve: the set's printed slot layout, rolled with
-its published pull rates, from the real cards we have built. Every card goes into your binder at once, caught (a pack
+its published pull rates, from the real cards we have built. `pokeshell pack open random` rolls the set too, weighted by
+what a real pack costs: cheap modern packs come up every few opens, a vintage Base Set or Neo Genesis pack about once in
+60 ([Random packs](#random-packs-weighted-by-price)). Every card goes into your binder at once, caught (a pack
 is already earned; there is no "use the tab" step). The pack token ledger lets anything that awards packs (a game, a
 script, you) grant them; `pack open` spends one.
 
 The data is `packs/pokemon/boosters.json`; the roll is `scripts/lib/booster.ps1` (the model, recording, tokens) and
-`scripts/lib/Booster.cs` (the dice, compiled once into `<state>\pokeshell-booster-*.dll`); the tests are
-`tests/test-boosters.ps1`.
+`scripts/lib/Booster.cs` (the dice, the booster index and the open, compiled once into
+`<state>\pokeshell-booster-*.dll`); the tests are `tests/test-boosters.ps1`.
 
 ## Commands
 
@@ -15,7 +17,9 @@ The data is `packs/pokemon/boosters.json`; the roll is `scripts/lib/booster.ps1`
 |---|---|
 | `pokeshell pack sets [--json]` | the boosters: set, name, series, release date, cards served / printed, pack size, art hints |
 | `pokeshell pack odds <set> [--json]` | a set's slots: each outcome's published rate, printed cards, served cards and the odds we roll |
+| `pokeshell pack odds random [--json]` | the set table of `pack open random`: each set's pack price, source and chance |
 | `pokeshell pack open <set> [--json] [--free] [--seed N] [--export] [--delay ms]` | open one pack (below) |
+| `pokeshell pack open random [--json] [...]` (or `--random`) | open a pack of a random set, weighted by pack price |
 | `pokeshell pack grant <n> --reason <text> [--json]` | add `n` pack tokens (1-1000) |
 | `pokeshell pack tokens [--json]` | the balance and the last changes |
 
@@ -26,10 +30,12 @@ The data is `packs/pokemon/boosters.json`; the roll is `scripts/lib/booster.ps1`
 `pack open` options:
 - `--free`: open without spending a token (tests, demos). Without it, a pack costs one token, and with none it's
   refused (`code: "no-tokens"`, exit 1) and nothing is rolled or recorded.
-- `--seed N`: a reproducible pack (System.Random). Without it every draw comes from the OS CSPRNG
+- `--seed N`: a reproducible pack (System.Random; with `random`, the set is the first draw, then the pack). Without it every draw comes from the OS CSPRNG
   (`RandomNumberGenerator`), so a pack can't be predicted or replayed; the JSON says `"secure": true`.
-- `--export`: after recording, rebuild the web export (`binder.exe --export-web`, under a second with its cache) so every
-  `image` below exists, including shiny forms (the export only writes a shiny image once it has been pulled).
+- `--export`: after recording, update the web export so every `image` below exists, including shiny forms (the export
+  only writes a shiny image once it has been pulled). It is incremental: `binder.exe --export-web <state>\web --only
+  <this pack's card ids>` renders only those cards' images and rewrites `data.json` / `binder.html` (every other image
+  is taken from the art cache as it is, nothing is pruned; `pokeshell binder --web` still does the full export).
 - In a terminal (no `--json`): the cards are revealed one by one in their normal card rendering (the tier's frame,
   the shiny palette), rarest last, with a tease line before a big hit; any key shows the next card, `s` skips to the
   summary. `--delay <ms>` reveals on a timer instead; with output redirected there are no waits.
@@ -41,7 +47,8 @@ stdout is one line of JSON with the conventions of the other JSON commands (READ
 a failure `{"error": ...}` with exit code 1:
 
 ```json
-{ "set": "swsh7", "setName": "Evolving Skies", "packId": "01M3QTARN56Q9RD141B01M770D", "secure": true,
+{ "set": "swsh7", "setName": "Evolving Skies", "setChance": 0.106441, "setOneIn": 9.4, "setPrice": 43.97, "random": false,
+  "packId": "01M3QTARN56Q9RD141B01M770D", "secure": true,
   "cards": [
     { "id": "swsh7-44", "name": "Bergmite", "number": "44/203", "rarity": "Common", "tier": "common", "tierLabel": "common",
       "slot": "common", "outcome": "common", "finish": "normal", "fx": "plain", "hit": 0, "shiny": false, "isNew": true,
@@ -52,6 +59,10 @@ a failure `{"error": ...}` with exit code 1:
   "spent": 1, "tokens": 2, "imageRoot": "C:\\Users\\you\\AppData\\Local\\pokeshell\\web" }
 ```
 
+- `set`, `setName`: the set opened. `setChance` / `setOneIn`: that set's chance to be the one `pack open random` opens
+  (so a game can say "you got a Base Set pack! (1 in 60.7)"), `setPrice` its pack price in USD; `random`: true when
+  the set was rolled (`pack open random`), false when it was chosen. `setChance` is 0 and `setOneIn` null for a set
+  with no price.
 - `cards` are in **reveal order, rarest last**: by `hit`, then by how rare that kind of hit is (`oneIn`), then the
   printed pack's order (commons first, the rare at the back).
 - `rarity` is the printed rarity (the pokemontcg.io string), `tier` our tier id for it (`packs/pokemon/pack.json`).
@@ -74,14 +85,19 @@ a failure `{"error": ...}` with exit code 1:
 - `png`: the image's full path once the web export has it (as in `collection --json`), else `null`.
 - `pullId`: the card's pull id in `pulls.log`. `card` and `pull` repeat `id` and `pullId` under the names the arena
   SPEC uses.
-- Errors (with `--json`): `{ "error": "...", "message": "...", "code": "no-tokens" | "error", "tokens": n }` and exit
+- Errors (with `--json`): `{ "error": "...", "message": "...", "code": "no-tokens" | "no-sets" | "error", "tokens": n }` and exit
   code 1 (`message`, `code` and `tokens` are added to the usual `{"error"}`; `message` repeats it).
 
-`pack sets --json` is `{ pack, tokens, sets: [{ id, name, series, released, cardSets, cards, inPack, printed,
-packSize, realPackSize, openable, odds: [{ tier, weight }], art: { colors, accent, hero, motif }, hero, slots: [{ id, count,
+`pack sets --json` is `{ pack, tokens, priceExponent, sets: [{ id, name, series, released, cardSets, cards, inPack,
+printed, packSize, realPackSize, openable, price, priceSource: { site, url, date, variant, note? }, chance, oneIn,
+odds: [{ tier, weight }], art: { colors, accent, hero, motif }, hero, slots: [{ id, count,
 finish }] }] }`. `odds` is the expected number of cards of each tier in one pack (they add up to `packSize`).
 `cards` counts the cards we serve (built art), `printed` the set's printed cards, `packSize` our pack (unserved slots
-dropped), `realPackSize` the printed pack without the code card, `hero` the hero card's `image` path.
+dropped), `realPackSize` the printed pack without the code card, `hero` the hero card's `image` path, `chance` /
+`oneIn` the set's chance in `pack open random`.
+
+`pack odds random --json` is `{ set: "random", priceExponent, sets: [{ set, name, price, priceSource, openable, chance,
+oneIn }] }`.
 
 ### What gets recorded
 
@@ -94,10 +110,63 @@ it as caught at once):
 
 ### Pack tokens
 
-`<state>\tokens.log`, append-only TSV: `time  delta  reason  id=<ulid>  [set=<set>  pack=<pack id>]`. `grant` appends
-`+n` with its reason, `open` appends `-1` with the set and the pack id; the balance is the sum. Opens and grants run
+`<state>\tokens.log`, append-only TSV: `time  delta  reason  id=<ulid>  [set=<set>  pack=<pack id>  [random=1]]`.
+`grant` appends `+n` with its reason, `open` appends `-1` with the set and the pack id (and `random=1` when the set was
+rolled); the balance is the sum. A random open rolls the set inside the lock and spends exactly one token. Opens and grants run
 under a per-state named mutex, so concurrent opens can't spend the same token twice (the test starts 4 opens at once
 with 2 tokens: exactly 2 open). pokeshell has no idea what earns a token; that's up to whoever calls `grant`.
+
+## Random packs, weighted by price
+
+`pokeshell pack open random` (what the arena calls when you spend a token) doesn't let you pick: it rolls the set, then
+the pack. Each set's weight is its sealed booster pack's market price to the power `-k`:
+
+    weight(set) = price ^ -k        chance(set) = weight(set) / sum of the weights of the openable sets
+
+`k` is `priceExponent` in boosters.json, one constant for the whole curve. k = 1 would make a pack exactly as likely as
+it is affordable (a $700 Neo Genesis pack about 1 in 190 opens), which felt out of reach; k = 0.5 makes the vintage
+packs 1 in 30 each, one vintage pack every 17 opens, which stops being special. **k = 0.7**: each vintage pack about 1
+in 60-70 (one of the two every 32 opens), the cheap modern sets every 5 opens, the $45 chase sets every 10. Only sets
+we can open (built cards) and that have a price are in the draw; the others' share is spread over the rest.
+
+### Prices
+
+One sealed booster pack, USD, PriceCharting's ungraded ("loose") price for the set's booster-pack product, seen
+**2026-09-29** (PriceCharting shows no as-of date; its recent-sales lists run through late September 2026). The
+TCGplayer market price PriceCharting shows beside it is within a few percent for every modern set. Stored per set in
+boosters.json as `price` and `priceSource` (`site`, `url`, `date`, `variant`, `note`).
+
+| set | pack price | print run / variant | source | notes |
+|---|---:|---|---|---|
+| Evolving Skies (swsh7) | $43.97 | English, any pack art | [PriceCharting](https://www.pricecharting.com/game/pokemon-evolving-skies/booster-pack) | TCGplayer $45.80; recent sales $35-56 |
+| 30th Celebration (me55) | $16.91 | English | [PriceCharting](https://www.pricecharting.com/game/pokemon-30th-celebration/booster-pack) | released 2026-09-16: about two weeks of sales (27, $14.75-20.50), so the price may still move |
+| Crown Zenith (swsh12pt5) | $25.98 | English loose pack | [PriceCharting](https://www.pricecharting.com/game/pokemon-crown-zenith/booster-pack) | no booster box: loose packs come from ETBs, tins and collections; TCGplayer $25.38 |
+| Hidden Fates (sm115) | $47.98 | English, any pack art | [PriceCharting](https://www.pricecharting.com/game/pokemon-hidden-fates/booster-pack) | TCGplayer $49.15; recent sales $36-50 |
+| Base Set (base1) | $632.50 | **Unlimited** (1999-2000), the Charizard / Blastoise / Venusaur arts averaged | [PriceCharting](https://www.pricecharting.com/game/pokemon-base-set/booster-pack) | a range in practice: sales $254-1,375 (light vs heavy packs). Shadowless $3,529.21, 1st Edition $6,468.68: we model Unlimited |
+| Brilliant Stars (swsh9) | $16.24 | English, any pack art | [PriceCharting](https://www.pricecharting.com/game/pokemon-brilliant-stars/booster-pack) | TCGplayer $16.61; typical sales $15-18 |
+| Neo Genesis (neo1) | $741.61 | **Unlimited** (2000), the four pack arts averaged | [PriceCharting](https://www.pricecharting.com/game/pokemon-neo-genesis/booster-pack) | a range in practice: sales $500-1,375 (heavy packs cost more; plain ones $550-700). 1st Edition $902.45 |
+| Lost Origin (swsh11) | $19.68 | English, any pack art | [PriceCharting](https://www.pricecharting.com/game/pokemon-lost-origin/booster-pack) | TCGplayer $19.56; recent sales $17-22 |
+
+The vintage prices are averages over packs that sell across a wide range (weighed "heavy" packs, likelier to hold the
+holo, fetch double), so they are the least precise; with k = 0.7 a 20% error in one moves its chance by about 13%.
+
+### The chances (k = 0.7, all eight sets openable)
+
+| set | price | chance | 1 in |
+|---|---:|---:|---:|
+| Brilliant Stars | $16.24 | 21.38% | 4.7 |
+| 30th Celebration | $16.91 | 20.78% | 4.8 |
+| Lost Origin | $19.68 | 18.69% | 5.4 |
+| Crown Zenith | $25.98 | 15.38% | 6.5 |
+| Evolving Skies | $43.97 | 10.64% | 9.4 |
+| Hidden Fates | $47.98 | 10.01% | 10.0 |
+| Base Set | $632.50 | 1.65% | 60.7 |
+| Neo Genesis | $741.61 | 1.47% | 67.9 |
+
+A vintage pack (either) about 1 in 32 opens. `pokeshell pack odds random` prints this table from the live data (a set
+whose cards aren't built yet drops out and the rest renormalise). The test rolls the set 200,000 times (seeded) and
+50,000 times (CSPRNG) and checks every set's share within 4.5 sigma, then that `--seed` repeats the set and the pack
+and that a random open spends exactly one token.
 
 ## How a pack is modelled
 
@@ -284,6 +353,38 @@ cards + code + basic Energy or VSTAR marker: **5 common, 3 uncommon, the reverse
 
 Source: TCGplayer, 8,000+ packs. Its table and text disagree on rainbow (1 in 78 vs 1 in 70) and gold (1 in 131 vs 1
 in 114); the table's figures are used.
+
+## Speed: the booster index and the incremental export
+
+`pack open` used to take 1.5 s without `--export` and 3 s with it (15 s the first time on a copied state): PowerShell
+5.1 parsed pack.json (310 KB, half a second) and built the set's model card by card on every open, and `--export` ran the
+whole web export. Now:
+
+- **The booster index**, `<state>\booster-index-pokemon.tsv`: every set's model resolved once (the built cards, each
+  slot's pools and weights, the outcome metadata, pack.json's retired map), written by `Get-PokeshellBoosterIndex`
+  (`scripts/lib/booster.ps1`) and loaded by `Pokeshell.BoosterIndex` (`Booster.cs`). An open loads it (about 10 ms),
+  and rolls, resolves NEW against pulls.log and sorts the reveal in C#; the dice draws are the same as before, so a
+  seeded pack is the same pack. Its stamp is the root, pack.json, boosters.json, the art folder's time (a card's art
+  built or removed) and the booster code: when any changes, the next open rebuilds it (about 2 s, once). `pokeshell
+  install` builds it up front.
+- **`--export` is incremental** (`binder.exe --export-web --only <card ids>`, `binder/src/webexport.rs`): only the pack's
+  cards are rendered; data.json and binder.html are rewritten from the art cache. The export also reads each folder once
+  (existence, mtime and size of thousands of art files from one listing instead of a stat each) and caches the card
+  text (`img/.meta.json`) instead of parsing 1,500 `cards/<id>.json` files each time.
+- **Why the first export was cold**: `img/.cache.json` keyed every source by its absolute path. A module install's
+  export reads the art from `<state>\current\dist\...`; the same state copied elsewhere (or a source checkout, or a
+  new module version) names other paths, so every entry missed and all ~1,200 images were decoded again (15 s). The
+  cache now keys sources by their path relative to the root, and an entry of the old format still matches when its
+  absolute path ends with the same relative path and the mtime and size agree, so existing caches stay warm.
+
+Measured on the user's state (871 pulls, 1,235 web images; a copy in %TEMP%, a source checkout, Windows PowerShell 5.1,
+bare `powershell.exe` start about 200 ms):
+
+| `pack open swsh7 --json --free` | before | after |
+|---|---:|---:|
+| without `--export` | 1,360-1,400 ms | 575-665 ms |
+| `--export`, warm | 1,780-2,160 ms | 860-1,000 ms (`random`: 715-1,000 ms) |
+| `--export`, the first open on a copied state | 14,440 ms (art cache cold) | 2,970-3,190 ms (the index is built once; the art cache holds) |
 
 ## Monte Carlo
 

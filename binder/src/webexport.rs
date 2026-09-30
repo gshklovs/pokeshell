@@ -4,6 +4,12 @@
 //! PNGs, pixel for pixel).
 //!
 //!   binder --export-web <out> [--root <checkout>] [--state <dir>] [--log <pulls.log>] [--owner <name>] [--no-art]
+//!                           [--only <card id>,<card id>...]
+//!
+//! --only (`pokeshell pack open --export`): incremental. Only the named cards' images (and their shiny forms) are checked
+//! and rendered; every other image the art cache already has is kept as it is (its source isn't even looked at) and
+//! nothing is pruned. data.json and binder.html are rewritten in full as always. A card the cache doesn't know yet is
+//! rendered either way, so --only never leaves a hole.
 //!
 //! Reads
 //!   <state>/pulls.log                       TSV: time, pack, character, tier, art, skin, shiny(0/1), flags, [key=value...]
@@ -23,7 +29,13 @@
 //!   img/<pack>/<character>/<tier or card id>[-shiny].png   1 px per art pixel: every built card, shiny forms that were pulled
 //!   img/<pack>/<character>/_seen.png, <card id>-seen.png   a seen card's silhouette, when no exported art gives it (below)
 //!   img/pokedex/_silhouettes.png            atlas of all 905 pokedex silhouettes (alpha only): the dex characters' tints
-//!   img/.cache.json                         decoded-art cache (source mtime + size -> PNG size, tint): reruns skip decoding
+//!   img/.cache.json                         decoded-art cache (source mtime + size -> PNG size, tint): reruns skip decoding.
+//!                                           Sources are keyed by their path relative to --root, so a copy of the
+//!                                           checkout / module (a module install's <state>\current, a new module version,
+//!                                           a copied state folder) keeps the cache; entries of older caches that named
+//!                                           an absolute path still match on the same relative path, mtime and size
+//!   img/.meta.json                          card-text cache: each real card's display fields and text half, keyed by
+//!                                           its cards/<id>.json (relative path, mtime, size) and its pack.json entry
 //!   binder.html                             the page with data.json inlined (with the img/ folder)
 //! PNGs that no current card needs are pruned from img/ (not with --no-art, which leaves img/ alone).
 //!
@@ -50,6 +62,7 @@
 //! show in the output (truthiness, str.title, splitlines, round).
 
 use serde_json::{Map, Number, Value, json};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -538,16 +551,121 @@ fn read_pulls(log: &Path, viewed: &HashSet<String>, now: f64, boot: i64, bad: &m
 
 // ---------------------------------------------------------------- packs
 
+/// Directory listings, read once each: a file's existence, mtime and size come from its folder's listing (on Windows
+/// read_dir returns them with every entry, so one listing replaces a stat per file: the export looks at every card's
+/// art several times, thousands of files). Names are matched case-insensitively on Windows, like the file system.
+#[derive(Default)]
+struct DirCache {
+    dirs: RefCell<HashMap<PathBuf, Rc<HashMap<String, (u64, u64, bool)>>>>,
+}
+
+impl DirCache {
+    fn key(name: &str) -> String {
+        if cfg!(windows) { name.to_lowercase() } else { name.to_string() }
+    }
+
+    fn listing(&self, dir: &Path) -> Rc<HashMap<String, (u64, u64, bool)>> {
+        if let Some(l) = self.dirs.borrow().get(dir) {
+            return l.clone();
+        }
+        let mut m = HashMap::new();
+        if let Ok(rd) = fs::read_dir(dir) {
+            for e in rd.flatten() {
+                let name = e.file_name().to_string_lossy().into_owned();
+                // DirEntry::metadata doesn't follow a link: a link (a symlinked file, a junction) is stat'ed
+                let md = match e.metadata() {
+                    Ok(md) if md.file_type().is_symlink() => fs::metadata(e.path()).ok(),
+                    Ok(md) => Some(md),
+                    Err(_) => fs::metadata(e.path()).ok(),
+                };
+                if let Some(md) = md {
+                    m.insert(Self::key(&name), (mtime_ns(&md), md.len(), md.is_file()));
+                }
+            }
+        }
+        let l = Rc::new(m);
+        self.dirs.borrow_mut().insert(dir.to_path_buf(), l.clone());
+        l
+    }
+
+    /// (mtime ns, size) of a file, None when it isn't there (or is a folder)
+    fn file(&self, p: &Path) -> Option<(u64, u64)> {
+        let (Some(dir), Some(name)) = (p.parent(), p.file_name()) else { return None };
+        self.listing(dir).get(&Self::key(&name.to_string_lossy())).filter(|e| e.2).map(|e| (e.0, e.1))
+    }
+
+    fn is_file(&self, p: &Path) -> bool {
+        self.file(p).is_some()
+    }
+
+    /// a file is about to be written: forget its folder's listing
+    fn touched(&self, p: &Path) {
+        if let Some(dir) = p.parent() {
+            self.dirs.borrow_mut().remove(dir);
+        }
+    }
+}
+
 struct Ctx {
     root: PathBuf,
     opshell: PathBuf,
+    dirs: Rc<DirCache>,
+    meta: RefCell<MetaCache>,
+}
+
+/// img/.meta.json: card_meta's result per real card, so a rerun doesn't read and parse every packs/<pack>/cards/<id>.json
+/// (about 1,500 files). An entry is used while its key (the card file's relative path, mtime and size, and the card's
+/// pack.json entry) is unchanged.
+struct MetaCache {
+    file: PathBuf,
+    old: Obj,
+    new: Obj,
+    changed: bool,
+}
+
+const META_VERSION: i64 = 1;
+
+impl MetaCache {
+    fn new(file: PathBuf) -> MetaCache {
+        let old = read_text(&file)
+            .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+            .filter(|d| d.get("v") == Some(&json!(META_VERSION)))
+            .and_then(|d| d.get("cards").and_then(|c| c.as_object()).cloned())
+            .unwrap_or_default();
+        MetaCache { file, old, new: Obj::new(), changed: false }
+    }
+
+    fn get(&mut self, id: &str, key: &str) -> Option<Obj> {
+        let e = self.old.get(id)?;
+        if e.get("k").and_then(|k| k.as_str()) != Some(key) {
+            return None;
+        }
+        let m = e.get("m")?.as_object()?.clone();
+        self.new.insert(id.to_string(), e.clone());
+        Some(m)
+    }
+
+    fn put(&mut self, id: &str, key: &str, m: &Obj) {
+        self.new.insert(id.to_string(), json!({"k": key, "m": m}));
+        self.changed = true;
+    }
+
+    fn save(&self) {
+        if !self.changed && self.new.len() == self.old.len() {
+            return;
+        }
+        let doc = json!({"v": META_VERSION, "cards": self.new});
+        if let Err(err) = write_atomic(&self.file, &text_bytes(&dumps(&doc, true))) {
+            warn(&format!("can't write {}: {err}", path_str(&self.file)));
+        }
+    }
 }
 
 impl Ctx {
     /// a real card's art is built: dist/<pack>/<character>-<card id>.ans exists (the roll's test,
     /// Test-PokeshellCardBuilt in scripts/lib/common.ps1). Cards without it never roll.
     fn card_built(&self, pid: &str, ch: &str, cid: &str) -> bool {
-        self.root.join("dist").join(pid).join(format!("{ch}-{cid}.ans")).is_file()
+        self.dirs.is_file(&self.root.join("dist").join(pid).join(format!("{ch}-{cid}.ans")))
     }
 
     /// pack.json with unbuilt cards muted (a real-card pack keeps only its built cards: an unbuilt card is no binder
@@ -822,6 +940,19 @@ fn scan_url(cid: &str, large: Option<&Value>) -> Value {
 /// (docs/CARD_FORMAT.md) when it exists: set, printed rarity, subtypes, types, artist, and the text half ("text": HP,
 /// stage, abilities, attacks with their energy cost, weakness / resistance / retreat, rules, flavor)
 fn card_meta(ctx: &Ctx, pid: &str, cid: &str, c: &Value) -> Obj {
+    let f = ctx.root.join("packs").join(pid).join("cards").join(format!("{cid}.json"));
+    let st = ctx.dirs.file(&f);
+    let key = format!("{}|{}|{}|{}", rel_str(&ctx.root, &f), st.map(|x| x.0).unwrap_or(0), st.map(|x| x.1).unwrap_or(0), dumps(c, true));
+    let id = format!("{pid}/{cid}");
+    if let Some(m) = ctx.meta.borrow_mut().get(&id, &key) {
+        return m;
+    }
+    let m = card_meta_read(ctx, pid, cid, c, st.is_some());
+    ctx.meta.borrow_mut().put(&id, &key, &m);
+    m
+}
+
+fn card_meta_read(ctx: &Ctx, pid: &str, cid: &str, c: &Value, has_file: bool) -> Obj {
     let number = get_or(c, "number", s(""));
     let mut m = Obj::new();
     m.insert("id".into(), s(cid));
@@ -837,7 +968,7 @@ fn card_meta(ctx: &Ctx, pid: &str, cid: &str, c: &Value) -> Obj {
     m.insert("artist".into(), s(""));
     m.insert("scan".into(), scan_url(cid, None));
     let f = ctx.root.join("packs").join(pid).join("cards").join(format!("{cid}.json"));
-    if !f.exists() {
+    if !has_file {
         return m;
     }
     let Some(d) = read_text(&f).and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
@@ -1427,9 +1558,35 @@ fn mtime_ns(m: &fs::Metadata) -> u64 {
     m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_nanos() as u64).unwrap_or(0)
 }
 
-fn stamp(p: &Path) -> Vec<Value> {
-    let m = fs::metadata(p).ok();
-    vec![s(&path_str(p)), json!(m.as_ref().map(mtime_ns).unwrap_or(0)), json!(m.map(|m| m.len()).unwrap_or(0))]
+/// a source's stamp: [its path relative to root (absolute when it is outside), mtime ns, size]
+fn stamp(dirs: &DirCache, root: &Path, p: &Path) -> Vec<Value> {
+    let m = dirs.file(p);
+    vec![s(&rel_str(root, p)), json!(m.map(|m| m.0).unwrap_or(0)), json!(m.map(|m| m.1).unwrap_or(0))]
+}
+
+fn rel_str(root: &Path, p: &Path) -> String {
+    p.strip_prefix(root).map(path_str).unwrap_or_else(|_| path_str(p))
+}
+
+/// a cached entry's source stamp is this one: equal, or (a cache written before sources were keyed relative to the
+/// root, or under another root) each path in it ends with the relative path here, with the same mtimes and sizes
+fn same_src(old: Option<&Value>, new: &Value) -> bool {
+    let (Some(old), Some(new)) = (old.and_then(|v| v.as_array()), new.as_array()) else { return false };
+    if old == new {
+        return true;
+    }
+    if old.len() != new.len() {
+        return false;
+    }
+    let norm = |x: &str| x.replace('/', "\\").to_lowercase();
+    let tail = |o: &str, n: &str| {
+        let (o, n) = (norm(o), norm(n));
+        o == n || (!n.is_empty() && !Path::new(&n).is_absolute() && o.ends_with(&format!("\\{n}")))
+    };
+    old.iter().zip(new.iter()).all(|(o, n)| match (o.as_str(), n.as_str()) {
+        (Some(o), Some(n)) => o.split('|').count() == n.split('|').count() && o.split('|').zip(n.split('|')).all(|(o, n)| tail(o, n)),
+        _ => o == n,
+    })
 }
 
 /// decoded art, cached by source file: img/.cache.json maps each PNG (relative to img/) to the source it was made from
@@ -1439,6 +1596,10 @@ fn stamp(p: &Path) -> Vec<Value> {
 struct ArtCache {
     img: PathBuf,
     over: PathBuf,
+    root: PathBuf,
+    dirs: Rc<DirCache>,
+    /// --only: the cards whose images are checked; every other cached image is kept as it is
+    only: Option<HashSet<String>>,
     do_art: bool,
     kept: HashSet<String>,
     decoded: usize,
@@ -1449,31 +1610,48 @@ struct ArtCache {
 }
 
 impl ArtCache {
-    fn new(img: &Path, over: &Path, do_art: bool) -> ArtCache {
+    fn new(img: &Path, over: &Path, root: &Path, dirs: Rc<DirCache>, only: Option<HashSet<String>>, do_art: bool) -> ArtCache {
         let file = img.join(".cache.json");
         let d = read_text(&file).and_then(|t| serde_json::from_str::<Value>(&t).ok()).filter(|d| d.get("v") == Some(&json!(CACHE_VERSION)));
         let part = |k: &str| d.as_ref().and_then(|d| d.get(k)).and_then(|v| v.as_object()).cloned().unwrap_or_default();
-        ArtCache { img: img.to_path_buf(), over: over.to_path_buf(), do_art, kept: HashSet::new(), decoded: 0, reused: 0, entries: part("entries"), extra: part("extra"), file }
+        ArtCache { img: img.to_path_buf(), over: over.to_path_buf(), root: root.to_path_buf(), dirs, only, do_art, kept: HashSet::new(), decoded: 0, reused: 0, entries: part("entries"), extra: part("extra"), file }
     }
 
     /// (size [w, h] or null, tint) of the PNG img/<rel> made from src (and `also`, a second source it depends on).
     /// --no-art: nothing is decoded or written; a cached entry still gives the size and tint.
+    /// --only: is img/<rel> one of the named cards' images ("<pack>/<character>/<card id>[-shiny|-seen].png")?
+    fn wanted(&self, rel: &str) -> bool {
+        let Some(only) = &self.only else { return true };
+        let stem = rel.rsplit('/').next().unwrap_or(rel).trim_end_matches(".png");
+        let id = stem.strip_suffix("-shiny").or_else(|| stem.strip_suffix("-seen")).unwrap_or(stem);
+        only.contains(id)
+    }
+
     fn get(&mut self, rel: &str, src: &Path, how: Src, also: Option<&Path>) -> (Value, Option<String>) {
-        let ov = self.over.join(rel);
-        let mut st = stamp(src);
-        if let Some(a) = also {
-            st.extend(stamp(a));
-        }
-        if let Ok(om) = fs::metadata(&ov) {
-            st[0] = s(&format!("{}|{}", st[0].as_str().unwrap_or(""), path_str(&ov)));
-            st[1] = json!(st[1].as_u64().unwrap_or(0).max(mtime_ns(&om)));
-        }
-        let st = Value::Array(st);
         let dst = self.img.join(rel);
         let e = self.entries.get(rel).cloned();
         let tint_of_e = |e: &Option<Value>| e.as_ref().and_then(|e| e.get("tint")).and_then(|t| t.as_str()).map(str::to_string);
         let size_of_e = |e: &Option<Value>| e.as_ref().and_then(|e| e.get("size")).cloned().unwrap_or(Value::Null);
-        if e.as_ref().is_some_and(|e| e.get("src") == Some(&st)) && (!self.do_art || dst.exists()) {
+        // --only: another card's image that the cache has is kept as it is
+        if e.is_some() && !self.wanted(rel) {
+            self.kept.insert(rel.to_string());
+            self.reused += 1;
+            return (size_of_e(&e), tint_of_e(&e));
+        }
+        let ov = self.over.join(rel);
+        let mut st = stamp(&self.dirs, &self.root, src);
+        if let Some(a) = also {
+            st.extend(stamp(&self.dirs, &self.root, a));
+        }
+        if let Some(om) = self.dirs.file(&ov) {
+            st[0] = s(&format!("{}|{}", st[0].as_str().unwrap_or(""), rel_str(&self.root, &ov)));
+            st[1] = json!(st[1].as_u64().unwrap_or(0).max(om.0));
+        }
+        let st = Value::Array(st);
+        if e.as_ref().is_some_and(|e| same_src(e.get("src"), &st)) && (!self.do_art || self.dirs.is_file(&dst)) {
+            if let Some(Value::Object(o)) = self.entries.get_mut(rel) {
+                o.insert("src".into(), st); // an old absolute stamp becomes the relative one
+            }
             self.kept.insert(rel.to_string());
             self.reused += 1;
             return (size_of_e(&e), tint_of_e(&e));
@@ -1486,7 +1664,8 @@ impl ArtCache {
         let tint = tint_of(&grid);
         let n: usize = grid.iter().map(|r| r.len()).sum();
         let clear = if n > 0 { fnum(round3(grid.iter().map(|r| r.iter().filter(|p| p.is_none()).count()).sum::<usize>() as f64 / n as f64)) } else { json!(0) };
-        let size = if ov.exists() {
+        self.dirs.touched(&dst);
+        let size = if self.dirs.is_file(&ov) {
             let copied = fs::read(&ov).and_then(|b| write_atomic(&dst, &b));
             if let Err(err) = copied {
                 warn(&format!("can't copy {}: {err}", path_str(&ov)));
@@ -1515,7 +1694,8 @@ impl ArtCache {
         if !self.do_art {
             return;
         }
-        let live: Obj = self.entries.iter().filter(|(k, _)| self.kept.contains(*k)).map(|(k, v)| (k.clone(), v.clone())).collect();
+        // --only: nothing is pruned, so every entry stays (the next full export sorts them out)
+        let live: Obj = self.entries.iter().filter(|(k, _)| self.only.is_some() || self.kept.contains(*k)).map(|(k, v)| (k.clone(), v.clone())).collect();
         let doc = json!({"v": CACHE_VERSION, "entries": live, "extra": self.extra});
         if let Err(err) = write_atomic(&self.file, &text_bytes(&dumps(&doc, true))) {
             warn(&format!("can't write {}: {err}", path_str(&self.file)));
@@ -1524,7 +1704,7 @@ impl ArtCache {
 
     /// remove PNGs no card uses any more (and folders left empty); only after a full art export
     fn prune(&self) -> usize {
-        if !self.do_art || !self.img.exists() {
+        if !self.do_art || self.only.is_some() || !self.img.exists() {
             return 0;
         }
         let mut files = vec![];
@@ -1606,9 +1786,9 @@ fn export_art(ctx: &Ctx, packs: &mut [Value], pulls: &[Pull], cache: &mut ArtCac
                 .iter()
                 .map(|p| {
                     let name = s(&p.file_name().unwrap_or_default().to_string_lossy());
-                    match fs::metadata(p) {
-                        Ok(m) => json!([name, mtime_ns(&m), m.len()]),
-                        Err(_) => json!([name]),
+                    match ctx.dirs.file(p) {
+                        Some(m) => json!([name, m.0, m.1]),
+                        None => json!([name]),
                     }
                 })
                 .collect();
@@ -1617,11 +1797,11 @@ fn export_art(ctx: &Ctx, packs: &mut [Value], pulls: &[Pull], cache: &mut ArtCac
             let atlas_file = cache.img.join(&pid).join("_silhouettes.png");
             let mut tints: Option<Vec<Value>> = None;
             let mut geo: Option<(Value, Value, Value)> = None; // cell, cols, rows
-            if meta.get("sig") == Some(&sig) && (atlas_file.exists() || !cache.do_art) {
+            if meta.get("sig") == Some(&sig) && (ctx.dirs.is_file(&atlas_file) || !cache.do_art) {
                 tints = meta.get("tints").and_then(|t| t.as_array()).cloned();
                 geo = Some((meta.get("cell").cloned().unwrap_or(Value::Null), meta.get("cols").cloned().unwrap_or(Value::Null), meta.get("rows").cloned().unwrap_or(Value::Null)));
             } else if cache.do_art {
-                let sils: Vec<Grid> = srcs.iter().map(|p| if p.exists() { dex_grid(&read_universal(p).unwrap_or_default()) } else { vec![vec![None]] }).collect();
+                let sils: Vec<Grid> = srcs.iter().map(|p| if ctx.dirs.is_file(p) { dex_grid(&read_universal(p).unwrap_or_default()) } else { vec![vec![None]] }).collect();
                 let t: Vec<Value> = sils.iter().map(|g| s(&tint_of(g))).collect();
                 let cw = sils.iter().map(|g| g[0].len()).max().unwrap_or(1);
                 let chh = sils.iter().map(|g| g.len()).max().unwrap_or(1);
@@ -1659,10 +1839,10 @@ fn export_art(ctx: &Ctx, packs: &mut [Value], pulls: &[Pull], cache: &mut ArtCac
                 forms.sort();
                 for (tier, shiny) in forms {
                     let mut src = dex.join(format!("{c}-common{}.ans", if shiny { "-shiny" } else { "" }));
-                    if !src.exists() {
+                    if !ctx.dirs.is_file(&src) {
                         src = dex.join(format!("{c}-common.ans"));
                     }
-                    if !src.exists() {
+                    if !ctx.dirs.is_file(&src) {
                         continue;
                     }
                     let key = format!("{tier}{}", if shiny { "-shiny" } else { "" });
@@ -1692,7 +1872,7 @@ fn export_art(ctx: &Ctx, packs: &mut [Value], pulls: &[Pull], cache: &mut ArtCac
                             continue;
                         }
                         let src = dist.join(format!("{c}-{cid}{}.ans", if shiny { "-shiny" } else { "" }));
-                        if !src.exists() {
+                        if !ctx.dirs.is_file(&src) {
                             continue;
                         }
                         let key = format!("{cid}{}", if shiny { "-shiny" } else { "" });
@@ -1735,7 +1915,7 @@ fn export_art(ctx: &Ctx, packs: &mut [Value], pulls: &[Pull], cache: &mut ArtCac
                             let cid = py_str(&cards[i]["id"]);
                             let a = dist.join(format!("{c}-{cid}.ans"));
                             let b = dist.join(format!("{c}-{cid}-shiny.ans"));
-                            if !(a.exists() && b.exists()) {
+                            if !(ctx.dirs.is_file(&a) && ctx.dirs.is_file(&b)) {
                                 continue;
                             }
                             let (size, _) = cache.get(&format!("{pid}/{c}/{cid}-seen.png"), &a, Src::Layer(a.clone(), b.clone()), Some(&b));
@@ -1798,19 +1978,23 @@ pub struct Opts {
     pub out: PathBuf,
     pub owner: Option<String>,
     pub no_art: bool,
+    /// --only: the card ids whose images are (re)rendered (incremental: pack open --export)
+    pub only: Option<Vec<String>>,
 }
 
 /// the export; returns the process exit code
 pub fn run(o: Opts) -> i32 {
     let t0 = Instant::now();
     let root = std::path::absolute(&o.root).unwrap_or(o.root.clone());
-    let ctx = Ctx { opshell: root.parent().map(|p| p.join("opshell")).unwrap_or_else(|| root.join("opshell")), root: root.clone() };
+    let dirs = Rc::new(DirCache::default());
+    let img = o.out.join("img");
+    let meta = RefCell::new(MetaCache::new(img.join(".meta.json")));
+    let ctx = Ctx { opshell: root.parent().map(|p| p.join("opshell")).unwrap_or_else(|| root.join("opshell")), root: root.clone(), dirs: dirs.clone(), meta };
     let out = o.out.clone();
     if let Err(e) = fs::create_dir_all(&out) {
         eprintln!("binder: can't create {}: {e}", path_str(&out));
         return 1;
     }
-    let img = out.join("img");
     let log = o.log.clone().unwrap_or_else(|| o.state.join("pulls.log"));
     let base = log.parent().map(Path::to_path_buf).unwrap_or_else(|| o.state.clone());
     let viewed: HashSet<String> = read_text(&base.join("viewed.txt")).map(|t| splitlines(&t).iter().map(|l| py_strip(l).to_string()).filter(|l| !l.is_empty()).collect()).unwrap_or_default();
@@ -1859,7 +2043,8 @@ pub fn run(o: Opts) -> i32 {
     }
 
     let over = root.join("tools").join("binder-web").join("art-override");
-    let mut cache = ArtCache::new(&img, &over, !o.no_art);
+    let only: Option<HashSet<String>> = o.only.as_ref().map(|v| v.iter().cloned().collect());
+    let mut cache = ArtCache::new(&img, &over, &root, dirs.clone(), only, !o.no_art);
     let (mut art, card_tints, atlas) = export_art(&ctx, &mut packs, &pulls, &mut cache);
     for pk in packs.iter_mut() {
         let pid = py_str(&pk["id"]);
@@ -1886,6 +2071,9 @@ pub fn run(o: Opts) -> i32 {
     }
     cache.save();
     let pruned = cache.prune();
+    if !o.no_art {
+        ctx.meta.borrow().save(); // (--no-art leaves img/ alone)
+    }
 
     // slots (the page's: a real card, a character in a tier, or a pokedex character), caught vs only seen
     let layout: HashMap<String, String> = packs.iter().map(|p| (py_str(&p["id"]), py_str(&p["layout"]))).collect();
