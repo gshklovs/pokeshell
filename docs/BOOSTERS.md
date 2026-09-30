@@ -72,12 +72,14 @@ a failure `{"error": ...}` with exit code 1:
   `img/<pack>/<character>/<card id>[-shiny].png`, 1 px per art pixel: scale it with `image-rendering: pixelated`). Run
   with `--export` (or `pokeshell binder --web`) to make sure it exists.
 - `png`: the image's full path once the web export has it (as in `collection --json`), else `null`.
-- `pullId`: the card's pull id in `pulls.log`.
-- Errors (with `--json`): `{ "error": "...", "code": "no-tokens" | "error", "tokens": n }` and exit code 1 (`code` and
-  `tokens` are added to the usual `{"error"}`).
+- `pullId`: the card's pull id in `pulls.log`. `card` and `pull` repeat `id` and `pullId` under the names the arena
+  SPEC uses.
+- Errors (with `--json`): `{ "error": "...", "message": "...", "code": "no-tokens" | "error", "tokens": n }` and exit
+  code 1 (`message`, `code` and `tokens` are added to the usual `{"error"}`; `message` repeats it).
 
 `pack sets --json` is `{ pack, tokens, sets: [{ id, name, series, released, cardSets, cards, inPack, printed,
-packSize, realPackSize, openable, art: { colors, accent, hero, motif }, hero, slots: [{ id, count, finish }] }] }`.
+packSize, realPackSize, openable, odds: [{ tier, weight }], art: { colors, accent, hero, motif }, hero, slots: [{ id, count,
+finish }] }] }`. `odds` is the expected number of cards of each tier in one pack (they add up to `packSize`).
 `cards` counts the cards we serve (built art), `printed` the set's printed cards, `packSize` our pack (unserved slots
 dropped), `realPackSize` the printed pack without the code card, `hero` the hero card's `image` path.
 

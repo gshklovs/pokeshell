@@ -171,6 +171,8 @@ $v = (Invoke-Cli $s1 'version' '--json') | ConvertFrom-Json
 Assert (@('pack sets --json', 'pack odds --json', 'pack open --json', 'pack grant --json', 'pack tokens --json' | Where-Object { @($v.commands) -notcontains $_ }).Count -eq 0) "version --json lists the pack commands"
 $ls = (Invoke-Cli $s1 'pack' 'sets' '--json') | ConvertFrom-Json
 Assert (@($ls.sets).Count -eq $sets.Count -and ($ls.sets | Where-Object id -eq 'swsh7').cards -eq 193 -and ($ls.sets | Where-Object id -eq 'swsh11').openable -and ($ls.sets | Where-Object id -eq 'swsh7').hero -like 'img/pokemon/*') "pack sets --json: every set, card counts, openable, art hints"
+$badOdds = @($ls.sets | Where-Object { $_.openable -and [math]::Abs((@($_.odds) | Measure-Object weight -Sum).Sum - $_.packSize) -gt 0.001 })
+Assert (-not $badOdds) "pack sets --json odds: the expected cards per tier add up to the pack size$(if ($badOdds) { ': ' + ($badOdds.id -join ', ') })"
 
 Write-Host "5. pack tokens" -ForegroundColor Cyan
 $s2 = Join-Path $fx 's2'; [void][IO.Directory]::CreateDirectory($s2)

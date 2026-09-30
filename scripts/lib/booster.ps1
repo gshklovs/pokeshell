@@ -75,15 +75,19 @@ served/printed (the share of that outcome's printed cards we serve), then each s
 so every served card keeps its real odds relative to every other (docs/BOOSTERS.md, "Cards we don't serve").
 #>
 function Get-PokeshellBoosterModel([string]$Root, $Pack, $Set) {
-  $raw = [IO.File]::ReadAllText((Join-Path $Pack.dir 'pack.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json
+  if ($script:BoosterRawPack -and $script:BoosterRawPack[0] -eq $Pack.dir) { $raw = $script:BoosterRawPack[1] }
+  else { $raw = [IO.File]::ReadAllText((Join-Path $Pack.dir 'pack.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json; $script:BoosterRawPack = @($Pack.dir, $raw) }
   $cardSets = @($Set.cardSets)
+  $want = [Collections.Generic.HashSet[string]]::new([string[]]$cardSets)
+  $dist = Join-Path $Root "dist\$($Pack.id)"
   $cards = [Collections.Generic.List[object]]::new()
   foreach ($c in $Pack.cardList) {
-    if ($cardSets -notcontains (Get-PokeshellCardSet $c.id)) { continue }
-    if (-not (Test-PokeshellCardBuilt $Root $Pack.id $c)) { continue }
+    $cs = $c.id.Substring(0, [Math]::Max(0, $c.id.LastIndexOf('-')))   # Get-PokeshellCardSet, inlined
+    if (-not $want.Contains($cs)) { continue }
+    if (-not [IO.File]::Exists("$dist\$($c.character)-$($c.id).ans")) { continue }   # Test-PokeshellCardBuilt
     $e = $raw.cards.($c.id)
     $cards.Add([pscustomobject]@{ id = $c.id; character = $c.character; name = $c.name; number = $c.tag; tier = $c.tier; tierId = $c.tierId
-                                  rarity = [string]$e.rarity; set = [string]$e.set })
+                                  rarity = [string]$e.rarity; set = [string]$e.set; cset = $cs })
   }
   $slots = [Collections.Generic.List[Pokeshell.BoosterSlot]]::new(); $meta = @()
   foreach ($s in @($Set.slots)) {
@@ -92,7 +96,19 @@ function Get-PokeshellBoosterModel([string]$Root, $Pack, $Set) {
     $slot.Finish = [string]$(if ($s.finish) { $s.finish } else { 'normal' })
     $om = @(); $missing = 0.0; $baseAt = -1
     foreach ($pk in @($s.pick)) {
-      $pool = [int[]]@(for ($i = 0; $i -lt $cards.Count; $i++) { if (Test-PokeshellCardMatch $cards[$i] $pk $cardSets) { $i } })
+      # Test-PokeshellCardMatch, inlined (a function call per card costs seconds over every set in PowerShell 5.1)
+      # (the unary comma keeps `if` from unrolling a set into its strings, whose .Contains would be a substring test)
+      $ids = if ($pk.ids) { , [Collections.Generic.HashSet[string]]::new([string[]]@($pk.ids)) } else { $null }
+      $inSets = [Collections.Generic.HashSet[string]]::new([string[]]@(if ($pk.sets) { $pk.sets } else { $cardSets }))
+      $rar = if ($pk.rarity) { , [Collections.Generic.HashSet[string]]::new([string[]]@($pk.rarity)) } else { $null }
+      $exc = if ($pk.exclude) { , [Collections.Generic.HashSet[string]]::new([string[]]@($pk.exclude)) } else { $null }
+      $noPok = $pk.supertype -and $pk.supertype -ne 'Pok'
+      $pool = [int[]]@(if (-not $noPok) { for ($i = 0; $i -lt $cards.Count; $i++) {
+        $c = $cards[$i]
+        if ($null -ne $ids) { if ($ids.Contains($c.id)) { $i }; continue }
+        if (-not $inSets.Contains($c.cset) -or ($null -ne $exc -and $exc.Contains($c.id)) -or ($null -ne $rar -and -not $rar.Contains($c.rarity))) { continue }
+        $i
+      } })
       $rate = [double]$(if ($null -ne $pk.rate) { $pk.rate } else { 1 })
       $printed = [int]$(if ($pk.printed) { $pk.printed } else { 0 })
       $share = if ($printed -gt 0) { [math]::Min(1.0, $pool.Count / $printed) } else { [double]($pool.Count -gt 0) }
@@ -196,6 +212,7 @@ function Open-PokeshellBooster([string]$Root, [string]$StateDir, $Pack, $Set, $R
       character = $c.character; setName = $c.set
       image = "img/$($Pack.id)/$($c.character)/$($c.id)$(if ($shiny) { '-shiny' }).png"
       order = $n++; tierIndex = $c.tier; pullId = ''
+      card = $c.id; pull = ''   # the arena SPEC's names for id / pullId (docs/arena SPEC: pokeshell pack open)
     }
   }
   # reveal order, rarest last: by the odds of the kind of hit (the outcome's per-pack chance, lower = later), then
@@ -203,7 +220,7 @@ function Open-PokeshellBooster([string]$Root, [string]$StateDir, $Pack, $Set, $R
   $sorted = @($out | Sort-Object @{ e = { $_.hit + $(if ($_.shiny) { 0.5 } else { 0 }) } }, @{ e = { $_.oneIn } }, @{ e = { $_.order } })
   if (-not $NoRecord) {
     $lines = foreach ($x in $sorted) {
-      $x.pullId = [Pokeshell.Core]::NewPullId($now)
+      $x.pullId = [Pokeshell.Core]::NewPullId($now); $x.pull = $x.pullId
       # a caught pull (no "pending" flag): pulls.log's columns, plus where it came from
       "$stamp`t$($Pack.id)`t$($x.character)`t$($x.tier)`t$($x.id)`t`t$(if ($x.shiny) { '1' } else { '0' })`tbooster:$($Set.id)`tid=$($x.pullId)`tboot=$boot`tcard=$($x.id)`tbooster=$packId`tslot=$($x.slot)`tfinish=$($x.finish)"
     }
@@ -220,11 +237,27 @@ function Get-PokeshellBoosterSets([string]$Root, $Pack, $Boosters) {
     $cardSets = @($s.cardSets)
     $all = @($Pack.cardList | Where-Object { $cardSets -contains (Get-PokeshellCardSet $_.id) })
     $built = @($all | Where-Object { Test-PokeshellCardBuilt $Root $Pack.id $_ })
-    $slots = @($s.slots); $size = 0; foreach ($x in $slots) { $size += [int]$(if ($x.count) { $x.count } else { 1 }) }
+    $slots = @($s.slots); $size = 0
+    # odds: the expected number of cards of each tier in one pack (slot count x outcome chance, spread over its pool)
+    $odds = [ordered]@{}
+    if ($built.Count) {
+      $m = Get-PokeshellBoosterModel $Root $Pack $s
+      foreach ($sl in $m.slots) {
+        $live = $false
+        for ($o = 0; $o -lt $sl.Outcomes.Count; $o++) {
+          $pr = $sl.Probability($o); $pool = $sl.Outcomes[$o].Pool
+          if ($pr -le 0) { continue }
+          $live = $true
+          foreach ($ci in $pool) { $t = $m.cards[$ci].tierId; $odds[$t] = [double]$odds[$t] + $sl.Count * $pr / $pool.Length }
+        }
+        if ($live) { $size += $sl.Count }
+      }
+    }
     [pscustomobject][ordered]@{
       id = $s.id; name = $s.name; series = $s.series; released = $s.released; cardSets = $cardSets
       cards = $built.Count; inPack = $all.Count; printed = [int]$s.printed; packSize = $size; realPackSize = [int]$s.realPackSize
       openable = $built.Count -gt 0
+      odds = @(foreach ($k in $odds.Keys) { [ordered]@{ tier = $k; weight = [math]::Round($odds[$k], 5) } })
       art = $s.art
       hero = $(if ($s.art.hero) { $h = $Pack.cardIndex[$s.art.hero]; if ($h) { "img/$($Pack.id)/$($h.character)/$($h.id).png" } })
       slots = @($slots | ForEach-Object { [ordered]@{ id = $_.id; count = [int]$(if ($_.count) { $_.count } else { 1 }); finish = $(if ($_.finish) { $_.finish } else { 'normal' }) } })

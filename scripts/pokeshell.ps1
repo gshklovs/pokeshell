@@ -270,6 +270,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
     $boosters = Read-PokeshellBoosters $Root 'pokemon'
     switch ($Sub) {
       'sets' {
+        Import-PokeshellBooster $State
         $sets = @(Get-PokeshellBoosterSets $Root $pack $boosters)
         if ($json) { Write-PokeshellBoosterJson ([ordered]@{ pack = $pack.id; tokens = (Get-PokeshellTokenBalance $State); sets = $sets }); return }
         Write-Host ''
@@ -345,7 +346,7 @@ function Invoke-Booster([string]$Sub, [string[]]$Args2) {
   } catch {
     if (-not $json) { throw }
     $code = if ($_.Exception.Data['code']) { $_.Exception.Data['code'] } else { 'error' }
-    Write-PokeshellBoosterJson ([ordered]@{ error = $_.Exception.Message; code = $code; tokens = (Get-PokeshellTokenBalance $State) })
+    Write-PokeshellBoosterJson ([ordered]@{ error = $_.Exception.Message; message = $_.Exception.Message; code = $code; tokens = (Get-PokeshellTokenBalance $State) })
     exit 1
   }
 }
