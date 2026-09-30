@@ -17,6 +17,15 @@ $env:POKESHELL_REGISTRY = 'dryrun'
 # instead). Every child process inherits it; the tests' own "was it touched" hash checks use $RealWtSettings.
 $RealWtSettings = Get-PokeshellWtSettingsPath
 $env:POKESHELL_REAL_WT = 'off'
+# ...and never finds a pokeshell module really installed (Install-Module, tools\install-local-module.ps1): its folders
+# leave PSModulePath, and the command shim stops looking in the per-user / machine module folders
+$RealPokeshellModuleDirs = @($env:PSModulePath -split ';' | Where-Object { $_ -and [IO.Directory]::Exists((Join-Path $_ 'pokeshell')) } | ForEach-Object { Join-Path $_ 'pokeshell' })
+$docs = [Environment]::GetFolderPath('MyDocuments')
+foreach ($p in "$docs\WindowsPowerShell\Modules", "$docs\PowerShell\Modules", "$env:ProgramFiles\WindowsPowerShell\Modules", "$env:ProgramFiles\PowerShell\Modules") {
+  if ([IO.Directory]::Exists((Join-Path $p 'pokeshell')) -and $RealPokeshellModuleDirs -notcontains (Join-Path $p 'pokeshell')) { $RealPokeshellModuleDirs += Join-Path $p 'pokeshell' }
+}
+$env:PSModulePath = (@($env:PSModulePath -split ';' | Where-Object { $_ -and -not [IO.Directory]::Exists((Join-Path $_ 'pokeshell')) }) -join ';')
+$env:POKESHELL_REAL_MODULES = 'off'
 $script:Failures = 0
 
 function New-TestState([string]$Name) {

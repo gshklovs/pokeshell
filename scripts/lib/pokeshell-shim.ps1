@@ -8,8 +8,11 @@ PowerShell 7 also serves Windows PowerShell tabs and vice versa.
 #>
 $dirs = [Collections.Generic.List[string]]::new()
 foreach ($p in @($env:PSModulePath -split ';')) { if ($p) { $dirs.Add($p) } }
-$docs = [Environment]::GetFolderPath('MyDocuments')
-foreach ($p in "$docs\WindowsPowerShell\Modules", "$docs\PowerShell\Modules", "$env:ProgramFiles\WindowsPowerShell\Modules", "$env:ProgramFiles\PowerShell\Modules") { $dirs.Add($p) }
+# (POKESHELL_REAL_MODULES=off, set by the tests: PSModulePath only, never the real per-user / machine folders)
+if ($env:POKESHELL_REAL_MODULES -ne 'off') {
+  $docs = [Environment]::GetFolderPath('MyDocuments')
+  foreach ($p in "$docs\WindowsPowerShell\Modules", "$docs\PowerShell\Modules", "$env:ProgramFiles\WindowsPowerShell\Modules", "$env:ProgramFiles\PowerShell\Modules") { $dirs.Add($p) }
+}
 $best = $null; $bestVer = $null
 foreach ($d in ($dirs | Select-Object -Unique)) {
   foreach ($v in @(Get-ChildItem -LiteralPath (Join-Path $d 'pokeshell') -Directory -ErrorAction SilentlyContinue)) {

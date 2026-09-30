@@ -24,6 +24,7 @@ function Get-Fingerprint([string]$Dir) {
   (Get-ChildItem $Dir -Recurse -Force | Where-Object { $_.Name -notin 'pulls.log', 'roll.tsv', 'spawn-gate.txt', 'errors.log', 'dryrun-spawns.log' -and $_.Name -notlike 'roll.tsv.*.tmp' } | ForEach-Object { "$($_.FullName)|$($_.Length)|$($_.LastWriteTimeUtc.Ticks)" }) -join "`n"
 }
 $realStatePrint = Get-Fingerprint $realState
+$realModulesPrint = @($RealPokeshellModuleDirs | ForEach-Object { Get-Fingerprint $_ }) -join "`n"   # (_setup.ps1)
 
 $settings = Join-Path $work 'settings.json'
 $utf8 = [Text.UTF8Encoding]::new($false)
@@ -64,7 +65,8 @@ $runner = Join-Path $work 'runner.ps1'
 param([string]$Mode, [string]$Lad, [string]$Mods, [string]$Cmd)
 $env:LOCALAPPDATA = $Lad
 Remove-Item Env:POKESHELL_HOME -ErrorAction SilentlyContinue
-$env:PSModulePath = "$Mods;$env:PSModulePath"
+# (powershell.exe puts the user's own Modules folder back on PSModulePath at startup: a real pokeshell module there stays out)
+$env:PSModulePath = (@($Mods) + @($env:PSModulePath -split ';' | Where-Object { $_ -and -not [IO.Directory]::Exists((Join-Path $_ 'pokeshell')) })) -join ';'
 $cliArgs = @($Cmd -split '\|' | Where-Object { $_ })
 if ($Mode -eq 'module') {
   # a new shell after Install-Module: the command comes from the newest module version
@@ -175,6 +177,8 @@ Assert (-not (Test-Path $cur) -and -not (Test-Path (Join-Path $state 'config.txt
 if ($real) { Assert ((Get-FileHash $real).Hash -eq $realHash) "the real Windows Terminal settings.json was not touched" }
 $diff = @(Compare-Object @($realStatePrint -split "`n") @((Get-Fingerprint $realState) -split "`n") | ForEach-Object { "$($_.SideIndicator) $($_.InputObject)" })
 Assert (-not $diff) "the real %LOCALAPPDATA%\pokeshell was not touched$(if ($diff) { ': ' + ($diff -join '; ') })"
+$mdiff = @(Compare-Object @($realModulesPrint -split "`n") @((@($RealPokeshellModuleDirs | ForEach-Object { Get-Fingerprint $_ }) -join "`n") -split "`n") | ForEach-Object { "$($_.SideIndicator) $($_.InputObject)" })
+Assert (-not $mdiff) "the really installed pokeshell module ($(if ($RealPokeshellModuleDirs) { $RealPokeshellModuleDirs -join ', ' } else { 'none' })) was not touched$(if ($mdiff) { ': ' + (($mdiff | Select-Object -First 5) -join '; ') })"
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host ''
 if ($script:Failures) { Write-Host "module: $script:Failures FAILED" -ForegroundColor Red; exit 1 }
