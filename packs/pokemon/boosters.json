@@ -1,0 +1,384 @@
+{
+  "pack": "pokemon",
+  "about": "Real booster packs of the sets pokeshell serves: each set's printed slot layout and its published per-pack pull rates (docs/BOOSTERS.md has the sources and the reasoning). rate = the per-pack chance of that outcome in that slot; printed = how many printed cards the outcome covers (tools/booster_printed.py fills it from the pokemontcg.io set lists); base = the outcome that takes the share of cards we don't serve.",
+  "sources": {
+    "tcgp-evs": {
+      "title": "TCGplayer: Pokemon TCG Evolving Skies Pull Rates (8,000+ packs)",
+      "url": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-Evolving-Skies-Pull-Rates/6a743d7b-e5ee-4fd6-9d18-64a636990e8c/"
+    },
+    "tcgp-cz": {
+      "title": "TCGplayer: Pokemon TCG Crown Zenith Pull Rates (1,900+ packs)",
+      "url": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-Crown-Zenith-Pull-Rates/56af3032-cb34-4da1-92fb-9cf206d10c0f/"
+    },
+    "tcgp-lor": {
+      "title": "TCGplayer: Pokemon TCG Lost Origin Pull Rates (8,000+ packs)",
+      "url": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-Lost-Origin-Pull-Rates/ba20ac4d-9448-45ce-b919-d856d107c744/"
+    },
+    "tcgp-p30": {
+      "title": "TCGplayer: Pokemon TCG 30th Celebration Pull Rates (3,000+ packs)",
+      "url": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-30th-Celebration-Pull-Rates/587b3657-481a-4ab8-827c-68cd3ab585b0/"
+    },
+    "tcgp-brs": {"title": "TCGplayer Brilliant Stars pull-rate infographic (10,000+ packs), via @PokemonTCGDrops", "url": "https://x.com/PokemonTCGDrops/status/1497328883695185921"},
+    "tcgp-asr": {
+      "title": "TCGplayer: Astral Radiance Pull Rates (restates Brilliant Stars' 44% hit rate)",
+      "url": "https://www.tcgplayer.com/content/article/Pok%C3%A9mon-TCG-Astral-Radiance-Pull-Rates/10da749f-9c8b-45c0-b80a-dbd86ca5dcde/"
+    },
+    "dtq-brs": {"title": "DigitalTQ: Brilliant Stars pull rates (1,004 packs)", "url": "https://www.digitaltq.com/brilliant-stars-pull-rates-pokemon-tcg"},
+    "dtq-lor": {"title": "DigitalTQ: Lost Origin pull rates (718 packs)", "url": "https://www.digitaltq.com/lost-origin-pull-rates-pokemon-tcg"},
+    "dtq-cz": {"title": "DigitalTQ: Crown Zenith pull rates (pack layout 5C/3U/1RH/1R + Energy + code)", "url": "https://www.digitaltq.com/crown-zenith-pull-rates-pokemon-tcg"},
+    "tcgtalk-p30": {"title": "tcgtalk: 30th Celebration pull rates (652 verified packs)", "url": "https://tcgtalk.com/guides/30th-anniversary-pull-rates"},
+    "bulba-p30": {"title": "Bulbapedia: 30th Celebration (TCG) (5 foil cards + a foil basic Energy)", "url": "https://bulbapedia.bulbagarden.net/wiki/30th_Celebration_(TCG)"},
+    "bulba-booster": {
+      "title": "Bulbapedia: Booster pack (TCG) (11 cards Base-Neo; reverse holos from Legendary Collection; Energy + code in modern packs)",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Booster_pack_(TCG)"
+    },
+    "pkc-support": {"title": "Pokemon Center support: what's in a booster (pre-Scarlet & Violet packs guarantee one reverse holo)", "url": "https://support.pokemoncenter.com/hc/en-us/articles/360028979571"},
+    "pricedex-hf": {"title": "ThePriceDex: Hidden Fates pull rates (community estimate, sample not stated)", "url": "https://www.thepricedex.com/set/sm115/hidden-fates/pull-rates"},
+    "pokebeach-hf": {"title": "PokeBeach: Hidden Fates (the Shiny Vault card takes the reverse-holo slot)", "url": "https://www.pokebeach.com/2019/08/hidden-fates-leaking-nearly-complete-set-list"},
+    "psa-neo": {
+      "title": "PSA: collecting 2000 Neo Genesis 1st Edition (7C/3U/1R, holo about 1 in 3)",
+      "url": "https://www.psacard.com/articles/articleview/9409/psa-set-registry-collecting-2000-poke-mon-neo-genesis-1st-edition"
+    },
+    "cardguide-base": {"title": "CardGuide wiki: Base Set (1R/3U/5C/2 Energy; holo about 1 in 3)", "url": "https://cardguide.fandom.com/wiki/Base_Set_(Pok%C3%A9mon_TCG)"},
+    "pmc-base": {"title": "PokeMasterCenter: Base Set guide (16 holo / 16 rare / 32 uncommon / 32 common / 6 Energy)", "url": "https://www.pokemastercenter.com/pokemon-base-set-guide/"}
+  },
+  "sets": [
+    {
+      "id": "swsh7",
+      "name": "Evolving Skies",
+      "aliases": ["evs"],
+      "series": "Sword & Shield",
+      "released": "2021-08-27",
+      "cardSets": ["swsh7"],
+      "realPackSize": 10,
+      "realPack": "10 cards + a basic Energy + a code card: 5 common, 3 uncommon, 1 reverse holo, 1 rare",
+      "art": {"colors": ["#0d1f45", "#1f6fb2", "#8fd8ff"], "accent": "#f4c542", "hero": "swsh7-218", "motif": "sky"},
+      "sources": ["tcgp-evs", "dtq-brs", "dtq-lor", "bulba-booster", "pkc-support"],
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "rarity": ["Common"], "base": true, "printed": 42}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "rarity": ["Uncommon"], "base": true, "printed": 51}]},
+        {"id": "reverse", "finish": "reverse", "pick": [{"label": "reverse holo", "rarity": ["Common", "Uncommon", "Rare", "Rare Holo"], "base": true, "printed": 132}]},
+        {
+          "id": "rare",
+          "pick": [
+            {
+              "label": "rare",
+              "rarity": ["Rare"],
+              "base": true,
+              "rate": 0.5141,
+              "estimate": "the Rare / Rare Holo split isn't published: Rare Holo at DigitalTQ's 26.4% (Brilliant Stars, Lost Origin), Rare takes the rest",
+              "printed": 19
+            },
+            {"label": "rare holo", "rarity": ["Rare Holo"], "rate": 0.265, "estimate": "DigitalTQ's measured Rare Holo share in Brilliant Stars / Lost Origin", "printed": 20},
+            {"label": "V", "rarity": ["Rare Holo V"], "rate": 0.1056, "printed": 18},
+            {"label": "VMAX", "rarity": ["Rare Holo VMAX"], "rate": 0.056, "printed": 15},
+            {
+              "label": "full art",
+              "rarity": ["Rare Ultra"],
+              "exclude": ["swsh7-167", "swsh7-175", "swsh7-180", "swsh7-182", "swsh7-184", "swsh7-186", "swsh7-189", "swsh7-192", "swsh7-194", "swsh7-196", "swsh7-198"],
+              "rate": 0.0278,
+              "printed": 27
+            },
+            {
+              "label": "alternate art V",
+              "fx": "alt-art",
+              "ids": ["swsh7-167", "swsh7-175", "swsh7-180", "swsh7-182", "swsh7-184", "swsh7-186", "swsh7-189", "swsh7-192", "swsh7-194", "swsh7-196", "swsh7-198"],
+              "rate": 0.011,
+              "printed": 11
+            },
+            {"label": "alternate art VMAX", "fx": "alt-art", "ids": ["swsh7-205", "swsh7-209", "swsh7-212", "swsh7-215", "swsh7-218", "swsh7-220"], "rate": 0.003, "printed": 6},
+            {"label": "rainbow", "rarity": ["Rare Rainbow"], "exclude": ["swsh7-205", "swsh7-209", "swsh7-212", "swsh7-215", "swsh7-218", "swsh7-220"], "rate": 0.0084, "printed": 16},
+            {"label": "gold", "rarity": ["Rare Secret"], "rate": 0.0091, "printed": 12}
+          ]
+        }
+      ],
+      "printed": 237
+    },
+    {
+      "id": "me55",
+      "name": "30th Celebration",
+      "aliases": ["30th", "p30", "celebration"],
+      "series": "Mega Evolution",
+      "released": "2026-09-16",
+      "cardSets": ["me55"],
+      "realPackSize": 6,
+      "realPack": "5 foil cards + a foil basic Energy: 2 foil commons, an Illustration Rare / Classic Collection slot, a Double Rare / Special Illustration Rare / Futuristic Rare slot, and a Pikachu rare",
+      "art": {"colors": ["#2a0f3d", "#b0306a", "#ffd24a"], "accent": "#ffe98a", "hero": "me55-150", "motif": "confetti"},
+      "sources": ["tcgp-p30", "tcgtalk-p30", "bulba-p30"],
+      "notes": "Every card in the pack is foil. What fills slots 1-2, and slots 3-4 when they don't hit, isn't published: commons there and a Rare in slot 4 is our reading (it matches the 43% of packs whose only hit is the Pikachu). The 30 Classic Collection reprints (me55c) and the 3 RGB Rare Mews aren't served; their share goes to the slot's base card.",
+      "slots": [
+        {"id": "common", "count": 2, "finish": "foil", "pick": [{"label": "foil common", "rarity": ["Common"], "base": true, "estimate": "not published: commons assumed", "printed": 71}]},
+        {
+          "id": "illustration",
+          "finish": "foil",
+          "pick": [
+            {"label": "foil common", "rarity": ["Common"], "base": true, "rate": 0.7013, "estimate": "not published: a common when the slot doesn't hit", "printed": 71},
+            {"label": "illustration rare", "rarity": ["Illustration Rare"], "rate": 0.1972, "printed": 18},
+            {"label": "classic collection", "sets": ["me55c"], "rate": 0.1015, "printed": 30}
+          ]
+        },
+        {
+          "id": "rare",
+          "finish": "foil",
+          "pick": [
+            {"label": "rare", "rarity": ["Rare"], "base": true, "rate": 0.7327, "estimate": "not published: a Rare when the slot doesn't hit", "printed": 18},
+            {"label": "double rare", "rarity": ["Double Rare"], "rate": 0.2102, "printed": 12},
+            {"label": "special illustration rare", "rarity": ["Special Illustration Rare"], "rate": 0.0488, "printed": 10},
+            {"label": "futuristic rare", "fx": "rainbow", "rarity": ["Futuristic Rare"], "rate": 0.0083, "printed": 2}
+          ]
+        },
+        {"id": "pikachu", "finish": "foil", "pick": [{"label": "pikachu rare", "rarity": ["Pikachu Rare"], "base": true, "printed": 30}]}
+      ],
+      "printed": 161
+    },
+    {
+      "id": "swsh12pt5",
+      "name": "Crown Zenith",
+      "aliases": ["cz", "zenith", "galarian gallery"],
+      "series": "Sword & Shield",
+      "released": "2023-01-20",
+      "cardSets": ["swsh12pt5", "swsh12pt5gg"],
+      "realPackSize": 10,
+      "realPack": "10 cards + an Energy + a code card: 5 common, 3 uncommon, the reverse-holo slot (Galarian Gallery 1 in 3, Radiant 1 in 22), 1 rare",
+      "art": {"colors": ["#0b1030", "#2b3a8f", "#e8c35a"], "accent": "#fff1b8", "hero": "swsh12pt5gg-GG70", "motif": "crown"},
+      "sources": ["tcgp-cz", "dtq-cz", "dtq-brs", "bulba-booster"],
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "sets": ["swsh12pt5"], "rarity": ["Common"], "base": true, "printed": 42}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "sets": ["swsh12pt5"], "rarity": ["Uncommon"], "base": true, "printed": 29}]},
+        {
+          "id": "reverse",
+          "finish": "reverse",
+          "pick": [
+            {"label": "reverse holo", "sets": ["swsh12pt5"], "rarity": ["Common", "Uncommon", "Rare", "Rare Holo"], "base": true, "rate": 0.6025, "printed": 113},
+            {"label": "galarian gallery", "finish": "normal", "sets": ["swsh12pt5gg"], "rarity": ["Trainer Gallery Rare Holo"], "rate": 0.224, "printed": 34},
+            {
+              "label": "galarian gallery V",
+              "finish": "normal",
+              "fx": "full-art",
+              "sets": ["swsh12pt5gg"],
+              "rarity": ["Rare Holo V", "Rare Holo VMAX", "Rare Holo VSTAR", "Rare Ultra"],
+              "rate": 0.12,
+              "printed": 32
+            },
+            {"label": "galarian gallery gold", "finish": "normal", "sets": ["swsh12pt5gg"], "rarity": ["Rare Secret"], "rate": 0.008, "printed": 4},
+            {"label": "radiant", "finish": "normal", "sets": ["swsh12pt5"], "rarity": ["Radiant Rare"], "rate": 0.0455, "printed": 3}
+          ]
+        },
+        {
+          "id": "rare",
+          "pick": [
+            {
+              "label": "rare",
+              "sets": ["swsh12pt5"],
+              "rarity": ["Rare"],
+              "base": true,
+              "rate": 0.447,
+              "estimate": "the Rare / Rare Holo split isn't published: Rare Holo at DigitalTQ's 26.4%, Rare takes the rest",
+              "printed": 22
+            },
+            {
+              "label": "rare holo",
+              "sets": ["swsh12pt5"],
+              "rarity": ["Rare Holo"],
+              "supertype": "Pok",
+              "rate": 0.264,
+              "estimate": "DigitalTQ's Rare Holo share (Brilliant Stars / Lost Origin); TCGplayer's signature-Trainer holos (7.65%) are counted apart",
+              "printed": 13
+            },
+            {"label": "signature trainer", "sets": ["swsh12pt5"], "rarity": ["Rare Holo"], "supertype": "Tra", "rate": 0.0765, "printed": 7},
+            {"label": "V", "sets": ["swsh12pt5"], "rarity": ["Rare Holo V"], "rate": 0.1235, "printed": 17},
+            {"label": "VMAX / VSTAR", "sets": ["swsh12pt5"], "rarity": ["Rare Holo VMAX", "Rare Holo VSTAR"], "rate": 0.053, "printed": 13},
+            {"label": "full art / textured energy", "sets": ["swsh12pt5"], "rarity": ["Rare Ultra"], "rate": 0.0285, "printed": 13},
+            {"label": "secret rare", "sets": ["swsh12pt5"], "rarity": ["Rare Secret"], "rate": 0.0075, "printed": 1}
+          ]
+        }
+      ],
+      "printed": 230
+    },
+    {
+      "id": "sm115",
+      "name": "Hidden Fates",
+      "aliases": ["hf", "hidden", "shiny vault"],
+      "series": "Sun & Moon",
+      "released": "2019-08-23",
+      "cardSets": ["sm115", "sma"],
+      "realPackSize": 10,
+      "realPack": "10 cards + a basic Energy: 5 common, 3 uncommon, the reverse-holo slot (a Shiny Vault card about 1 in 3), 1 rare",
+      "art": {"colors": ["#0a0a12", "#3a2a5c", "#c9a6ff"], "accent": "#f2f0ff", "hero": "sma-SV49", "motif": "vault"},
+      "sources": ["pricedex-hf", "pokebeach-hf", "dtq-brs", "bulba-booster"],
+      "notes": "No large published study exists for Hidden Fates: the rates are ThePriceDex's community estimates (their Shiny Vault rows add up to about 1 in 3, which a 1,000-pack community count agrees with). The 5C/3U/1RH/1R layout is the Sun & Moon standard.",
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "sets": ["sm115"], "rarity": ["Common"], "base": true, "printed": 18}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "sets": ["sm115"], "rarity": ["Uncommon"], "base": true, "printed": 17}]},
+        {
+          "id": "reverse",
+          "finish": "reverse",
+          "pick": [
+            {"label": "reverse holo", "sets": ["sm115"], "rarity": ["Common", "Uncommon", "Rare", "Rare Holo"], "base": true, "rate": 0.6651, "printed": 56},
+            {"label": "shiny vault", "finish": "normal", "sets": ["sma"], "rarity": ["Rare Shiny"], "rate": 0.2128, "printed": 45},
+            {"label": "shiny vault GX", "finish": "normal", "sets": ["sma"], "rarity": ["Rare Shiny GX"], "rate": 0.0943, "printed": 35},
+            {"label": "shiny vault full art", "finish": "normal", "sets": ["sma"], "rarity": ["Rare Ultra"], "rate": 0.0119, "printed": 6},
+            {"label": "shiny vault gold", "finish": "normal", "sets": ["sma"], "rarity": ["Rare Secret"], "rate": 0.0159, "printed": 8}
+          ]
+        },
+        {
+          "id": "rare",
+          "pick": [
+            {
+              "label": "rare",
+              "sets": ["sm115"],
+              "rarity": ["Rare"],
+              "base": true,
+              "rate": 0.5366,
+              "estimate": "the Rare / Rare Holo split isn't published: Rare Holo at DigitalTQ's modern 26.4%",
+              "printed": 15
+            },
+            {"label": "rare holo", "sets": ["sm115"], "rarity": ["Rare Holo"], "rate": 0.264, "estimate": "DigitalTQ's modern Rare Holo share", "printed": 6},
+            {"label": "GX", "sets": ["sm115"], "rarity": ["Rare Holo GX"], "rate": 0.1493, "printed": 9},
+            {"label": "full art", "sets": ["sm115"], "rarity": ["Rare Ultra"], "rate": 0.0391, "printed": 3},
+            {"label": "rainbow", "sets": ["sm115"], "rarity": ["Rare Rainbow"], "rate": 0.011, "printed": 1}
+          ]
+        }
+      ],
+      "printed": 163
+    },
+    {
+      "id": "base1",
+      "name": "Base Set",
+      "aliases": ["base"],
+      "series": "Original (Wizards of the Coast)",
+      "released": "1999-01-09",
+      "cardSets": ["base1"],
+      "realPackSize": 11,
+      "realPack": "11 cards: 5 common, 3 uncommon, 1 rare (holo about 1 in 3), 2 basic Energy; no reverse holos yet",
+      "art": {"colors": ["#1c3f8f", "#e23b2e", "#ffcb05"], "accent": "#ffffff", "hero": "base1-4", "motif": "classic"},
+      "sources": ["cardguide-base", "pmc-base", "bulba-booster"],
+      "notes": "The 1 in 3 holo rate is long-standing hobby knowledge, not a measured study. The 2 basic Energy aren't served, so our pack has 9 cards.",
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "rarity": ["Common"], "base": true, "printed": 32}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "rarity": ["Uncommon"], "base": true, "printed": 32}]},
+        {"id": "rare", "pick": [{"label": "rare", "rarity": ["Rare"], "base": true, "rate": 0.6667, "printed": 16}, {"label": "holo rare", "rarity": ["Rare Holo"], "rate": 0.3333, "printed": 16}]}
+      ],
+      "printed": 102
+    },
+    {
+      "id": "swsh9",
+      "name": "Brilliant Stars",
+      "aliases": ["brs", "brilliant", "trainer gallery"],
+      "series": "Sword & Shield",
+      "released": "2022-02-25",
+      "cardSets": ["swsh9", "swsh9tg"],
+      "realPackSize": 10,
+      "realPack": "10 cards + a code card + a basic Energy or VSTAR marker: 5 common, 3 uncommon, the reverse-holo slot (Trainer Gallery about 1 in 5.5), 1 rare",
+      "art": {"colors": ["#1a0b2e", "#5b2a86", "#ffcf6e"], "accent": "#ff8a3d", "hero": "swsh9-154", "motif": "stars"},
+      "sources": ["tcgp-brs", "tcgp-asr", "dtq-brs", "bulba-booster"],
+      "notes": "TCGplayer's infographic gives the Trainer Gallery and gold/rainbow/full-art Trainer rates; the V / VMAX / VSTAR and Rare Holo shares are DigitalTQ's 1,004-pack count; the Pokemon full arts and alternate arts use TCGplayer's single-card rates (Charizard V full art 1 in 450, alternate art 1 in 490: about 1 in 470 a card).",
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "sets": ["swsh9"], "rarity": ["Common"], "base": true, "printed": 42}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "sets": ["swsh9"], "rarity": ["Uncommon"], "base": true, "printed": 46}]},
+        {
+          "id": "reverse",
+          "finish": "reverse",
+          "pick": [
+            {"label": "reverse holo", "sets": ["swsh9"], "rarity": ["Common", "Uncommon", "Rare", "Rare Holo"], "base": true, "rate": 0.8194, "printed": 124},
+            {"label": "trainer gallery", "finish": "normal", "sets": ["swsh9tg"], "rarity": ["Trainer Gallery Rare Holo"], "rate": 0.125, "printed": 12},
+            {
+              "label": "trainer gallery V",
+              "finish": "normal",
+              "fx": "full-art",
+              "sets": ["swsh9tg"],
+              "rarity": ["Rare Holo V", "Rare Holo VMAX", "Rare Ultra", "Rare Secret"],
+              "rate": 0.0556,
+              "printed": 18
+            }
+          ]
+        },
+        {
+          "id": "rare",
+          "pick": [
+            {"label": "rare", "sets": ["swsh9"], "rarity": ["Rare"], "base": true, "rate": 0.468, "printed": 26},
+            {"label": "rare holo", "sets": ["swsh9"], "rarity": ["Rare Holo"], "rate": 0.2639, "printed": 10},
+            {"label": "V", "sets": ["swsh9"], "rarity": ["Rare Holo V"], "rate": 0.1494, "printed": 20},
+            {"label": "VMAX", "sets": ["swsh9"], "rarity": ["Rare Holo VMAX"], "rate": 0.0189, "printed": 3},
+            {"label": "VSTAR", "sets": ["swsh9"], "rarity": ["Rare Holo VSTAR"], "rate": 0.0189, "printed": 4},
+            {"label": "full art / alternate art", "sets": ["swsh9"], "rarity": ["Rare Ultra"], "supertype": "Pok", "rate": 0.0319, "printed": 15},
+            {"label": "full art trainer", "sets": ["swsh9"], "rarity": ["Rare Ultra"], "supertype": "Tra", "rate": 0.0185, "printed": 6},
+            {"label": "rainbow", "sets": ["swsh9"], "rarity": ["Rare Rainbow"], "rate": 0.0196, "printed": 8},
+            {"label": "gold", "sets": ["swsh9"], "rarity": ["Rare Secret"], "rate": 0.0109, "printed": 6}
+          ]
+        }
+      ],
+      "printed": 216
+    },
+    {
+      "id": "neo1",
+      "name": "Neo Genesis",
+      "aliases": ["neo", "genesis"],
+      "series": "Neo (Wizards of the Coast)",
+      "released": "2000-12-16",
+      "cardSets": ["neo1"],
+      "realPackSize": 11,
+      "realPack": "11 cards: 7 common, 3 uncommon, 1 rare (holo about 1 in 3); no reverse holos",
+      "art": {"colors": ["#10301f", "#2e8b57", "#f0d060"], "accent": "#fffbe6", "hero": "neo1-9", "motif": "leaves"},
+      "sources": ["psa-neo", "bulba-booster"],
+      "notes": "Holo about 1 in 3 is hobby knowledge (PSA), not a measured study. Where Neo's basic Energy fell isn't documented; they aren't served either way.",
+      "slots": [
+        {"id": "common", "count": 7, "pick": [{"label": "common", "rarity": ["Common"], "base": true, "printed": 35}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "rarity": ["Uncommon"], "base": true, "printed": 35}]},
+        {"id": "rare", "pick": [{"label": "rare", "rarity": ["Rare"], "base": true, "rate": 0.6667, "printed": 16}, {"label": "holo rare", "rarity": ["Rare Holo"], "rate": 0.3333, "printed": 19}]}
+      ],
+      "printed": 111
+    },
+    {
+      "id": "swsh11",
+      "name": "Lost Origin",
+      "aliases": ["lor", "lost"],
+      "series": "Sword & Shield",
+      "released": "2022-09-09",
+      "cardSets": ["swsh11", "swsh11tg"],
+      "realPackSize": 10,
+      "realPack": "10 cards + a code card + a basic Energy or VSTAR marker: 5 common, 3 uncommon, the reverse-holo slot (Trainer Gallery 1 in 8, Radiant 1 in 20), 1 rare",
+      "art": {"colors": ["#07080f", "#3b1d5e", "#7cf0ff"], "accent": "#b58cff", "hero": "swsh11-186", "motif": "void"},
+      "sources": ["tcgp-lor", "dtq-lor", "bulba-booster"],
+      "notes": "TCGplayer's table and text disagree on Rainbow (1 in 78 vs 1 in 70) and Gold (1 in 131 vs 1 in 114); the table's figures are used. Opens once Lost Origin's cards are in the pack.",
+      "slots": [
+        {"id": "common", "count": 5, "pick": [{"label": "common", "sets": ["swsh11"], "rarity": ["Common"], "base": true, "printed": 49}]},
+        {"id": "uncommon", "count": 3, "pick": [{"label": "uncommon", "sets": ["swsh11"], "rarity": ["Uncommon"], "base": true, "printed": 50}]},
+        {
+          "id": "reverse",
+          "finish": "reverse",
+          "pick": [
+            {"label": "reverse holo", "sets": ["swsh11"], "rarity": ["Common", "Uncommon", "Rare", "Rare Holo"], "base": true, "rate": 0.8267, "printed": 149},
+            {"label": "trainer gallery", "finish": "normal", "sets": ["swsh11tg"], "rarity": ["Trainer Gallery Rare Holo"], "rate": 0.0829, "printed": 11},
+            {"label": "trainer gallery V", "finish": "normal", "fx": "full-art", "sets": ["swsh11tg"], "rarity": ["Rare Holo V", "Rare Holo VMAX", "Rare Ultra"], "rate": 0.0317, "printed": 17},
+            {"label": "trainer gallery gold", "finish": "normal", "sets": ["swsh11tg"], "rarity": ["Rare Secret"], "rate": 0.0086, "printed": 2},
+            {"label": "radiant", "finish": "normal", "sets": ["swsh11"], "rarity": ["Radiant Rare"], "rate": 0.0501, "printed": 3}
+          ]
+        },
+        {
+          "id": "rare",
+          "pick": [
+            {"label": "rare", "sets": ["swsh11"], "rarity": ["Rare"], "base": true, "rate": 0.5155, "printed": 28},
+            {"label": "rare holo", "sets": ["swsh11"], "rarity": ["Rare Holo"], "rate": 0.2646, "printed": 22},
+            {"label": "V", "sets": ["swsh11"], "rarity": ["Rare Holo V"], "rate": 0.1163, "printed": 12},
+            {"label": "VMAX / VSTAR", "sets": ["swsh11"], "rarity": ["Rare Holo VMAX", "Rare Holo VSTAR"], "rate": 0.0442, "printed": 7},
+            {
+              "label": "full art V",
+              "sets": ["swsh11"],
+              "rarity": ["Rare Ultra"],
+              "supertype": "Pok",
+              "exclude": ["swsh11-177", "swsh11-180", "swsh11-184", "swsh11-186"],
+              "rate": 0.0198,
+              "printed": 13
+            },
+            {"label": "full art trainer", "sets": ["swsh11"], "rarity": ["Rare Ultra"], "supertype": "Tra", "rate": 0.0142, "printed": 8},
+            {"label": "alternate art V", "fx": "alt-art", "ids": ["swsh11-177", "swsh11-180", "swsh11-184", "swsh11-186"], "rate": 0.005, "printed": 4},
+            {"label": "rainbow", "sets": ["swsh11"], "rarity": ["Rare Rainbow"], "rate": 0.0128, "printed": 15},
+            {"label": "gold", "sets": ["swsh11"], "rarity": ["Rare Secret"], "rate": 0.0076, "printed": 6}
+          ]
+        }
+      ],
+      "printed": 247
+    }
+  ]
+}

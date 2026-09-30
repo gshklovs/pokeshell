@@ -213,6 +213,9 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 |---|---|
 | `pokeshell pack [<pack>\|all]` | show or choose the pack new tabs pull from |
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
+| `pokeshell pack open <set> [--json] [--free]` | open one **real booster pack** of a set (Evolving Skies, 30th Celebration, Crown Zenith, Hidden Fates, Base Set, Brilliant Stars, Neo Genesis): the printed slot layout rolled with published pull rates, revealed card by card, rarest last; every card goes into your binder, caught. Costs a pack token unless `--free`. `--json` for programs. Details, sources and odds: [docs/BOOSTERS.md](docs/BOOSTERS.md) |
+| `pokeshell pack sets` / `pack odds <set>` | the boosters you can open; one booster's slots and odds |
+| `pokeshell pack grant <n> --reason <text>` / `pack tokens` | add pack tokens (what a game that awards packs calls); the balance |
 | `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on the last card you caught; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set>` (a set's checklist, by id or name: `swsh7`, `evolving`, `30th`), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
 | `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (about a second; needs Python with Pillow) and opens it |
 | `pokeshell collection --json`, `version --json` | JSON for other tools: your caught and seen cards (with their gameplay data and art paths), and this install. See [For other tools](#for-other-tools) |
@@ -451,6 +454,7 @@ Everything lives in `%LOCALAPPDATA%\pokeshell` (or `$env:POKESHELL_HOME`):
 | `config.txt` | `key=value`: `pack`, `enabled`, `display` (`card` or `picture`), `earn` (`first-command`, `minutes:N` or `off`), `anim` (`untilkey`, the default: a card's effect loops until you type, at most 30 s; `intro`: one loop; `off`: the static card only; `$env:POKESHELL_NO_ANIM = 1` turns it off for one shell), `plain_profiles` (comma-separated profile GUIDs that roll; default: the built-in Windows PowerShell and PowerShell 7 profiles. Add yours if you use a custom profile.), and `best_since` (where the binders' best pulls start: a local date or time like `2026-09-29` or `2026-09-29T00:40`, or `all`; default: your first pull of a real card, so older pulls don't crowd them out) |
 | `pulls.log` | one tab-separated line per pull: time, pack, character, tier, art, skin, shiny, flags (`pending`, notes), `id=<ulid>`, `boot=<n>` (for a real card, tier is its rarity tier and art its card id); plus `earned:<id>` / `expired:<id>` lines. Append-only: older lines without an id count as earned, and pulls of art that no longer exists stay in it (the binders hide them: `retired` in `docs/PACK_FORMAT.md`) |
 | `viewed.txt` | pull ids the binder has shown (no more NEW sticker) |
+| `tokens.log` | the pack-token ledger: one `time delta reason id=...` line per grant (+n) or opened pack (-1); the balance is the sum (docs/BOOSTERS.md) |
 | `web/` | the web binder (`binder --web`) |
 | `hotkey.tsv`, `urlhandler.txt`, `safeuri.tsv` | the binder hotkey, the `pokeshell://` handler and the `safeUriSchemes` entry install added, so uninstall removes exactly that (the card footer also reads the first two); `hotkey.off`, `urlhandler.off`: you turned one off, so install leaves it out |
 | `color-misses.log` | color names that weren't in the table |

@@ -6,6 +6,8 @@ A pack is a folder `packs/<id>/` with:
 - `carddata.json` (real-card packs, optional) — the cards' gameplay data, built by `tools/build_carddata.py`
 - `shaders/<skin>.hlsl` — Windows Terminal pixel shaders (the holo/foil skins); see `docs/SHADER_SPEC.md`
 - `art/<character>.json` — pixel art, one file per character, with one variant per art name used by the tiers; see `docs/ART_FORMAT.md`
+- `boosters.json` (optional, real-card packs) — the real booster packs `pokeshell pack open <set>` opens: each set's slots
+  and published pull rates; see `docs/BOOSTERS.md`
 
 ## pack.json
 
