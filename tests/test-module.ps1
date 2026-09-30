@@ -103,7 +103,7 @@ function Get-ShaderPaths {
 Write-Host "1. stage the module (tools\publish.ps1 -StageOnly)" -ForegroundColor Cyan
 $v1 = Stage '0.1.0'
 $m = Test-ModuleManifest (Join-Path $v1 'pokeshell.psd1')
-Assert ("$($m.Version)" -eq '0.1.0' -and @($m.ExportedFunctions.Keys) -join ',' -eq 'pokeshell') "manifest valid: version $($m.Version), exports $(@($m.ExportedFunctions.Keys) -join ',')"
+Assert ("$($m.Version)" -eq '0.1.0' -and (@($m.ExportedFunctions.Keys | Sort-Object) -join ',') -eq 'clip,pokeshell') "manifest valid: version $($m.Version), exports $(@($m.ExportedFunctions.Keys) -join ',')"
 Assert (@($m.ExportedCmdlets.Keys).Count -eq 0 -and @($m.ExportedAliases.Keys).Count -eq 0 -and @($m.ExportedVariables.Keys).Count -eq 0) "nothing else exported"
 $rel = @(Get-ChildItem $v1 -Recurse -File | ForEach-Object { $_.FullName.Substring($v1.Length + 1) })
 Assert (-not @($rel | Where-Object { $_ -match '^(tests|tools|\.venv|previews|\.git)\\' })) "no tests, tools, .venv, previews or .git in the module ($($rel.Count) files)"
@@ -119,7 +119,7 @@ $stagedSkins = @(Get-PokeshellSkins $v1).Count
 
 Write-Host "2. Import-Module + pokeshell install (temp LOCALAPPDATA, settings copy)" -ForegroundColor Cyan
 $out = Run module @('version')
-Assert ($out -match 'exports=pokeshell\r?\n' -and $out -match 'pokeshell 0\.1\.0' -and $out -match 'not installed yet') "Import-Module exports only pokeshell; version before install: $((($out -split "`n") | Where-Object { $_ -match 'pokeshell 0' }).Trim())"
+Assert ($out -match 'exports=clip,pokeshell\r?\n' -and $out -match 'pokeshell 0\.1\.0' -and $out -match 'not installed yet') "Import-Module exports only pokeshell and its clip shortcut; version before install: $((($out -split "`n") | Where-Object { $_ -match 'pokeshell 0' }).Trim())"
 $out = Run module @('install', '-SettingsPath', $settings)
 Assert ($out -match [regex]::Escape('. "$env:LOCALAPPDATA\pokeshell\current\scripts\pokeshell-profile.ps1"')) "prints the stable `$PROFILE line"
 $paths = Get-ShaderPaths
@@ -180,7 +180,7 @@ Assert ($out -match 'ROLLED' -and $out -match (' : |' + [char]0x256d) -and (Test
 $out = Run hook @('version')
 Assert ($out -match 'pokeshell 0\.2\.0' -and $out -match '\(0\.2\.0\)' -and $out -notmatch 'still run') "`pokeshell` from the hook resolves to 0.2.0"
 $out = Run module @('odds')
-Assert ($out -match 'exports=pokeshell' -and $out -match 'Fixture' -and $out -notmatch 'still run') "Import-Module pokeshell (0.2.0) works"
+Assert ($out -match 'exports=clip,pokeshell' -and $out -match 'Fixture' -and $out -notmatch 'still run') "Import-Module pokeshell (0.2.0) works"
 
 Write-Host "4. module removed entirely: tabs keep working, the command explains" -ForegroundColor Cyan
 Move-Item (Join-Path $mods 'pokeshell') (Join-Path $work 'pokeshell-away')
