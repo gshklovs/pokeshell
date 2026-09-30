@@ -3,6 +3,7 @@
 A pack is a folder `packs/<id>/` with:
 
 - `pack.json` — odds, tiers, characters (below)
+- `carddata.json` (real-card packs, optional) — the cards' gameplay data, built by `tools/build_carddata.py`
 - `shaders/<skin>.hlsl` — Windows Terminal pixel shaders (the holo/foil skins); see `docs/SHADER_SPEC.md`
 - `art/<character>.json` — pixel art, one file per character, with one variant per art name used by the tiers; see `docs/ART_FORMAT.md`
 
@@ -123,7 +124,8 @@ and the tiers' `art` are not used (characters come from the cards).
 - **Cards** (`cards`, written by `tools/build_realcards.py`): `character` is the sprite name, `tier` a tier id,
   `name` and `number` are what the frame's top edge shows (`number` is the printed number, e.g. `170/185`).
   Only cards whose art is built (`dist/<pack>/<character>-<card id>.ans`) can drop; the art and the card text
-  (`cards/<id>.json`, docs `CARD_FORMAT.md`) are local-only.
+  (`cards/<id>.json`, docs `CARD_FORMAT.md`) are local-only. The gameplay fields alone ship in `carddata.json`
+  (optional; `tools/build_carddata.py`, `tools/README.md`), which `pokeshell collection --json` reads.
 - **The roll**: tier by weight (above), then one card of that tier uniformly, then a skin of that tier, then shiny.
   A foil that the spawn gate denies, or that can't find its tab, shows the same character's lowest-tier card in
   place (like tier 0 in other packs).

@@ -33,6 +33,13 @@ for ($i = 0; $i -lt $argList.Count; $i++) {
 }
 function Has([string[]]$names) { foreach ($n in $names) { if ($Flags[$n]) { return $true } }; $false }
 
+# `collection --json --pack <id>` (or --pack=<id>, or the pack as the one positional): the pack to list, '' for all
+function Get-JsonPackFilter {
+  foreach ($k in $Flags.Keys) { if ($k -match '^pack=(.+)$') { return $Matches[1] } }
+  if ($Pos) { return [string]$Pos[0] }
+  ''
+}
+
 function Show-Help {
   @"
 pokeshell - every new Windows Terminal tab is a pack pull
@@ -44,6 +51,7 @@ pokeshell - every new Windows Terminal tab is a pack pull
                                           Without the app built: the text binder (pokeshell collection)
   pokeshell binder --web                  rebuild the web binder and open it in your browser
   pokeshell collection                    the text binder: every character/variant/shiny you've earned
+  pokeshell collection --json [--pack <id>]   your caught and seen cards as JSON, for other tools (README)
   pokeshell earn [first-command|minutes:N|off]
                                           what earns a pull: its tab's first command (default), the tab
                                           staying open N minutes, or nothing (off: every pull counts)
@@ -66,6 +74,7 @@ pokeshell - every new Windows Terminal tab is a pack pull
                                           and download the card art release art.json pins (auto: if missing)
   pokeshell update                        update the module from the PowerShell Gallery and re-install
   pokeshell version                       which pokeshell is running, and where new tabs run from
+  pokeshell version --json                the same as JSON: version, api level, folders, packs, JSON commands
   pokeshell uninstall [-SettingsPath <p>] [-Purge]
                                           remove them again (-Purge also deletes your pull log)
 "@
@@ -317,7 +326,7 @@ function Read-Pulls([switch]$All) {
 # in $script:HiddenPulls. $script:RealSince: when the real cards went live, the time of the first shown pull whose
 # line names a built card itself (the default start of the best pulls). pulls.log itself is never rewritten.
 function Get-ShownPulls($Pulls) {
-  $packs = @{}; $script:HiddenPulls = 0; $script:RealSince = $null
+  $packs = @{}; $script:ShownPacks = $packs; $script:HiddenPulls = 0; $script:RealSince = $null   # ShownPacks: pack id -> Read-PokeshellPack, for reuse
   foreach ($x in $Pulls) {
     if (-not $packs.ContainsKey($x.pack)) { $packs[$x.pack] = try { Read-PokeshellPack $Root $x.pack } catch { $null } }
     $pk = $packs[$x.pack]
@@ -901,7 +910,8 @@ function Invoke-Update {
 }
 
 # after Update-Module, new tabs still run the previous version's copy until `pokeshell install`
-if ($Packaged -and $Command -notin 'install', 'uninstall', 'update', 'version') {
+# (not for --json: other tools parse stdout as one JSON document)
+if ($Packaged -and $Command -notin 'install', 'uninstall', 'update', 'version' -and -not (Has 'json')) {
   $cv = Get-CurrentVersion
   if ($cv -and $cv -ne $Version) { Write-Host "pokeshell: module $Version is installed but new tabs still run $cv; run pokeshell install to switch them" -ForegroundColor Yellow }
 }
@@ -912,7 +922,7 @@ switch ($Command) {
   'help'       { Show-Help }
   'pack'       { Invoke-Pack }
   'odds'       { Invoke-Odds }
-  'collection' { Invoke-Collection }
+  'collection' { if (Has 'json') { . (Join-Path $PSScriptRoot 'lib\jsonapi.ps1'); Invoke-PokeshellCollectionJson (Get-JsonPackFilter) } else { Invoke-Collection } }
   'binder'     { Invoke-Binder }
   'earn'       { Invoke-Earn }
   'hotkey'     { Invoke-Hotkey }
@@ -927,10 +937,13 @@ switch ($Command) {
   'install'    { Invoke-Install }
   'uninstall'  { Invoke-Uninstall }
   'update'     { Invoke-Update }
-  'version'    { Invoke-Version }
+  'version'    { if (Has 'json') { . (Join-Path $PSScriptRoot 'lib\jsonapi.ps1'); Invoke-PokeshellVersionJson } else { Invoke-Version } }
   default      { Write-Host "pokeshell: unknown command '$Command'" -ForegroundColor Red; Show-Help }
 }
 } catch {
-  Write-Host "pokeshell: $($_.Exception.Message)" -ForegroundColor Red
+  if (Has 'json') {   # --json: the error as JSON on stdout too (the exit code says it failed)
+    $m = $_.Exception.Message.Replace('\', '\\').Replace('"', '\"') -replace '[\x00-\x1f]', ' ' -replace '[^\x00-\x7f]', '?'
+    [Console]::Out.Write("{`"error`":`"$m`"}`n")
+  } else { Write-Host "pokeshell: $($_.Exception.Message)" -ForegroundColor Red }
   exit 1
 }

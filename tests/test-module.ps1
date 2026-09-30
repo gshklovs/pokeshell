@@ -108,6 +108,7 @@ Assert (@($m.ExportedCmdlets.Keys).Count -eq 0 -and @($m.ExportedAliases.Keys).C
 $rel = @(Get-ChildItem $v1 -Recurse -File | ForEach-Object { $_.FullName.Substring($v1.Length + 1) })
 Assert (-not @($rel | Where-Object { $_ -match '^(tests|tools|\.venv|previews|\.git)\\' })) "no tests, tools, .venv, previews or .git in the module ($($rel.Count) files)"
 Assert (@($rel | Where-Object { $_ -like 'packs\*\shaders\*.hlsl' }).Count -gt 0 -and (Test-Path (Join-Path $v1 'packs\pokemon\pack.json'))) "ships the shaders and packs\pokemon\pack.json"
+Assert ((Test-Path (Join-Path $v1 'packs\pokemon\carddata.json')) -and (Get-Item (Join-Path $v1 'packs\pokemon\carddata.json')).Length -eq (Get-Item (Join-Path $RepoRoot 'packs\pokemon\carddata.json')).Length) "ships packs\pokemon\carddata.json, the cards' gameplay data ($([math]::Round((Get-Item (Join-Path $v1 'packs\pokemon\carddata.json')).Length / 1KB)) KB)"
 Assert (-not @($rel | Where-Object { $_ -like 'dist\pokemon\*' -or $_ -like 'packs\pokemon\art\*' -or $_ -like 'packs\pokemon\cards\*' })) "no Pokemon card art or card text (local-only, git-ignored)"
 Assert ((Test-Path (Join-Path $v1 'bin\binder.exe')) -and (Test-Path (Join-Path $v1 'bin\binder-link.exe'))) "ships the binder and its link launcher in bin\ (no art in them)"
 Add-FixturePack $v1

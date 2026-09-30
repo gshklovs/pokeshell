@@ -10,3 +10,5 @@ __pycache__/
 packs/pokemon/art/
 packs/pokemon/cards/
 dist/pokemon/
+# tools/build_carddata.py: cached pokemontcg.io API responses (packs/<pack>/carddata.json itself is tracked)
+.cache/

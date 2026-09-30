@@ -215,6 +215,7 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 | `pokeshell odds [pack]` | the odds, per tier and per skin |
 | `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on the last card you caught; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set>` (a set's checklist, by id or name: `swsh7`, `evolving`, `30th`), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
 | `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (about a second; needs Python with Pillow) and opens it |
+| `pokeshell collection --json`, `version --json` | JSON for other tools: your caught and seen cards (with their gameplay data and art paths), and this install. See [For other tools](#for-other-tools) |
 | `pokeshell collection` | the text binder: per pack, every character x tier you've earned, shiny counts, completion, best pulls, how many are pending; pulls of retired art, or of cards whose art isn't built, are left out |
 | `pokeshell earn [first-command\|minutes:N\|off]` | what earns a pull: the first command you run in its tab (default), its tab staying open N minutes, or nothing (`off`: every pull counts at once) |
 | `pokeshell hotkey [on\|off] [-Keys ctrl+shift+b]` | the Windows Terminal key (default `Ctrl+Shift+B`) that opens the binder in a split pane next to your work, on your newest pull. `pokeshell install` adds it to `settings.json` (backed up first, unless the keys are taken); `off` removes it and keeps later installs from adding it back; `pokeshell uninstall` removes it |
@@ -229,6 +230,59 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 
 `scripts\pokeshell.cmd` runs the same command from cmd, bash or Claude Code's `!` if you put its folder on your PATH:
 `%LOCALAPPDATA%\pokeshell\current\scripts` for a module install (it survives updates), `scripts\` in a checkout.
+
+## For other tools
+
+Other programs (a deck builder, a battle game, a stats page) can read your pokeshell install through two JSON
+commands. Each prints one JSON document on stdout, ASCII only (other characters are `\uXXXX` escapes), and exits
+non-zero on an error (stdout is then `{"error": "..."}`). Run them as
+`powershell -NoProfile -ExecutionPolicy Bypass -File <pokeshell.ps1> <args>`, with `POKESHELL_HOME` set to use
+another state folder. `api` goes up when a shape changes incompatibly; fields are only ever added.
+
+- **`pokeshell version --json`**: `{name, version, api, root, runtimeRoot, state, packaged, installedVersion, packs,
+  carddata, webExport, commands, features}`. `root` is the checkout or module folder, `runtimeRoot` is where new
+  tabs run from, and `state` is the state folder. `packs` lists the pack ids, `carddata` the packs that ship gameplay
+  data, `webExport` is the `binder --web` folder (or `null`), and `commands` lists the JSON commands this version answers.
+- **`pokeshell collection --json [--pack <id>]`**: your real cards, with the binders' rule (a card is **caught** once
+  one of its pulls is earned, and **seen** when it was pulled but never earned; pulls of retired or unbuilt art are
+  left out). `{api, version, state, pack, counts: {caught, seen, pulls, shiny}, cards: [...], seen: [...]}`:
+  - `cards` has one entry per caught card, in the order first pulled: `{card, pack, character, name, set, setName,
+    number, rarity, tier, tierLabel, tierRank, caught: true, count, shinyCount, shiny, new, firstCaught, lastCaught,
+    art, data}`. Times are local ISO times.
+  - `art` is `{ans, ansShiny, png, pngShiny, img, imgShiny}`. `ans` / `ansShiny` are the card's ANSI art files, `png`
+    / `pngShiny` its web-export images (`binder --web`, 1 px per art pixel), and `img` / `imgShiny` the same images
+    relative to `<state>\web\img`. A file that doesn't exist is `null`.
+  - `data` is the card's gameplay data, or `null`: `{supertype, hp, types, subtypes, evolvesFrom, abilities: [{name,
+    type, text}], attacks: [{name, cost, convertedEnergyCost, damage, text}], weaknesses: [{type, value}],
+    resistances, retreatCost, rules}` (`hp` is a number, `rules` holds the V / VMAX / ex rule text).
+  - `seen` lists the cards you pulled but haven't caught: `{card, ..., tierRank, caught: false, count, pending,
+    firstSeen, lastSeen}`. `pending` is true while a pull's tab can still catch it. A seen card has no `art` and no
+    `data`: like the binder's text half, an uncaught card's moveset stays hidden.
+
+```json
+{"api":1,"version":"0.1.0","state":"C:\\Users\\you\\AppData\\Local\\pokeshell","pack":null,
+ "counts":{"caught":1,"seen":1,"pulls":2,"shiny":1},
+ "cards":[{"card":"base1-4","pack":"pokemon","character":"charizard","name":"Charizard","set":"base1","setName":"Base",
+   "number":"4/102","rarity":"Rare Holo","tier":"rare-holo","tierLabel":"rare holo","tierRank":5,"caught":true,
+   "count":2,"shinyCount":1,"shiny":true,"new":false,"firstCaught":"2026-09-28T21:04:11","lastCaught":"2026-09-29T09:12:40",
+   "art":{"ans":"...\\dist\\pokemon\\charizard-base1-4.ans","ansShiny":"...\\dist\\pokemon\\charizard-base1-4-shiny.ans",
+          "png":null,"pngShiny":null,"img":null,"imgShiny":null},
+   "data":{"supertype":"Pok\u00e9mon","hp":120,"types":["Fire"],"subtypes":["Stage 2"],"evolvesFrom":"Charmeleon",
+     "abilities":[{"name":"Energy Burn","type":"Pok\u00e9mon Power","text":"As often as you like during your turn ..."}],
+     "attacks":[{"name":"Fire Spin","cost":["Fire","Fire","Fire","Fire"],"convertedEnergyCost":4,"damage":"100",
+                 "text":"Discard 2 Energy cards attached to Charizard in order to use this attack."}],
+     "weaknesses":[{"type":"Water","value":"\u00d72"}],"resistances":[{"type":"Fighting","value":"-30"}],
+     "retreatCost":["Colorless","Colorless","Colorless"],"rules":[]}}],
+ "seen":[{"card":"base1-2","pack":"pokemon","character":"blastoise","name":"Blastoise","set":"base1","setName":"Base",
+   "number":"2/102","rarity":"Rare Holo","tier":"rare-holo","tierLabel":"rare holo","tierRank":5,"caught":false,
+   "count":1,"pending":false,"firstSeen":"2026-09-29T10:00:00","lastSeen":"2026-09-29T10:00:00"}]}
+```
+
+The gameplay data ships with pokeshell as `packs/pokemon/carddata.json`. It holds only the cards in `pack.json` and
+only these fields, taken from the [pokemontcg.io](https://pokemontcg.io) API card data. `tools/build_carddata.py`
+builds it (see `tools/README.md`), and each new set's checklist runs it. The file has one card per line, so a reader can
+pick out cards without parsing the whole file. Other tools should use the commands, not read `pulls.log` or
+`pack.json` themselves.
 
 ## How it works
 
@@ -374,7 +428,9 @@ pixels per character cell with half blocks). Users never need Python: the real-c
 (`dist/pokemon/`) is a release of [pokeshell-art](https://github.com/gshklovs/pokeshell-art/releases) that install
 downloads (see the note at the top), and its sources (`art/<card id>.json`, and `cards/<card id>.json`, the card
 text) are built locally by `tools/build_realcards.py` and never committed. The card text is not in the art
-release: the binder's `v` text half needs `tools/fetch_cards.py --all`.
+release: the binder's `v` text half needs `tools/fetch_cards.py --all`. The gameplay fields alone (HP, types,
+attacks, weakness, ...) ship with the code as `packs/pokemon/carddata.json` (`tools/build_carddata.py`), for
+`collection --json`.
 
 ### Adding a pack
 
@@ -416,7 +472,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests\run-all.ps1
 
 `test-no-loop` (the loop-safety layers, in simulation and with real processes), `test-install` (install /
 uninstall round trips on copies of `settings.json`, including comments, trailing commas, BOM and the legacy
-profiles format), `test-cli`, `test-cards`, `test-earned` (pull ids, the first-command hook in child processes,
+profiles format), `test-cli`, `test-cards`, `test-json` (the JSON commands: their shapes, caught vs seen checked
+against the web export, a Base Set Charizard's gameplay data, `carddata.json` coverage and the tool's gap report, and
+1000 pulls in under 1.5 s), `test-earned` (pull ids, the first-command hook in child processes,
 expiry, NEW, the binder app's `--pull` / `--card` / `--set` / `--search`, `binder --web`, the hotkey on settings copies,
 the link handler: registry as a dry run, `safeUriSchemes` on settings copies), `test-art` (the art releases: archives and manifests, download, re-run, a newer
 release, local builds kept, `-Art` modes, checksum mismatch, offline, hostile zips, and `pokeshell install` end to
