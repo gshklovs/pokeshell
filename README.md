@@ -151,6 +151,38 @@ Same steps, except tabs run straight from the checkout (nothing is copied), so e
 in new tabs right away. The printed line points into the repo, e.g. `. "C:\path\to\pokeshell\scripts\pokeshell-profile.ps1"`.
 Re-run the installer after adding a pack or a shader, or after moving the repo folder.
 
+### Developing: source checkout or module
+
+A checkout can run your own tabs either way; both use the same state (`%LOCALAPPDATA%\pokeshell`: pull log,
+config, binder data), so switching never loses pulls.
+
+- **Source checkout** (edits show up in new tabs at once): `.\install.ps1`, and in `$PROFILE` the line
+  `. "<repo>\scripts\pokeshell-profile.ps1"`. The hotkey and the `pokeshell://` handler point at
+  `binder\target\release`.
+- **Module** (what Gallery users run, installed locally from this checkout, no Gallery needed):
+
+  ```powershell
+  powershell -NoProfile -ExecutionPolicy Bypass -File tools\install-local-module.ps1 -SwitchProfile
+  ```
+
+  It rebuilds the binder if `binder\src` is newer than its exe, stages the module exactly as `tools\publish.ps1`
+  would publish it into `Documents\WindowsPowerShell\Modules\pokeshell\<ModuleVersion>` (the folder
+  `Install-Module -Scope CurrentUser` uses, OneDrive redirection included), adds this checkout's local-only packs
+  and built art (git-ignored `packs\<id>` / `dist\<id>`; `-NoLocalPacks` stages only what the Gallery gets),
+  backs up `$PROFILE` and `settings.json` to `%LOCALAPPDATA%\pokeshell\backups`, and runs
+  `Import-Module pokeshell; pokeshell install` in a fresh shell. Install re-points the skin profiles, the
+  Ctrl+Shift+B pane and the `pokeshell://` handler at `%LOCALAPPDATA%\pokeshell\current` (no uninstall needed
+  first). `-SwitchProfile` swaps the checkout's `$PROFILE` line for
+  `. "$env:LOCALAPPDATA\pokeshell\current\scripts\pokeshell-profile.ps1"`.
+- **Updating the local module after repo changes**: run the same command again (same version: the folder is
+  replaced; bump `ModuleVersion` in `pokeshell.psd1` to keep the old one side by side, as `Update-Module` would).
+  New tabs pick it up once install has refreshed `current`. Close any open binder pane first: install replaces
+  `current\bin\binder.exe`.
+- **Back to the source checkout**: `.\install.ps1` from the repo (re-points everything at the checkout), put the
+  checkout's line back in `$PROFILE` in place of the `current` one, and optionally
+  `Remove-Item <Documents>\WindowsPowerShell\Modules\pokeshell -Recurse` (the `pokeshell` command the checkout's
+  hook defines runs the checkout, not the module).
+
 ## Update
 
 ```powershell
