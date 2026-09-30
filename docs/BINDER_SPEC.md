@@ -3,7 +3,7 @@
 Status: **built** on branch `binder-earned` (2026-09-29): the earned rule, all four entry points, tags and search.
 Branch `binder-seen` (2026-09-29): empty / seen / caught slots (a Pokédex's), replacing "pending" in both binders.
 The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` prototype), the web binder is
-`tools/binder_web.py` + `tools/binder-web/index.html` (from `style-lab/binder-web`). Still open: the backend (below),
+`binder/src/webexport.rs` (`binder --export-web`) + `tools/binder-web/index.html` (from `style-lab/binder-web`). Still open: the backend (below),
 `collection.json` (not needed so far: reading `pulls.log` takes a few ms), and the open questions at the end.
 
 ## Implementation notes
@@ -12,7 +12,7 @@ The terminal app is `binder/` (Rust, ratatui; from the `style-lab/binder-tui` pr
   follow). Events are 2-column lines: `<time> earned:<id>` / `<time> expired:<id>`. A line without an id is earned.
   A pending pull with no event is expired after 24 h or when `boot=` differs from this boot session's by more than
   2 minutes; the CLI then writes its `expired:<id>` line. One rule, three readers: `Core.ReadPulls` (C#),
-  `binder/src/data.rs`, `tools/binder_web.py`. Real-card packs then resolve each pull (`retired`, docs/PACK_FORMAT.md).
+  `binder/src/data.rs`, `binder/src/webexport.rs`. Real-card packs then resolve each pull (`retired`, docs/PACK_FORMAT.md).
 - **First use**: a `PreCommandLookupAction` delegate in the core, registered by `Core.Startup` itself (no extra
   PowerShell on the tab-open path), hands the host a small wrapper whenever it looks up `prompt`: it checks
   `Get-History`, and runs whatever `prompt` exists then (so a `function prompt` later in `$PROFILE` still works). The
@@ -107,7 +107,7 @@ Every card slot is in one of three states, like a Pokédex:
   125`) and in the legends. Completion counts caught only. The word "pending" is gone from both binders.
 - **Duplicates, best pulls, foils, shiny counts, pulls, streak, drought and activity** count caught pulls only.
 - **The web's fresh-pulls strip** shows caught pulls only (seen ones are not there at all).
-- **How the silhouette is made** (the same order in `ArtStore::silhouette` and `binder_web.py`): the sprite's opaque
+- **How the silhouette is made** (the same order in `ArtStore::silhouette` and the web export, `webexport.rs`): the sprite's opaque
   pixels, never a scene's background.
   1. Packs without real cards: the character's base (tier 0) art (web dex pages: the pulled sprite).
   2. A real card whose art is the plain sprite (the commons): its own art. A card's art is its plain sprite when at
@@ -126,7 +126,7 @@ Every card slot is in one of three states, like a Pokédex:
 - **The text half** (the moveset: HP, abilities, attacks, weakness, retreat; `v` in the app, the card on the web) shows
   for **caught cards only** (branch `binder-hide-text`; before, cards never pulled showed it too). `v` on a seen card
   says "seen: catch it to read its text (v)", on an empty one "not caught yet: catch it to read its text (v)". On the
-  web an uncaught card's text isn't even in `data.json` (`binder_web.py` leaves it out), and the page draws it for
+  web an uncaught card's text isn't even in `data.json` (the web export leaves it out), and the page draws it for
   caught cards only as well.
 - **The printed card** (`p` in both binders, like `v` it stays on as you move; the web remembers it in the browser):
   the real printed card, pokemontcg.io's scan (`images.large` in `packs/<pack>/cards/<id>.json`, else
@@ -182,7 +182,7 @@ Every card slot is in one of three states, like a Pokédex:
 - **Web**: a card's page lists its tags as chips; a click runs that search.
 
 ## Web binder
-- **Now:** a static file, rebuilt on open (`tools/binder_web.py` into `<state>\web`). Nothing stays running. Each real
+- **Now:** a static file, rebuilt on open (`binder --export-web`, webexport.rs, into `<state>\web`). Nothing stays running. Each real
   card shows its text half, once caught, from `packs/<pack>/cards/<id>.json` (HP, abilities, attacks with energy costs, weakness /
   resistance / retreat, rules; docs/CARD_FORMAT.md); the tab skin stays in the card's details. Odds are the game's
   (only tiers with a built card roll). Seen cards show as silhouettes and are never counted. Decoded art is cached

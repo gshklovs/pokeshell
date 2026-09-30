@@ -137,6 +137,28 @@ $out = Invoke-HookRoll
 Assert ($out -match 'ROLLED' -and $out -match (' : |' + [char]0x256d)) "the hook from current rolls a pull: '$((($out -split "`n") | Where-Object { $_ -match (' : |' + [char]0x256d) } | Select-Object -First 1).Trim())'"
 Assert (-not (Test-Path (Join-Path $state 'errors.log'))) "no hook errors"
 
+Write-Host "2b. binder --web from the module, with no Python anywhere (the binder app's own export)" -ForegroundColor Cyan
+# no POKESHELL_PYTHON and no python / py / python3 on PATH (the child processes inherit this environment)
+$savedPath = $env:PATH; $savedPy = $env:POKESHELL_PYTHON
+$env:POKESHELL_PYTHON = $null
+$env:PATH = (@($savedPath -split ';' | Where-Object { $d = $_.Trim(); $d -and -not ([IO.Directory]::Exists($d) -and @([IO.Directory]::GetFiles($d, 'python*') + [IO.Directory]::GetFiles($d, 'py.*')).Count) }) -join ';')
+try {
+  $found = @(Get-Command python, py, python3 -ErrorAction SilentlyContinue | ForEach-Object Source)
+  Assert (-not $found) "no Python on PATH for this check (POKESHELL_PYTHON cleared)$(if ($found) { ': ' + ($found -join ', ') })"
+  [IO.File]::WriteAllLines((Join-Path $state 'pulls.log'), [string[]]@("$([DateTime]::Now.ToString('s'))`tfixture`tbob`tcommon`tfx-1`t`t0`t"), $utf8)
+  $out = & { $ErrorActionPreference = 'Continue'; Run module @('binder', '--web', '--noopen') }   # (the export's warnings on stderr are output)
+  $web = Join-Path $state 'web'
+  $wd = if (Test-Path (Join-Path $web 'data.json')) { [IO.File]::ReadAllText((Join-Path $web 'data.json'), [Text.Encoding]::UTF8) | ConvertFrom-Json }
+  Assert ($out -match 'web binder at' -and $out -notmatch 'failed|Python|binder_web' -and $wd) "binder --web --noopen from the staged module: $((($out -split "`n") | Where-Object { $_ -match 'pulls caught|web binder at' } | ForEach-Object { $_.Trim() }) -join ' / ')"
+  $fxPack = @($wd.packs | Where-Object id -eq 'fixture')
+  Assert ($wd.counts.caught -eq 1 -and $fxPack.Count -eq 1 -and @($fxPack[0].cards).Count -eq 1 -and (Test-Path (Join-Path $web 'img\fixture\bob\fx-1.png'))) "data.json and the card's PNG (img\fixture\bob\fx-1.png, what the arena's art paths point at)"
+  $html = if (Test-Path (Join-Path $web 'binder.html')) { [IO.File]::ReadAllText((Join-Path $web 'binder.html'), [Text.Encoding]::UTF8) } else { '' }
+  Assert ($html.Contains('function seenEl') -and $html.Contains('"owner":') -and -not $html.Contains('/*__INLINE_DATA__*/null')) "binder.html is the page (built into binder.exe: a module has no tools\) with the data inlined"
+} finally {
+  $env:PATH = $savedPath; $env:POKESHELL_PYTHON = $savedPy
+  Remove-Item (Join-Path $state 'pulls.log'), (Join-Path $state 'web') -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Write-Host "3. simulated Update-Module: 0.2.0 next to 0.1.0" -ForegroundColor Cyan
 $v2 = Stage '0.2.0'
 Add-FixturePack $v2

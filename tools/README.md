@@ -142,20 +142,23 @@ $env:PSGALLERY_API_KEY = '<key>'; powershell -NoProfile -ExecutionPolicy Bypass 
 ```
 
 It stages only the files the module ships (see the header of the script); `tests\test-module.ps1` checks the staged module.
-The module doesn't ship the binder app yet (`binder.exe` and its link launcher `binder-link.exe` are built from
-`binder\`, never committed): a Gallery install gets the text binder, and `pokeshell install` skips the Ctrl+Shift+B
-hotkey and the card's Ctrl+click link (it says so). A package that carries `bin\binder.exe` and `bin\binder-link.exe`
-gets both: install copies them into `<state>\current` with the rest of the runtime, and points the hotkey and the
-`pokeshell://` handler there.
+The binder app (`binder.exe` and its link launcher `binder-link.exe`) is built from `binder\` and never committed:
+staging copies the release build into the module's `bin\` (and refuses one older than a file it is built from, per
+cargo's `target\release\<exe>.d`). Install copies them into `<state>\current` with the rest of the runtime and points
+the hotkey and the `pokeshell://` handler there; `binder --web` runs `bin\binder.exe --export-web`. A package without
+them gets the text binder, and `pokeshell install` skips the Ctrl+Shift+B hotkey and the card's Ctrl+click link (it
+says so).
 
-## binder_web.py: the web binder
+## The web binder export (binder.exe --export-web)
 
-`pokeshell binder --web` runs it (Python with Pillow: `POKESHELL_PYTHON`, the repo's `.venv`, or `py -3`). It reads
-`pulls.log` with the earned rule, the packs, card data and the prebuilt art, and writes `data.json`, `img/` and the baked
-`binder.html` (`tools/binder-web/index.html` with the data inlined) into `<state>\web`:
+The export is the binder app's (`binder/src/webexport.rs`; it replaced `tools/binder_web.py`, and needs no Python, so a
+Gallery install has it in `bin\binder.exe`). `pokeshell binder --web` runs it. It reads `pulls.log` with the earned
+rule, the packs, card data and the prebuilt art, and writes `data.json`, `img/` and the baked `binder.html`
+(`tools/binder-web/index.html` with the data inlined; a module install, which has no `tools\`, uses the copy built into
+binder.exe) into `<state>\web`:
 
 ```powershell
-.venv\Scripts\python tools\binder_web.py [--state <dir>] [--out <dir>] [--root <checkout>] [--no-art]
+binder\target\release\binder.exe --export-web <out> [--state <dir>] [--root <checkout>] [--no-art] [--owner <name>]
 ```
 
 Decoded art is cached in `img\.cache.json` (source mtime and size -> PNG size and tint): a rerun decodes nothing that

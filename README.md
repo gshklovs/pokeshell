@@ -217,7 +217,7 @@ Then delete the line from `$PROFILE` (until you do, tabs keep printing common pu
 | `pokeshell pack sets` / `pack odds <set>` | the boosters you can open; one booster's slots and odds |
 | `pokeshell pack grant <n> --reason <text>` / `pack tokens` | add pack tokens (what a game that awards packs calls); the balance |
 | `pokeshell binder` (or just `binder`) | the binder app, full screen in this tab; `q` gives the prompt back as it was. Opens on the last card you caught; `--pull <id>`, `--card <pack/character/tier>` or `--card pokemon/<card id>`, `--set <set>` (a set's checklist, by id or name: `swsh7`, `evolving`, `30th`), `--search <query>`. Without the app built (`binder\build.ps1`) it prints the text binder |
-| `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (about a second; needs Python with Pillow) and opens it |
+| `pokeshell binder --web` | rebuilds the static web binder into `%LOCALAPPDATA%\pokeshell\web` (the binder app's export: half a second once its art cache is warm, no Python needed) and opens it |
 | `pokeshell collection --json`, `version --json` | JSON for other tools: your caught and seen cards (with their gameplay data and art paths), and this install. See [For other tools](#for-other-tools) |
 | `pokeshell collection` | the text binder: per pack, every character x tier you've earned, shiny counts, completion, best pulls, how many are pending; pulls of retired art, or of cards whose art isn't built, are left out |
 | `pokeshell earn [first-command\|minutes:N\|off]` | what earns a pull: the first command you run in its tab (default), its tab staying open N minutes, or nothing (`off`: every pull counts at once) |

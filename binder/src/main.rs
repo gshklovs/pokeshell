@@ -17,6 +17,9 @@
 //!   binder --text              with --first-frame / --bench: the text half (v) on
 //!   binder --selftest          fuzz keys/mouse/resizes through the event handler, rendering each
 //!   binder --demo-pending N    preview the earned rule: treat the N newest pulls as pending (seen, not caught)
+//!   binder --export-web DIR    write the web binder (data.json, img\, binder.html) into DIR and exit (webexport.rs;
+//!                              `pokeshell binder --web`); --no-art: no art decoded or written; --owner NAME: the cover's
+//!                              name (default: $POKESHELL_OWNER, else the user name)
 //!
 //! In the app, `p` shows the real printed card beside ours (caught cards; the scan is downloaded once into
 //! <state>\cache\realcards). POKESHELL_SIXEL=on|off|auto: sixel or half blocks (auto asks the terminal, DA1).
@@ -34,6 +37,7 @@ mod real;
 mod snapshot;
 mod theme;
 mod ui;
+mod webexport;
 
 use app::{App, Opts, Start};
 use crossterm::event::{self, DisableFocusChange, DisableMouseCapture, EnableFocusChange, EnableMouseCapture};
@@ -110,6 +114,10 @@ struct Args {
     text: bool,
     selftest: bool,
     demo_pending: usize,
+    export_web: Option<String>,
+    owner: Option<String>,
+    no_art: bool,
+    number_order: Option<String>,
 }
 
 fn parse_args() -> Args {
@@ -127,6 +135,10 @@ fn parse_args() -> Args {
         text: false,
         selftest: false,
         demo_pending: 0,
+        export_web: None,
+        owner: None,
+        no_art: false,
+        number_order: None,
     };
     let mut it = std::env::args().skip(1).peekable();
     // a flag's value: the next argument, unless it is another flag (D-07: `--state --snapshot x` is an error, not a
@@ -168,6 +180,11 @@ fn parse_args() -> Args {
                 a.first_only = true
             }
             "--text" => a.text = true,
+            "--export-web" => a.export_web = Some(val("--export-web", &mut it)),
+            "--owner" => a.owner = Some(val("--owner", &mut it)),
+            "--no-art" => a.no_art = true,
+            // (tests: the web export's checklist order of card numbers, comma-separated in, sorted out)
+            "--number-order" => a.number_order = Some(it.next().unwrap_or_default()),
             "--demo-pending" => a.demo_pending = val("--demo-pending", &mut it).parse().unwrap_or(0),
             "-h" | "--help" => {
                 println!("{}", include_str!("main.rs").lines().take_while(|l| l.starts_with("//!")).map(|l| l.trim_start_matches("//!")).collect::<Vec<_>>().join("\n"));
@@ -185,6 +202,12 @@ fn parse_args() -> Args {
 fn main() -> io::Result<()> {
     let t0 = Instant::now();
     let args = parse_args();
+    if let Some(list) = &args.number_order {
+        let mut v: Vec<&str> = list.split(',').collect();
+        v.sort_by_key(|n| webexport::number_key(n));
+        println!("{}", v.join(","));
+        return Ok(());
+    }
     let Some(root) = find_root(args.root.clone()) else {
         eprintln!("binder: can't find the pokeshell checkout (use --root or POKESHELL_ROOT)");
         std::process::exit(1);
@@ -194,6 +217,10 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     }
     let state = args.state.clone().map(PathBuf::from).unwrap_or_else(default_state);
+    if let Some(out) = &args.export_web {
+        let o = webexport::Opts { root, state, log: args.log.clone().map(PathBuf::from), out: PathBuf::from(out), owner: args.owner.clone(), no_art: args.no_art };
+        std::process::exit(webexport::run(o));
+    }
     let log = args.log.clone().map(PathBuf::from).unwrap_or_else(|| state.join("pulls.log"));
     let viewed = log.parent().map(|d| d.join("viewed.txt")).unwrap_or_else(|| state.join("viewed.txt"));
     let headless = args.snapshot.is_some() || args.selftest || args.bench;

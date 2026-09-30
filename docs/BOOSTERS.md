@@ -28,7 +28,7 @@ The data is `packs/pokemon/boosters.json`; the roll is `scripts/lib/booster.ps1`
   refused (`code: "no-tokens"`, exit 1) and nothing is rolled or recorded.
 - `--seed N`: a reproducible pack (System.Random). Without it every draw comes from the OS CSPRNG
   (`RandomNumberGenerator`), so a pack can't be predicted or replayed; the JSON says `"secure": true`.
-- `--export`: after recording, rebuild the web export (`tools/binder_web.py`, about a second with its cache) so every
+- `--export`: after recording, rebuild the web export (`binder.exe --export-web`, under a second with its cache) so every
   `image` below exists, including shiny forms (the export only writes a shiny image once it has been pulled).
 - In a terminal (no `--json`): the cards are revealed one by one in their normal card rendering (the tier's frame,
   the shiny palette), rarest last, with a tease line before a big hit; any key shows the next card, `s` skips to the

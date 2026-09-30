@@ -462,7 +462,7 @@ The tier stays the printed rarity (Rare Ultra, Rare Rainbow, Special Illustratio
   - The rows are the header (name, V/VMAX/ex badge, HP, type glyph), abilities, attacks, and the footer (weakness / resistance / retreat, then set, number, rarity symbol and artist).
   - Energy is a one-cell `●` in the type colour, never emoji.
 - **Frame colour.** For evs it comes from `bottom.RARITY_FRAME`. For later sets it comes from the builder's `meta["frame"]` (`p30build.render`). **Add a frame colour for every new rarity.**
-- **In the product,** the binder (`binder/src/cardtext.rs`, `tools/binder_web.py`) draws the text half from `packs/pokemon/cards/<id>.json` and shows it with `v`. It stays hidden in tabs.
+- **In the product,** the binder (`binder/src/cardtext.rs`, the web export `binder/src/webexport.rs`) draws the text half from `packs/pokemon/cards/<id>.json` and shows it with `v`. It stays hidden in tabs.
 - `out/<id>-card[-shiny].png` (the art over its text half) is the third panel of every side-by-side.
 
 ## 14. Batch modules: how a set's code is organised

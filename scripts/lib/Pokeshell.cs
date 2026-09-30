@@ -24,7 +24,7 @@
 //   event   time earned:<id>   |   time expired:<id>
 // A line without an id (older logs) is earned. A pending pull with no event expires after 24 h, or when its boot
 // session is over (boot= differs from this boot's by more than BootSlackSec). ReadPulls applies these rules;
-// binder/src/data.rs and tools/binder_web.py mirror them.
+// binder/src/data.rs and binder/src/webexport.rs (the web export) mirror them.
 using System;
 using System.Collections.Generic;
 using System.Globalization;

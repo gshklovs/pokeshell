@@ -51,12 +51,21 @@ foreach ($f in $files) {
   Copy-Item -LiteralPath (Join-Path $Root $f) -Destination $to
 }
 # the binder app and its windowless link launcher (no art in them): built by binder\build.ps1, shipped in bin\ so a
-# module install gets the binder, its Ctrl+Shift+B pane and the card's Ctrl+click link (common.ps1 looks there first)
+# module install gets the binder, its Ctrl+Shift+B pane, the card's Ctrl+click link (common.ps1 looks there first) and
+# `binder --web` (binder.exe --export-web, the page built in: no Python needed)
 $rel = Join-Path $Root 'binder\target\release'
 foreach ($exe in 'binder.exe', 'binder-link.exe') {
   $src = Join-Path $rel $exe
   if (-not [IO.File]::Exists($src)) { throw "staging: $exe isn't built (powershell -File binder\build.ps1)" }
-  $newest = Get-ChildItem (Join-Path $Root 'binder\src'), (Join-Path $Root 'binder\Cargo.toml') -Recurse -File | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+  # stale when a file it is built from is newer: cargo's dep-info (<exe>.d) lists them (binder.exe also embeds
+  # tools\binder-web\index.html; binder-link.exe is only link.rs + linkurl.rs), plus Cargo.toml; without it, all of src
+  $dep = [IO.Path]::ChangeExtension($src, '.d')
+  $inputs = @((Join-Path $Root 'binder\Cargo.toml'))
+  if ([IO.File]::Exists($dep)) {
+    $body = ([IO.File]::ReadAllText($dep) -split ':\s', 2)[1]
+    $inputs += @([regex]::Split("$body".Trim(), '(?<!\\)\s+') | Where-Object { $_ } | ForEach-Object { $_ -replace '\\ ', ' ' })
+  } else { $inputs += @(Get-ChildItem (Join-Path $Root 'binder\src') -Recurse -File | ForEach-Object FullName) }
+  $newest = @($inputs | Where-Object { [IO.File]::Exists($_) } | ForEach-Object { Get-Item -LiteralPath $_ }) | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
   if ($newest.LastWriteTimeUtc -gt (Get-Item $src).LastWriteTimeUtc) { throw "staging: $exe is older than $($newest.Name) (rebuild: powershell -File binder\build.ps1)" }
   [void][IO.Directory]::CreateDirectory((Join-Path $OutDir 'bin'))
   Copy-Item -LiteralPath $src -Destination (Join-Path $OutDir "bin\$exe")

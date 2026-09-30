@@ -1228,7 +1228,7 @@ dialog.detail.has-printed { max-width: min(1180px, calc(100vw - 24px)); }
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
-/* The exporter (tools/binder_web.py) swaps the null below for the data when it bakes binder.html. */
+/* The exporter (binder --export-web, binder/src/webexport.rs) swaps the null below for the data when it bakes binder.html. */
 const INLINE_DATA = /*__INLINE_DATA__*/null;
 
 (async function main() {
@@ -1874,7 +1874,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     return g;
   }
 
-  // a seen card's silhouette image (binder_web.py's module doc): real cards the image the exporter names (a common of
+  // a seen card's silhouette image (webexport.rs's module doc): real cards the image the exporter names (a common of
   // the character, its sprite, or the card's sprite layer), else the base art (grid) or the pulled sprite (dex)
   function seenImg(slot) {
     const pk = packById[slot.pack], c = pk.charById[slot.char], map = c?.img || {};
@@ -2510,7 +2510,7 @@ const INLINE_DATA = /*__INLINE_DATA__*/null;
     } else skinSec.append(h('p', { class: 'd-foot' }, gotAll.length ? 'No skin recorded for this pull (the foil was blocked, or the skin isn\'t installed).' : `Pulled as a foil, this card gets one of: ${t.skins.map(x => skinName(x.id)).join(', ') || 'no skin yet'}.`));
     info.append(skinSec);
 
-    // odds: the game's (tools/binder_web.py mirrors `pokeshell odds`)
+    // odds: the game's (binder/src/webexport.rs mirrors `pokeshell odds`)
     const tb = h('tbody');
     pk.tiers.forEach(tt => tb.append(h('tr', { class: tt.id === t.id ? 'me' : '' }, h('td', {}, rarEl(pk.id, tt.id), ` ${tt.label}`), h('td', {}, `${pct(tt.odds)} · ${oneIn(tt.odds)}`))));
     if (pk.shiny_chance > 0) tb.append(h('tr', { class: showShiny ? 'me' : '' }, h('td', {}, pk.tiers.some(x => x.shiny === 'printed') ? '✦ shiny (any rarity but the printed-shiny ones)' : '✦ shiny (any rarity)'), h('td', {}, `${pct(pk.shiny_chance)} · ${oneIn(pk.shiny_chance)}`)));
